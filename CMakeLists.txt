@@ -25,3 +25,4 @@ target_include_directories(demo PRIVATE ${PORTAUDIO_INCLUDE_DIRS})
 # Linking libraries
 target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES})
 target_link_libraries(demo PRIVATE WavReader)
+target_link_libraries(demo PRIVATE AudioHelper)
