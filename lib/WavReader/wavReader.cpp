@@ -73,17 +73,17 @@ void printWAVHeader(WavHeader wavHeader)
 //******** Main functions *************************
 //*************************************************
 
-bool openWAVFile(const char* filename, FILE *fileRead, bool printHeader) {
+bool openWAVFile(const char* filename, FILE **fileRead, bool printHeader) {
 
     // Opening file and checking if it was successfull:
-    if (!openFile(filename, &fileRead, "r"))
+    if (!openFile(filename, fileRead, "r"))
     {
         return false;
     }
 
     // Reading WAV header:
     uint8_t header[44];
-    fread(header, 1, 44, fileRead);
+    fread(header, 1, 44, *fileRead);
 
     WavHeader wavHeader = createWavHeaderFromFile(header);
 

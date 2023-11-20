@@ -21,6 +21,6 @@ struct WavHeader {
     uint32_t subchunk2Size;
 };
 
-bool openWAVFile(const char *filename, FILE *fileRead, bool printHeader);
+bool openWAVFile(const char *filename, FILE **fileRead, bool printHeader);
 
 #endif

@@ -51,31 +51,28 @@ int main()
     }
 
     // Reading WAV file:
-    const std::string wavFilePath = "../src/song.wav";
+    const std::string wavFilePath = "../src/song2.wav";
     FILE *fileRead;
 
-    if (!openWAVFile(wavFilePath.c_str(), fileRead, true))
+    if (!openWAVFile(wavFilePath.c_str(), &fileRead, true))
     {
         cout << "Failed to open WAV file...\n";
     }
 
     // Reading successfull, so playing it:
-    if (!feof(fileRead))
+    while (!feof(fileRead))
     {
         uint16_t audioData[FRAMES_PER_BUFFER];
 
-        size_t bytesRead = fread((char *)audioData, 2, 10, fileRead);
-        // size_t bytesRead = fread(audioData, 2, I2S_BLOCK_SIZE, fileRead);
+        size_t bytesRead = fread((char *)audioData, 2, FRAMES_PER_BUFFER, fileRead);
 
-        //writeCallback(audioData, (uint16_t)(bytesRead / 2));
-        // writeCallback(audioData, (uint16_t)(bytesRead));
-
-        // err = Pa_WriteStream(stream, &audioData, FRAMES_PER_BUFFER); // Send one byte at a time
-        // if (err != paNoError)
-        // {
-        //     std::cerr << "PortAudio write failed: " << Pa_GetErrorText(err) << '\n';
-        //     break;
-        // } 
+        err = Pa_WriteStream(stream, &audioData, bytesRead); // Send few bytes at a time
+        
+        if (err != paNoError)
+        {
+            std::cerr << "PortAudio write failed: " << Pa_GetErrorText(err) << '\n';
+            break;
+        }
     }
 
     // Stop and close the stream
