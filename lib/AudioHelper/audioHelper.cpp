@@ -13,6 +13,41 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
     this->numChannels = numChannels;
 }
 
+int audioCallback(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
+{
+    // We want to put data into the outputbuffer as soon as this one is called.
+    uint16_t *inputData = (uint16_t *)inputData;
+    uint16_t *outputData = (uint16_t *)outputBuffer;
+
+    // Casting userdata:
+    AudioCallbackData *callbackData = (AudioCallbackData *)userData;
+
+    // Copying over data:
+    if (callbackData->bufferIdx == 0)
+    {
+        copy(callbackData->buffer1, callbackData->buffer1 + FRAMES_PER_BUFFER, outputData);
+    }
+    else
+    {
+        copy(callbackData->buffer2, callbackData->buffer2 + FRAMES_PER_BUFFER, outputData);
+    }
+
+    // Signaling read available:
+    callbackData->bufferIdx = (callbackData->bufferIdx + 1 % NUM_BUFFERS);
+    callbackData->writeNextBatch = true;
+
+    // const uint16_t *inputData = static_cast<const uint16_t *>(inputBuffer);
+
+    // for (int i = 0; i < 20; i++)
+    // {
+    //     cout << inputData[i] << ", ";
+    // }
+
+    // int test = inputData[1];
+
+    return paContinue;
+}
+
 bool AudioHelper::initializeAndOpen()
 {
     // Initialize PortAudio
@@ -24,7 +59,7 @@ bool AudioHelper::initializeAndOpen()
         return false;
     }
 
-    // Looking for respeaker and selecting it:
+    // Looking for respeaker and selecting it (May not be necesarry....):
     const PaDeviceInfo *deviceInfo;
     uint8_t deviceIdx;
 
@@ -41,12 +76,15 @@ bool AudioHelper::initializeAndOpen()
     }
 
     // Checking if number of channels is allowed:
-    if (numChannels > deviceInfo->maxInputChannels)  
+    if (numChannels > deviceInfo->maxInputChannels)
     {
         cerr << "More channels requested than available\n";
 
         return false;
     }
+
+    // Prepare callback data:
+    callbackData.writeNextBatch = true;
 
     //  Set up PortAudio stream parameters
     PaStreamParameters outputParameters;
@@ -57,14 +95,14 @@ bool AudioHelper::initializeAndOpen()
     outputParameters.hostApiSpecificStreamInfo = nullptr;
 
     PaStreamParameters inputParameters;
-    inputParameters.device = deviceIdx;
+    inputParameters.device = Pa_GetDefaultInputDevice();
     inputParameters.channelCount = numChannels;
     inputParameters.sampleFormat = getSampleFormat(bitsPerSample);
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
     inputParameters.hostApiSpecificStreamInfo = nullptr;
 
     // Open PortAudio stream
-    err = Pa_OpenStream(&stream, &inputParameters, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paClipOff, nullptr, nullptr); // No callback, just to illustrate the concept
+    err = Pa_OpenStream(&stream, &inputParameters, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paClipOff, &audioCallback, &callbackData); // No callback, just to illustrate the concept
 
     if (err != paNoError)
     {
@@ -89,16 +127,25 @@ bool AudioHelper::initializeAndOpen()
     return true;
 }
 
-bool AudioHelper::writeBytes(const void *buffer, uint32_t nrOfBytes)
+bool AudioHelper::writeBytes(const uint16_t *audioData, uint32_t nrOfBytes)
 {
-    err = Pa_WriteStream(stream, buffer, nrOfBytes); // Send few bytes at a time
+    callbackData.writeNextBatch = false;
 
-    if (err != paNoError)
-    {
-        cerr << "PortAudio write failed: " << Pa_GetErrorText(err) << '\n';
-
-        return false;
+    if(callbackData.bufferIdx == 0) {
+        copy(audioData, audioData + nrOfBytes, callbackData.buffer1);
     }
+    else {
+        copy(audioData, audioData + nrOfBytes, callbackData.buffer2);
+    }
+
+    // err = Pa_WriteStream(stream, buffer, nrOfBytes); // Send few bytes at a time
+
+    // if (err != paNoError)
+    // {
+    //     cerr << "PortAudio write failed: " << Pa_GetErrorText(err) << '\n';
+
+    //     return false;
+    // }
 
     return true;
 }
@@ -144,4 +191,12 @@ PaSampleFormat AudioHelper::getSampleFormat(uint16_t bitsPerSample)
     {
         return paInt32;
     }
+
+    // TODO error:
+    return paInt32;
+}
+
+bool AudioHelper::writeNextBatch()
+{
+    return callbackData.writeNextBatch;
 }

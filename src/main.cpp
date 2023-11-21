@@ -6,7 +6,7 @@
 
 using namespace std;
 
-AudioHelper audioHelper(44100, 16, 1);
+AudioHelper audioHelper(44100, 16, 8);
 
 int main()
 {
@@ -29,18 +29,27 @@ int main()
     // Reading successfull, so playing it:
     while (!feof(fileRead))
     {
+        //Waiting for batch to be written:
+        if (!audioHelper.writeNextBatch())
+        {
+            continue;
+        }
+
         uint16_t audioData[FRAMES_PER_BUFFER];
 
         size_t bytesRead = fread((char *)audioData, 2, FRAMES_PER_BUFFER, fileRead);
 
         // Writing to helper:
-        if (!audioHelper.writeBytes(&audioData, bytesRead))
+        if (!audioHelper.writeBytes(audioData, bytesRead))
         {
-            //cout << "Something went"
+            // cout << "Something went"
 
             break;
         }
     }
+
+    std::cout << "Playing sound... Press Enter to stop." << std::endl;
+    std::cin.get(); // Wait for Enter key
 
     audioHelper.stopAndClose();
 
