@@ -1,5 +1,7 @@
 #include <iostream>
 #include <stdio.h>
+#include <signal.h>
+#include<unistd.h> 
 
 #include "wavReader.h"
 #include "audioHelper.h"
@@ -10,6 +12,8 @@ AudioHelper audioHelper(44100, 16, 8);
 
 int main()
 {
+    audioHelper.clearBuffers();
+    
     if (!audioHelper.initializeAndOpen())
     {
         cout << "Initializing audio helper has failed!\n";
@@ -29,9 +33,14 @@ int main()
     // Reading successfull, so playing it:
     while (!feof(fileRead))
     {
+        //Needed to prevent overflowing :)
+        //usleep(10);
+
         //Waiting for batch to be written:
         if (!audioHelper.writeNextBatch())
         {
+            usleep(1);
+
             continue;
         }
 
@@ -46,10 +55,14 @@ int main()
 
             break;
         }
+
+        
     }
 
-    std::cout << "Playing sound... Press Enter to stop." << std::endl;
-    std::cin.get(); // Wait for Enter key
+    audioHelper.clearBuffers();
+
+    // std::cout << "Playing sound... Press Enter to stop." << std::endl;
+    // std::cin.get(); // Wait for Enter key
 
     audioHelper.stopAndClose();
 

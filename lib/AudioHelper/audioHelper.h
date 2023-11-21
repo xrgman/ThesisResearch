@@ -5,7 +5,7 @@
 #include <vector>
 #include <portaudio.h>
 
-#define FRAMES_PER_BUFFER 1024
+#define FRAMES_PER_BUFFER 2048
 #define CALLBACK_BUF_LEN 1024
 #define NUM_BUFFERS 2
 
@@ -26,6 +26,7 @@ public:
     bool writeBytes(const uint16_t *audioData, uint32_t nrOfBytes);
     bool stopAndClose();
 
+    void clearBuffers();
     bool writeNextBatch();
 
 private:

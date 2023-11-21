@@ -36,6 +36,8 @@ int audioCallback(const void *inputBuffer, void *outputBuffer, unsigned long fra
     callbackData->bufferIdx = (callbackData->bufferIdx + 1 % NUM_BUFFERS);
     callbackData->writeNextBatch = true;
 
+    // Grabbing read data:
+
     // const uint16_t *inputData = static_cast<const uint16_t *>(inputBuffer);
 
     // for (int i = 0; i < 20; i++)
@@ -50,6 +52,11 @@ int audioCallback(const void *inputBuffer, void *outputBuffer, unsigned long fra
 
 bool AudioHelper::initializeAndOpen()
 {
+    cout << "PortAudio version " << Pa_GetVersionText() << endl;
+
+    //Pa_Sleep(5000);
+    
+
     // Initialize PortAudio
     err = Pa_Initialize();
     if (err != paNoError)
@@ -71,7 +78,7 @@ bool AudioHelper::initializeAndOpen()
         {
             deviceIdx = i;
 
-            break;
+            break; 
         }
     }
 
@@ -131,10 +138,12 @@ bool AudioHelper::writeBytes(const uint16_t *audioData, uint32_t nrOfBytes)
 {
     callbackData.writeNextBatch = false;
 
-    if(callbackData.bufferIdx == 0) {
+    if (callbackData.bufferIdx == 0)
+    {
         copy(audioData, audioData + nrOfBytes, callbackData.buffer1);
     }
-    else {
+    else
+    {
         copy(audioData, audioData + nrOfBytes, callbackData.buffer2);
     }
 
@@ -194,6 +203,15 @@ PaSampleFormat AudioHelper::getSampleFormat(uint16_t bitsPerSample)
 
     // TODO error:
     return paInt32;
+}
+
+void AudioHelper::clearBuffers()
+{
+    for (int i = 0; i < FRAMES_PER_BUFFER; i++)
+    {
+        callbackData.buffer1[i] = 0;
+        callbackData.buffer2[i] = 0;
+    }
 }
 
 bool AudioHelper::writeNextBatch()
