@@ -11,11 +11,12 @@
 
 struct AudioCallbackData
 {
-    uint16_t buffer1[FRAMES_PER_BUFFER];
-    uint16_t buffer2[FRAMES_PER_BUFFER];
-    uint8_t bufferIdx;
-    bool writeNextBatch;
+    
+
+    uint8_t numChannels;
 };
+
+static std::vector<std::vector<uint16_t>> audioData(8, std::vector<uint16_t>(FRAMES_PER_BUFFER, 0.0f));
 
 class AudioHelper
 {
@@ -34,12 +35,31 @@ private:
     uint16_t bitsPerSample;
     uint8_t numChannels;
 
-    PaError err;
-    PaStream *stream;
+    //Used in callback:
+    uint16_t buffer1[FRAMES_PER_BUFFER];
+    uint16_t buffer2[FRAMES_PER_BUFFER];
+    uint8_t bufferIdx;
+    bool writeNext;
 
-    AudioCallbackData callbackData;
+    PaStream *outputStream, *inputStream;
 
+    int outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags);
+    int inputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags);
+
+    bool checkForPaError(PaError err, const char *part);
+    bool checkForPaError(PaError err, const char *part, bool cleanup);
     PaSampleFormat getSampleFormat(uint16_t bitsPerSample);
+
+    //Callback method:
+    static int outputCallback(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
+    {
+        return ((AudioHelper *)userData)->outputCallbackMethod(inputBuffer, outputBuffer, framesPerBuffer, timeInfo, statusFlags);
+    }
+
+    static int inputCallback(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
+    {
+        return ((AudioHelper *)userData)->inputCallbackMethod(inputBuffer, outputBuffer, framesPerBuffer, timeInfo, statusFlags);
+    }
 };
 
 #endif

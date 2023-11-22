@@ -13,56 +13,60 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
     this->numChannels = numChannels;
 }
 
-int audioCallback(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
+int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
     // We want to put data into the outputbuffer as soon as this one is called.
     uint16_t *inputData = (uint16_t *)inputData;
     uint16_t *outputData = (uint16_t *)outputBuffer;
 
-    // Casting userdata:
-    AudioCallbackData *callbackData = (AudioCallbackData *)userData;
-
     // Copying over data:
-    if (callbackData->bufferIdx == 0)
+    if (bufferIdx == 0)
     {
-        copy(callbackData->buffer1, callbackData->buffer1 + FRAMES_PER_BUFFER, outputData);
+        copy(buffer1, buffer1 + FRAMES_PER_BUFFER, outputData);
     }
     else
     {
-        copy(callbackData->buffer2, callbackData->buffer2 + FRAMES_PER_BUFFER, outputData);
+        copy(buffer2, buffer2 + FRAMES_PER_BUFFER, outputData);
     }
 
-    // Signaling read available:
-    callbackData->bufferIdx = (callbackData->bufferIdx + 1 % NUM_BUFFERS);
-    callbackData->writeNextBatch = true;
+    // // Signaling write available:
+    bufferIdx = (bufferIdx + 1 % NUM_BUFFERS);
+    writeNext = true;
+
+    return paContinue;
+}
+
+int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
+{
+    // We want to put data into the outputbuffer as soon as this one is called.
+    uint16_t *inputData = (uint16_t *)inputData;
+    uint16_t *outputData = (uint16_t *)outputBuffer;
 
     // Grabbing read data:
-
-    // const uint16_t *inputData = static_cast<const uint16_t *>(inputBuffer);
-
-    // for (int i = 0; i < 20; i++)
+    // for (int i = 0; i < framesPerBuffer; i++)
     // {
-    //     cout << inputData[i] << ", ";
+    //     for (int channel = 0; channel < callbackData->numChannels; channel++)
+    //     {
+    //         audioData[channel][i] = inputData[i * callbackData->numChannels + channel];
+    //     }
     // }
-
-    // int test = inputData[1];
 
     return paContinue;
 }
 
 bool AudioHelper::initializeAndOpen()
 {
+    // To be safe, lets terminate it before initializing...
+    Pa_Terminate();
+    // putenv("PULSE_LATENCY_MSEC=10");
+
     cout << "PortAudio version " << Pa_GetVersionText() << endl;
 
-    //Pa_Sleep(5000);
-    
-
     // Initialize PortAudio
-    err = Pa_Initialize();
-    if (err != paNoError)
-    {
-        cerr << "PortAudio initialization failed: " << Pa_GetErrorText(err) << '\n';
+    PaError err = Pa_Initialize();
 
+    if (!checkForPaError(err, "initialization"))
+    {
         return false;
     }
 
@@ -78,7 +82,7 @@ bool AudioHelper::initializeAndOpen()
         {
             deviceIdx = i;
 
-            break; 
+            break;
         }
     }
 
@@ -91,43 +95,49 @@ bool AudioHelper::initializeAndOpen()
     }
 
     // Prepare callback data:
-    callbackData.writeNextBatch = true;
+    writeNext = true;
 
-    //  Set up PortAudio stream parameters
+    // Configure and open output stream:
     PaStreamParameters outputParameters;
     outputParameters.device = Pa_GetDefaultOutputDevice();
-    outputParameters.channelCount = 1; // Mono
+    outputParameters.channelCount = 1;
     outputParameters.sampleFormat = getSampleFormat(bitsPerSample);
     outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
     outputParameters.hostApiSpecificStreamInfo = nullptr;
 
+    err = Pa_OpenStream(&outputStream, NULL, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paClipOff, &outputCallback, this);
+
+    if (!checkForPaError(err, "output stream opening"))
+    {
+        return false;
+    }
+
+    err = Pa_StartStream(outputStream);
+
+    if (!checkForPaError(err, "output stream start"))
+    {
+        return false;
+    }
+
+    // Configure and open input stream:
     PaStreamParameters inputParameters;
     inputParameters.device = Pa_GetDefaultInputDevice();
     inputParameters.channelCount = numChannels;
     inputParameters.sampleFormat = getSampleFormat(bitsPerSample);
-    inputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowInputLatency;
     inputParameters.hostApiSpecificStreamInfo = nullptr;
 
-    // Open PortAudio stream
-    err = Pa_OpenStream(&stream, &inputParameters, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paClipOff, &audioCallback, &callbackData); // No callback, just to illustrate the concept
+    err = Pa_OpenStream(&inputStream, &inputParameters, NULL, sampleRate, FRAMES_PER_BUFFER, paClipOff, &inputCallback, this);
 
-    if (err != paNoError)
+    if (!checkForPaError(err, "input stream opening"))
     {
-        cerr << "PortAudio stream opening failed: " << Pa_GetErrorText(err) << '\n';
-        Pa_Terminate();
-
         return false;
     }
 
-    // Start the stream
-    err = Pa_StartStream(stream);
+    err = Pa_StartStream(inputStream);
 
-    if (err != paNoError)
+    if (!checkForPaError(err, "input stream start"))
     {
-        cerr << "PortAudio stream start failed: " << Pa_GetErrorText(err) << '\n';
-        Pa_CloseStream(stream);
-        Pa_Terminate();
-
         return false;
     }
 
@@ -136,15 +146,15 @@ bool AudioHelper::initializeAndOpen()
 
 bool AudioHelper::writeBytes(const uint16_t *audioData, uint32_t nrOfBytes)
 {
-    callbackData.writeNextBatch = false;
+    writeNext = false;
 
-    if (callbackData.bufferIdx == 0)
+    if (bufferIdx == 0)
     {
-        copy(audioData, audioData + nrOfBytes, callbackData.buffer1);
+        copy(audioData, audioData + nrOfBytes, buffer1);
     }
     else
     {
-        copy(audioData, audioData + nrOfBytes, callbackData.buffer2);
+        copy(audioData, audioData + nrOfBytes, buffer2);
     }
 
     // err = Pa_WriteStream(stream, buffer, nrOfBytes); // Send few bytes at a time
@@ -161,19 +171,34 @@ bool AudioHelper::writeBytes(const uint16_t *audioData, uint32_t nrOfBytes)
 
 bool AudioHelper::stopAndClose()
 {
-    // Stop and close the stream
-    err = Pa_StopStream(stream);
+    // Stop and close input stream:
+    PaError err = Pa_StopStream(outputStream);
 
-    if (err != paNoError)
+    if (!checkForPaError(err, "output stream stop", false))
     {
-        cerr << "PortAudio stream stop failed: " << Pa_GetErrorText(err) << '\n';
+        return false;
     }
 
-    err = Pa_CloseStream(stream);
+    err = Pa_CloseStream(outputStream);
 
-    if (err != paNoError)
+    if (!checkForPaError(err, "output stream close", false))
     {
-        cerr << "PortAudio stream close failed: " << Pa_GetErrorText(err) << '\n';
+        return false;
+    }
+
+    // Stop and close output stream:
+    err = Pa_StopStream(inputStream);
+
+    if (!checkForPaError(err, "input stream stop", false))
+    {
+        return false;
+    }
+
+    err = Pa_CloseStream(inputStream);
+
+    if (!checkForPaError(err, "input stream close", false))
+    {
+        return false;
     }
 
     // Terminate PortAudio
@@ -205,16 +230,48 @@ PaSampleFormat AudioHelper::getSampleFormat(uint16_t bitsPerSample)
     return paInt32;
 }
 
+bool AudioHelper::checkForPaError(PaError err, const char *part)
+{
+    return checkForPaError(err, part, true);
+}
+
+bool AudioHelper::checkForPaError(PaError err, const char *part, bool cleanup)
+{
+    if (err != paNoError)
+    {
+        cerr << "PortAudio " << part << " failed: " << Pa_GetErrorText(err) << '\n';
+
+        if (cleanup)
+        {
+            if (Pa_IsStreamActive(outputStream))
+            {
+                Pa_StopStream(outputStream);
+            }
+
+            if (Pa_IsStreamActive(inputStream))
+            {
+                Pa_StopStream(inputStream);
+            }
+
+            Pa_Terminate();
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
 void AudioHelper::clearBuffers()
 {
     for (int i = 0; i < FRAMES_PER_BUFFER; i++)
     {
-        callbackData.buffer1[i] = 0;
-        callbackData.buffer2[i] = 0;
+        buffer1[i] = 0;
+        buffer2[i] = 0;
     }
 }
 
 bool AudioHelper::writeNextBatch()
 {
-    return callbackData.writeNextBatch;
+    return writeNext;
 }

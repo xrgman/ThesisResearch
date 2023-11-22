@@ -1,25 +1,27 @@
 #include <iostream>
 #include <stdio.h>
 #include <signal.h>
-#include<unistd.h> 
+#include <unistd.h>
+#include <chrono>
+#include <thread>
 
 #include "wavReader.h"
 #include "audioHelper.h"
 
+#include "gnuplot-iostream.h"
+
+//#include "paex_sine_c++.cpp"
+
 using namespace std;
 
-AudioHelper audioHelper(44100, 16, 8);
+#define SAMPLE_RATE 44100
+#define NUM_CHANNELS 8
+
+AudioHelper audioHelper(SAMPLE_RATE, 16, NUM_CHANNELS);
 
 int main()
 {
     audioHelper.clearBuffers();
-    
-    if (!audioHelper.initializeAndOpen())
-    {
-        cout << "Initializing audio helper has failed!\n";
-
-        return 0;
-    }
 
     // Reading WAV file:
     const std::string wavFilePath = "../src/song2.wav";
@@ -28,6 +30,13 @@ int main()
     if (!openWAVFile(wavFilePath.c_str(), &fileRead, true))
     {
         cout << "Failed to open WAV file...\n";
+    }
+
+    if (!audioHelper.initializeAndOpen())
+    {
+        cout << "Initializing audio helper has failed!\n";
+
+        return 0;
     }
 
     // Reading successfull, so playing it:
@@ -44,6 +53,8 @@ int main()
             continue;
         }
 
+        //cout << "Writing next :)!\n";
+
         uint16_t audioData[FRAMES_PER_BUFFER];
 
         size_t bytesRead = fread((char *)audioData, 2, FRAMES_PER_BUFFER, fileRead);
@@ -56,8 +67,34 @@ int main()
             break;
         }
 
-        
     }
+
+    // Set up gnuplot
+    // Gnuplot gp;
+    // gp << "set yrange [-1:1]\n";
+    // gp << "set xlabel 'Time (s)'\n";
+    // gp << "set ylabel 'Amplitude'\n";
+
+    // while (true)
+    // {
+    //     // Plot each microphone's audio data
+    //     for (int i = 0; i < NUM_CHANNELS; ++i)
+    //     {
+    //         std::vector<std::pair<double, double>> points;
+    //         for (int j = 0; j < 512; ++j)
+    //         {
+    //             //double time = static_cast<double>((frameIndex - 512 + j) % 512) / SAMPLE_RATE;
+    //             double time = j / SAMPLE_RATE;
+    //             points.emplace_back(time, audioData[i][j]);
+    //         }
+
+    //         gp << "plot '-' with lines title 'Microphone " << i + 1 << "'\n";
+    //         gp.send1d(points);
+    //     }
+
+    //     // Pause to control the update rate
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // }
 
     audioHelper.clearBuffers();
 
@@ -73,3 +110,36 @@ int main()
 
     return 0;
 }
+
+// int main(void)
+// {
+//     Sine sine;
+
+//     printf("PortAudio Test: output sine wave. SR = %d, BufSize = %d\n", SAMPLE_RATE, FRAMES_PER_BUFFER);
+
+//     ScopedPaHandler paInit;
+//     if (paInit.result() != paNoError)
+//         goto error;
+
+//     if (sine.open(Pa_GetDefaultOutputDevice()))
+//     {
+//         if (sine.start())
+//         {
+//             printf("Play for %d seconds.\n", NUM_SECONDS);
+//             Pa_Sleep(NUM_SECONDS * 1000);
+
+//             sine.stop();
+//         }
+
+//         sine.close();
+//     }
+
+//     printf("Test finished.\n");
+//     return paNoError;
+
+// error:
+//     fprintf(stderr, "An error occured while using the portaudio stream\n");
+//     fprintf(stderr, "Error number: %d\n", paInit.result());
+//     fprintf(stderr, "Error message: %s\n", Pa_GetErrorText(paInit.result()));
+//     return 1;
+// }

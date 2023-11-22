@@ -5,6 +5,7 @@ project(demo)
 # find_package(SimpleITK)
 # add_executable ( sitk_example sitk_example.cxx )
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(COMPILE_DEFINITIONS -O2 -Wall)
 
 #Linking to cmake file that locates PortAudio
@@ -16,13 +17,21 @@ add_subdirectory(lib)
 # Find the PortAudio package
 find_package(PortAudio REQUIRED) 
 
+# Find Boost (required for gnuplot-iostream)
+find_package(Boost COMPONENTS iostreams REQUIRED)
+find_package(Threads REQUIRED)
+
 #Creating executable
 add_executable( demo src/main.cpp )
 
 # Include PortAudio headers
-target_include_directories(demo PRIVATE ${PORTAUDIO_INCLUDE_DIRS})
+target_include_directories(demo PRIVATE ${PORTAUDIO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 # Linking libraries
 target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES})
+target_link_libraries(demo PRIVATE ${Boost_LIBRARIES})
 target_link_libraries(demo PRIVATE WavReader)
 target_link_libraries(demo PRIVATE AudioHelper)
+
+# Copy gnuplot-iostream.h to the build directory
+#configure_file(src/gnuplot-iostream.h ${CMAKE_CURRENT_BINARY_DIR}/gnuplot-iostream.h COPYONLY)
