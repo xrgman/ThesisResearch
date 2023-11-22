@@ -10,7 +10,7 @@
 
 #include "gnuplot-iostream.h"
 
-//#include "paex_sine_c++.cpp"
+// #include "paex_sine_c++.cpp"
 
 using namespace std;
 
@@ -19,8 +19,21 @@ using namespace std;
 
 AudioHelper audioHelper(SAMPLE_RATE, 16, NUM_CHANNELS);
 
+void sigIntHandler(int signum)
+{
+    //Stopping audio streams:
+    audioHelper.stopAndClose();
+
+    //Exit the program:
+    exit(signum);
+}
+
 int main()
 {
+    // Catching sigint event:
+    signal(SIGINT, sigIntHandler);
+
+    // Filling buffers with 0's:
     audioHelper.clearBuffers();
 
     // Reading WAV file:
@@ -32,6 +45,7 @@ int main()
         cout << "Failed to open WAV file...\n";
     }
 
+    // Opening audio streams:
     if (!audioHelper.initializeAndOpen())
     {
         cout << "Initializing audio helper has failed!\n";
@@ -42,10 +56,10 @@ int main()
     // Reading successfull, so playing it:
     while (!feof(fileRead))
     {
-        //Needed to prevent overflowing :)
-        //usleep(10);
+        // Needed to prevent overflowing :)
+        // usleep(10);
 
-        //Waiting for batch to be written:
+        // Waiting for batch to be written:
         if (!audioHelper.writeNextBatch())
         {
             usleep(1);
@@ -53,7 +67,7 @@ int main()
             continue;
         }
 
-        //cout << "Writing next :)!\n";
+        // cout << "Writing next :)!\n";
 
         uint16_t audioData[FRAMES_PER_BUFFER];
 
@@ -66,7 +80,6 @@ int main()
 
             break;
         }
-
     }
 
     // Set up gnuplot

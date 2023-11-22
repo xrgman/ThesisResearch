@@ -56,10 +56,6 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 
 bool AudioHelper::initializeAndOpen()
 {
-    // To be safe, lets terminate it before initializing...
-    Pa_Terminate();
-    // putenv("PULSE_LATENCY_MSEC=10");
-
     cout << "PortAudio version " << Pa_GetVersionText() << endl;
 
     // Initialize PortAudio
@@ -165,8 +161,8 @@ bool AudioHelper::writeBytes(const uint16_t *audioData, uint32_t nrOfBytes)
 
     //     return false;
     // }
-
-    return true;
+ 
+    return true; 
 }
 
 bool AudioHelper::stopAndClose()
