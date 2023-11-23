@@ -25,13 +25,10 @@ find_package(Threads REQUIRED)
 add_executable( demo src/main.cpp )
 
 # Include PortAudio headers
-target_include_directories(demo PRIVATE ${PORTAUDIO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+target_include_directories(demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${PORTAUDIO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} kissfft)
 
 # Linking libraries
-target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES})
-target_link_libraries(demo PRIVATE ${Boost_LIBRARIES})
-target_link_libraries(demo PRIVATE WavReader)
-target_link_libraries(demo PRIVATE AudioHelper)
+target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES} ${Boost_LIBRARIES} WavReader AudioHelper kissfft FFTWrapper)
 
 # Copy gnuplot-iostream.h to the build directory
 #configure_file(src/gnuplot-iostream.h ${CMAKE_CURRENT_BINARY_DIR}/gnuplot-iostream.h COPYONLY)

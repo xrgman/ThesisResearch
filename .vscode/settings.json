@@ -45,6 +45,12 @@
         "typeinfo": "cpp",
         "complex": "cpp",
         "ctime": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "cstring": "cpp",
+        "chrono": "cpp",
+        "list": "cpp",
+        "ratio": "cpp",
+        "thread": "cpp",
+        "cinttypes": "cpp"
     }
 }

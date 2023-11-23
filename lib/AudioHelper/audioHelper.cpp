@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include "string.h"
 
-using namespace std;
-
 AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels)
 {
     this->sampleRate = sampleRate;
@@ -36,6 +34,8 @@ int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffe
     return paContinue;
 }
 
+//InputData contains framesPerBuffer * numChannels elements.
+//So each channel has 2048 items in it.
 int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
     // We want to put data into the outputbuffer as soon as this one is called.
@@ -43,13 +43,15 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     uint16_t *outputData = (uint16_t *)outputBuffer;
 
     // Grabbing read data:
-    // for (int i = 0; i < framesPerBuffer; i++)
-    // {
-    //     for (int channel = 0; channel < callbackData->numChannels; channel++)
-    //     {
-    //         audioData[channel][i] = inputData[i * callbackData->numChannels + channel];
-    //     }
-    // }
+    for (int i = 0; i < framesPerBuffer; i++)
+    {
+        for (int channel = 0; channel < numChannels; channel++)
+        {
+            audioData[channel][i] = inputData[i * numChannels + channel];
+        }
+    }
+
+    inputDataAvailable = true;
 
     return paContinue;
 }
@@ -117,7 +119,7 @@ bool AudioHelper::initializeAndOpen()
 
     // Configure and open input stream:
     PaStreamParameters inputParameters;
-    inputParameters.device = Pa_GetDefaultInputDevice();
+    inputParameters.device = deviceIdx; // Pa_GetDefaultInputDevice();
     inputParameters.channelCount = numChannels;
     inputParameters.sampleFormat = getSampleFormat(bitsPerSample);
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowInputLatency;
@@ -270,4 +272,8 @@ void AudioHelper::clearBuffers()
 bool AudioHelper::writeNextBatch()
 {
     return writeNext;
+}
+bool AudioHelper::readNextBatch()
+{
+    return inputDataAvailable;
 }

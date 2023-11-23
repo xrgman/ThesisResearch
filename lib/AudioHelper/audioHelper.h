@@ -1,22 +1,14 @@
 #ifndef AUDIOHELPER_H
 #define AUDIOHELPER_H
 
-#include <stdint.h>
 #include <vector>
 #include <portaudio.h>
 
-#define FRAMES_PER_BUFFER 2048
-#define CALLBACK_BUF_LEN 1024
+#include "main.h"
+
 #define NUM_BUFFERS 2
 
-struct AudioCallbackData
-{
-    
-
-    uint8_t numChannels;
-};
-
-static std::vector<std::vector<uint16_t>> audioData(8, std::vector<uint16_t>(FRAMES_PER_BUFFER, 0.0f));
+using namespace std;
 
 class AudioHelper
 {
@@ -29,6 +21,11 @@ public:
 
     void clearBuffers();
     bool writeNextBatch();
+    bool readNextBatch();
+
+    //vector<vector<uint16_t>> audioData(8, vector<uint16_t>(FRAMES_PER_BUFFER, 0.0f));
+
+    uint16_t audioData[NUM_CHANNELS][FRAMES_PER_BUFFER];
 
 private:
     uint32_t sampleRate;
@@ -40,6 +37,7 @@ private:
     uint16_t buffer2[FRAMES_PER_BUFFER];
     uint8_t bufferIdx;
     bool writeNext;
+    bool inputDataAvailable;
 
     PaStream *outputStream, *inputStream;
 
