@@ -75,7 +75,7 @@ void openAndPlayWavFile()
     cout << "Done playing WAV file!\n";
 }
 
-void graphInputStream()
+void graphSineWave5FFT()
 {
     // Configure the gnu plots:
     for (int i = 0; i < NUM_CHANNELS; i++)
@@ -92,13 +92,13 @@ void graphInputStream()
         gnuPlots[i] << "set xrange [0:0.01]\n";
         gnuPlots[i] << "set xlabel 'Time (s)'\n";
         gnuPlots[i] << "set ylabel 'Amplitude'\n";
-#endif   
+#endif
     }
 
     const double frequency = 5000.0;
 
     // Initialize the FFT:
-    initializeFFT();
+    initializeFFT(FRAMES_PER_BUFFER);
 
     while (true)
     {
@@ -115,11 +115,11 @@ void graphInputStream()
         {
             double time = (double)i / SAMPLE_RATE;
             double amplitude = sin(2.0 * M_PI * frequency * time);
-            //sineWaveData[i] = amplitude;
+            // sineWaveData[i] = amplitude;
 
-            sineWaveData[i] = static_cast<uint16_t>((amplitude + 1.0) * 0.5 * UINT16_MAX); //This works
+            sineWaveData[i] = static_cast<uint16_t>((amplitude + 1.0) * 0.5 * UINT16_MAX); // This works
 
-            //sineWaveData[i] = static_cast<uint16_t>(numeric_limits<uint16_t>::max() * 0.5 * sin(2.0 * M_PI * frequency * time) + 0.5 * numeric_limits<uint16_t>::max());
+            // sineWaveData[i] = static_cast<uint16_t>(numeric_limits<uint16_t>::max() * 0.5 * sin(2.0 * M_PI * frequency * time) + 0.5 * numeric_limits<uint16_t>::max());
         }
 
 #ifndef FREQ
@@ -129,14 +129,13 @@ void graphInputStream()
         for (int i = 0; i < FRAMES_PER_BUFFER; ++i)
         {
             double time = (double)i / SAMPLE_RATE;
-            //double amplitude = sineWaveData[i];
-            double amplitude = (double)sineWaveData[i] / UINT16_MAX * 2.0 - 1.0; //In combination with this
+            // double amplitude = sineWaveData[i];
+            double amplitude = (double)sineWaveData[i] / UINT16_MAX * 2.0 - 1.0; // In combination with this
             data.push_back(std::make_pair(time, amplitude));
         }
 
         gnuPlots[0] << "plot '-' with lines title 'Amplitude Spectrum'\n";
         gnuPlots[0].send1d(data);
-
 
 #else
         // FREQUENCY DOMAIN:
@@ -159,147 +158,61 @@ void graphInputStream()
         gnuPlots[0].send1d(magnitudeSpectrum);
 
 #endif
+    }
+}
 
-        // Plot each microphone's audio data
-        // for (int channel = 0; channel < 1; channel)
-        // {
-        //     vector<pair<double, uint16_t>> points;
-        //     vector<kiss_fft_cpx> fftOutput;
+void graphInputStream()
+{
+    // Setting parameters for all GNU plots:
+    for (int i = 0; i < NUM_CHANNELS; i++)
+    {
+        gnuPlots[i] << "set title 'Frequency Domain Representation'\n";
+        gnuPlots[i] << "set xrange [0:25000]\n";
+        gnuPlots[i] << "set yrange [0:1]\n";
+        gnuPlots[i] << "set xlabel 'Frequency (Hz)'\n";
+        gnuPlots[i] << "set ylabel 'Magnitude'\n";
+    }
 
-        // fftOutput.resize(FRAMES_PER_BUFFER);
+    // Initialize the FFT:
+    initializeFFT(FRAMES_PER_BUFFER);
 
-        // Perform FFT:
-        // performFFT(audioHelper.audioData[channel], fftOutput, FRAMES_PER_BUFFER);
-
-        // for (int i = 0; i < N; ++i)
-        // {
-        //     double t = (double)i / SAMPLE_RATE;
-        //     // in[i].r = std::sin(2 * M_PI * i / N);
-        //     in[i].r = std::sin(2.0 * M_PI * 5000.0 * t);
-        //     in[i].i = 0.0;
-        // }
-
-        // // Perform the FFT
-        // kiss_fft(fftCfg, in, out);
-
-        // gnuPlots[0] << "plot '-' with lines title 'FFT'\n";
-        // for (int i = 0; i < N; ++i)
-        // {
-        //     gnuPlots[0] << i << " " << sqrt(out[i].r * out[i].r + out[i].i * out[i].i) << "\n";
-        // }
-        // gnuPlots[0] << "e\n";
-
-        // // Delay and clear the plot for the next iteration
-        // std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Adjust the delay as needed
-        // gnuPlots[0] << "clear\n";                                    // Show only latest data :)
-
-        // Grab all points for the microphone:
-        /*for (int j = 0; j < FRAMES_PER_BUFFER; ++j)
+    while (true)
+    {
+        // Checking if new data is available:
+        if (!audioHelper.readNextBatch())
         {
-            double frequency = ((double)j) * SAMPLE_RATE / FRAMES_PER_BUFFER;
-            double amplitude = 2.0 / FRAMES_PER_BUFFER * sqrt(fftOutput[j].r * fftOutput[j].r + fftOutput[j].i * fftOutput[j].i);
+            usleep(1);
 
-            points.emplace_back(frequency, amplitude);
-
-            // double time = static_cast<double>((frameIndex - 512 + j) % 512) / SAMPLE_RATE;
-            // double time = j / SAMPLE_RATE;
-            // points.emplace_back(j, audioHelper.audioData[channel][j]);
+            continue;
         }
 
-        gnuPlots[channel] << "plot '-' with lines title 'Microphone " << channel + 1 << "'\n";
-        gnuPlots[channel].send1d(points);*/
-        //}
+        // Looping over all microphone inputs:
+        for (int channel = 0; channel < 1; channel++)
+        {
+            uint16_t *channelData = audioHelper.audioData[channel];
 
-        // Pause to control the update rate
-        this_thread::sleep_for(chrono::milliseconds(100));
+            // Performing FFT to transform data into the frequency domain:
+            vector<kiss_fft_cpx> fftOutput;
+
+            fftOutput.resize(FRAMES_PER_BUFFER);
+
+            // Perform FFT :
+            performFFT(channelData, fftOutput, FRAMES_PER_BUFFER);
+
+            // Plotting frequency spectrum:
+            vector<pair<double, double>> magnitudeSpectrum;
+
+            for (int i = 0; i < FRAMES_PER_BUFFER; ++i)
+            {
+                double frequency = static_cast<double>(i) * SAMPLE_RATE / FRAMES_PER_BUFFER; // Duration = num points / sample rate
+                double magnitude = 2.0 * sqrt(fftOutput[i].r * fftOutput[i].r + fftOutput[i].i * fftOutput[i].i) / FRAMES_PER_BUFFER;
+                magnitudeSpectrum.push_back(std::make_pair(frequency, magnitude));
+            }
+
+            gnuPlots[channel] << "plot '-' with lines title 'Magnitude Spectrum'\n";
+            gnuPlots[channel].send1d(magnitudeSpectrum);
+        }
     }
-}
-
-void graphSineWave5FFT()
-{
-    // Parameters for the sine wave
-    const double frequency = 5000.0; // 5 kHz
-    // const double duration = 0.01;            // 0.01 seconds
-    const int numPoints = FRAMES_PER_BUFFER; // Number of points to generate
-
-    const double duration = static_cast<double>(numPoints) / SAMPLE_RATE;
-
-    cout << "Duration: " << duration << endl;
-
-    // Generate sine wave data
-    vector<kiss_fft_cpx> timeDomainData(numPoints);
-    for (int i = 0; i < numPoints; ++i)
-    {
-        double time = i * duration / numPoints;
-        // double time = (double)i / SAMPLE_RATE;
-        double amplitude = sin(2.0 * M_PI * frequency * time);
-        timeDomainData[i].r = amplitude;
-        timeDomainData[i].i = 0.0;
-    }
-
-    // Use kiss_fft
-    kiss_fft_cfg fftConfig = kiss_fft_alloc(numPoints, 0, nullptr, nullptr);
-
-    vector<kiss_fft_cpx> frequencyDomainData(numPoints);
-
-    kiss_fft(fftConfig, timeDomainData.data(), frequencyDomainData.data());
-
-    free(fftConfig);
-
-    // Set up Gnuplot
-    Gnuplot gp;
-
-    // Plot the magnitude spectrum
-    // Half of the data is a mirror copy (magnitude)
-    vector<std::pair<double, double>> magnitudeSpectrum;
-
-    for (int i = 0; i < numPoints / 2; ++i)
-    {
-        // double frequency = static_cast<double>(i) / duration; // Duration = num points / sample rate
-        double frequency = static_cast<double>(i) * SAMPLE_RATE / numPoints;
-        double magnitude = 2.0 * sqrt(frequencyDomainData[i].r * frequencyDomainData[i].r + frequencyDomainData[i].i * frequencyDomainData[i].i) / numPoints;
-        magnitudeSpectrum.push_back(make_pair(frequency, magnitude));
-
-        // cout << frequency << ", " << magnitude << endl;
-    }
-
-    gp << "set title 'Frequency Domain Representation'\n";
-    gp << "set xlabel 'Frequency (Hz)'\n";
-    gp << "set ylabel 'Magnitude'\n";
-    gp << "set xrange [0:10000]\n";
-    gp << "set yrange [0:1]\n";
-    gp << "plot '-' with lines title 'Magnitude Spectrum'\n";
-    gp.send1d(magnitudeSpectrum);
-}
-
-void graphSineWave5()
-{
-    // Parameters for the sine wave
-    const double frequency = 5000.0; // 5 kHz
-    const double duration = 0.01;    // 0.01 seconds
-    const int numPoints = 2048;      // Number of points to generate
-
-    // Generate sine wave data
-    vector<pair<double, double>> data;
-
-    for (int i = 0; i < numPoints; ++i)
-    {
-        // double time = i * duration / numPoints;
-        double time = (double)i / SAMPLE_RATE;
-        double amplitude = sin(2.0 * M_PI * frequency * time);
-        data.push_back(std::make_pair(time, amplitude));
-    }
-
-    // Set up Gnuplot
-    Gnuplot gp;
-
-    // Plot the sine wave
-    gp << "set title 'Sine Wave (5 kHz)'\n";
-    gp << "set xlabel 'Time (s)'\n";
-    gp << "set ylabel 'Amplitude'\n";
-    gp << "set xrange [0:0.01]\n";
-    gp << "plot '-' with lines title 'Sine Wave'\n";
-    gp.send1d(data);
 }
 
 int main()
@@ -320,10 +233,8 @@ int main()
 
     // openAndPlayWavFile();
 
-    //graphSineWave5FFT();
-
+    // graphSineWave5FFT();
     graphInputStream();
-    //graphSineWave5();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();
