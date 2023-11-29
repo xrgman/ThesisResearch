@@ -4,9 +4,10 @@
 #include <thread>
 
 #include "main.h"
-#include "wavReader.h"
+#include "wavHelper.h"
 #include "audioHelper.h"
 #include "fftWrapper.h"
+#include "util.h"
 
 #include "kiss_fftr.h"
 
@@ -14,6 +15,7 @@
 
 using namespace std;
 
+#define nrOfChannelsToPlot 2 // NUM_CHANNELS
 #define FREQ
 
 AudioHelper audioHelper(SAMPLE_RATE, 16, NUM_CHANNELS);
@@ -73,6 +75,45 @@ void openAndPlayWavFile()
     fclose(fileRead);
 
     cout << "Done playing WAV file!\n";
+}
+
+void recordToWavFile()
+{
+    vector<int16_t> dataToWrite;
+    const char *filename = "test.wav";
+    const int numberOfSeconds = 10;
+    int iteration = 0;
+
+    while ((iteration * FRAMES_PER_BUFFER) < (SAMPLE_RATE * numberOfSeconds))
+    {
+        // Checking if new data is available:
+        if (!audioHelper.readNextBatch())
+        {
+            usleep(1);
+
+            continue;
+        }
+
+        audioHelper.setNextBatchRead();
+
+        // Preparing data to be written:
+        for (int sample = 0; sample < FRAMES_PER_BUFFER; sample++)
+        {
+            for (int channel = 0; channel < NUM_CHANNELS; channel++)
+            {
+                int16_t *channelData = audioHelper.audioData[channel];
+
+                dataToWrite.push_back(channelData[sample]);
+            }
+        }
+
+        iteration++;
+    }
+
+    // Write data to file:
+    writeWavFile(filename, dataToWrite);
+
+    cout << "Successfully written " << numberOfSeconds << " sconds to wav file '" << filename << "'\n";
 }
 
 void graphSineWave5FFT()
@@ -161,6 +202,19 @@ void graphSineWave5FFT()
     }
 }
 
+void prepareGnuPlot()
+{
+    // Setting title of plot:
+    gnuPlots[0] << "plot  ";
+
+    for (int i = 0; i < nrOfChannelsToPlot; i++)
+    {
+        gnuPlots[0] << "'-' with lines title 'Mic " << (i + 1) << "', ";
+    }
+
+    gnuPlots[0] << endl;
+}
+
 void graphInputStream()
 {
     // Setting parameters for all GNU plots:
@@ -186,10 +240,25 @@ void graphInputStream()
             continue;
         }
 
-        // Looping over all microphone inputs:
-        for (int channel = 0; channel < 1; channel++)
+        audioHelper.setNextBatchRead();
+
+        // Preparing plot:
+        prepareGnuPlot();
+
+        // Determine order of microphones, only executed once:
+        // audioHelper.determineMicrophoneOrder();
+        if (!audioHelper.calibrate())
         {
-            uint16_t *channelData = audioHelper.audioData[channel];
+            continue;
+        }
+
+        // Looping over all microphone inputs:
+        for (uint8_t channel = 0; channel < 2; channel++) // NUM_CHANNELS - 2
+        {
+            uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
+            int16_t *channelData = audioHelper.audioData[channelIdx];
+
+            cout << "Channel index: " << static_cast<int>(channelIdx) << " Yo\n";
 
             // Performing FFT to transform data into the frequency domain:
             vector<kiss_fft_cpx> fftOutput;
@@ -197,7 +266,7 @@ void graphInputStream()
             fftOutput.resize(FRAMES_PER_BUFFER);
 
             // Perform FFT :
-            performFFT(channelData, fftOutput, FRAMES_PER_BUFFER);
+            // performFFT(channelData, fftOutput, FRAMES_PER_BUFFER); //TODODODODODODODODODODODODOD
 
             // Plotting frequency spectrum:
             vector<pair<double, double>> magnitudeSpectrum;
@@ -209,8 +278,7 @@ void graphInputStream()
                 magnitudeSpectrum.push_back(std::make_pair(frequency, magnitude));
             }
 
-            gnuPlots[channel] << "plot '-' with lines title 'Magnitude Spectrum'\n";
-            gnuPlots[channel].send1d(magnitudeSpectrum);
+            gnuPlots[0].send1d(magnitudeSpectrum);
         }
     }
 }
@@ -234,7 +302,8 @@ int main()
     // openAndPlayWavFile();
 
     // graphSineWave5FFT();
-    graphInputStream();
+    // graphInputStream();
+    recordToWavFile();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();

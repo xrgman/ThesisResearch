@@ -1,8 +1,11 @@
-#ifndef WAVREADER_H
-#define WAVREADER_H
+#ifndef WAVHELPER_H
+#define WAVHELPER_H
 
-#include <stdint.h>
-#include <stdio.h>
+#include <vector>
+
+#include "main.h"
+
+using namespace std;
 
 // WAV file header structure
 struct WavHeader {
@@ -22,5 +25,7 @@ struct WavHeader {
 };
 
 bool openWAVFile(const char *filename, FILE **fileRead, bool printHeader);
+
+void writeWavFile(const char *filename, vector<int16_t> data);
 
 #endif

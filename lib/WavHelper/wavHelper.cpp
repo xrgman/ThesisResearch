@@ -1,7 +1,5 @@
-#include "wavReader.h"
+#include "wavHelper.h"
 #include <iostream>
-
-using namespace std;
 
 bool openFile(const char *filename, FILE **file, const char *mode)
 {
@@ -69,12 +67,47 @@ void printWAVHeader(WavHeader wavHeader)
     cout << "Subchunk2Size (Size of data): " << wavHeader.subchunk2Size << " bytes\n";
 }
 
+WavHeader createWavHeader(uint32_t sampleRate, uint16_t bitsPerSample, uint16_t numChannels)
+{
+    WavHeader wavHeader;
+
+    wavHeader.chunkID[0] = 'R';
+    wavHeader.chunkID[1] = 'I';
+    wavHeader.chunkID[2] = 'F';
+    wavHeader.chunkID[3] = 'F';
+    wavHeader.chunkSize = 0; // Will be updated later
+    wavHeader.format[0] = 'W';
+    wavHeader.format[1] = 'A';
+    wavHeader.format[2] = 'V';
+    wavHeader.format[3] = 'E';
+    wavHeader.subchunk1ID[0] = 'f';
+    wavHeader.subchunk1ID[1] = 'm';
+    wavHeader.subchunk1ID[2] = 't';
+    wavHeader.subchunk1ID[3] = ' ';
+    wavHeader.subchunk1Size = 16;        // Size of the format subchunk
+    wavHeader.audioFormat = 1;           // PCM audio format
+    wavHeader.numChannels = numChannels; // 1 channel (mono)
+    wavHeader.sampleRate = sampleRate;   // Sample rate (e.g., 44.1 kHz)
+
+    wavHeader.byteRate = sampleRate * numChannels * (bitsPerSample / 8); // SampleRate * NumChannels * BitsPerSample/8
+    wavHeader.blockAlign = numChannels * (bitsPerSample / 8);            // NumChannels * BitsPerSample/8  // 2=16-bit mono, 4=16-bit stereo
+
+    wavHeader.bitsPerSample = bitsPerSample; // 16-bit audio
+    wavHeader.subchunk2ID[0] = 'd';
+    wavHeader.subchunk2ID[1] = 'a';
+    wavHeader.subchunk2ID[2] = 't';
+    wavHeader.subchunk2ID[3] = 'a';
+    wavHeader.subchunk2Size = 0; // Will be updated later
+
+    return wavHeader;
+}
+
 //*************************************************
 //******** Main functions *************************
 //*************************************************
 
-bool openWAVFile(const char* filename, FILE **fileRead, bool printHeader) {
-
+bool openWAVFile(const char *filename, FILE **fileRead, bool printHeader)
+{
     // Opening file and checking if it was successfull:
     if (!openFile(filename, fileRead, "r"))
     {
@@ -87,10 +120,11 @@ bool openWAVFile(const char* filename, FILE **fileRead, bool printHeader) {
 
     WavHeader wavHeader = createWavHeaderFromFile(header);
 
-    if(printHeader) {
+    if (printHeader)
+    {
         printWAVHeader(wavHeader);
     }
-    
+
     // Substracting WAV file properties needed for configuration:
     uint32_t sampleRate = wavHeader.sampleRate;
     uint16_t bitsPerSample = wavHeader.bitsPerSample;
@@ -99,3 +133,33 @@ bool openWAVFile(const char* filename, FILE **fileRead, bool printHeader) {
     return true;
 }
 
+void writeWavFile(const char *filename, vector<int16_t> data)
+{
+    // Opening file:
+    FILE *file = fopen(filename, "w");
+
+    if (!file)
+    {
+        cerr << "Error opening the output file." << endl;
+        return;
+    }
+
+    WavHeader wavHeader = createWavHeader(SAMPLE_RATE, 16, NUM_CHANNELS);
+
+    fwrite(&wavHeader, 1, sizeof(WavHeader), file);
+
+    // Writing data:
+    fwrite(data.data(), sizeof(int16_t), data.size(), file);
+
+    uint32_t fileSize = ftell(file) - 8; // File size minus the RIFF chunkID and chunkSize
+    fseek(file, 4, SEEK_SET);
+    fwrite(&fileSize, 4, 1, file);
+
+    // Offset to the subchunk2Size field
+    fseek(file, 40, SEEK_SET);
+    uint32_t dataSize = data.size() * sizeof(int16_t);
+    fwrite(&dataSize, 4, 1, file);
+
+    // Close the WAV file
+    fclose(file);
+}

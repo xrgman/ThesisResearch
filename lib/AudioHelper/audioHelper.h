@@ -7,6 +7,7 @@
 #include "main.h"
 
 #define NUM_BUFFERS 2
+#define CALIBRATION_ITERATIONS 10
 
 using namespace std;
 
@@ -22,15 +23,24 @@ public:
     void clearBuffers();
     bool writeNextBatch();
     bool readNextBatch();
+    void setNextBatchRead();
 
-    //vector<vector<uint16_t>> audioData(8, vector<uint16_t>(FRAMES_PER_BUFFER, 0.0f));
+    bool calibrate();
+    void determineMicrophoneOrder();
+    uint8_t* getMicrophonesOrdered();
 
-    uint16_t audioData[NUM_CHANNELS][FRAMES_PER_BUFFER];
+    int16_t audioData[NUM_CHANNELS][FRAMES_PER_BUFFER];
 
 private:
     uint32_t sampleRate;
     uint16_t bitsPerSample;
     uint8_t numChannels;
+
+    uint8_t calibrationCounter;
+
+    uint32_t microphoneAverages[NUM_CHANNELS];
+    bool microphonesAreOrdered;
+    uint8_t microphonesOrdered[6]; // Containing indexes of audiodata sorted correctly.
 
     //Used in callback:
     uint16_t buffer1[FRAMES_PER_BUFFER];
@@ -38,6 +48,8 @@ private:
     uint8_t bufferIdx;
     bool writeNext;
     bool inputDataAvailable;
+
+    
 
     PaStream *outputStream, *inputStream;
 

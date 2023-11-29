@@ -2,7 +2,11 @@
 
 #include <iostream>
 #include <stdio.h>
+#include <algorithm>
+#include <numeric>
+#include <cmath>
 #include "string.h"
+#include "util.h"
 
 AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels)
 {
@@ -34,13 +38,13 @@ int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffe
     return paContinue;
 }
 
-//InputData contains framesPerBuffer * numChannels elements.
-//So each channel has 2048 items in it.
+// InputData contains framesPerBuffer * numChannels elements.
+// So each channel has 2048 items in it.
 int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
     // We want to put data into the outputbuffer as soon as this one is called.
-    uint16_t *inputData = (uint16_t *)inputData;
-    uint16_t *outputData = (uint16_t *)outputBuffer;
+    int16_t *inputData = (int16_t *)inputData; // Not uint16_t but int16
+    int16_t *outputData = (int16_t *)outputBuffer;
 
     // Grabbing read data:
     for (int i = 0; i < framesPerBuffer; i++)
@@ -52,6 +56,9 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     }
 
     inputDataAvailable = true;
+
+    //uint16_t maxVal = *max_element(audioData[0], audioData[0] + FRAMES_PER_BUFFER);
+    //cout << "Max value: " << maxVal << endl;
 
     return paContinue;
 }
@@ -119,7 +126,7 @@ bool AudioHelper::initializeAndOpen()
 
     // Configure and open input stream:
     PaStreamParameters inputParameters;
-    inputParameters.device = deviceIdx; // Pa_GetDefaultInputDevice();
+    inputParameters.device = deviceIdx; // Pa_GetDefaultInputDevice(); //
     inputParameters.channelCount = numChannels;
     inputParameters.sampleFormat = getSampleFormat(bitsPerSample);
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowInputLatency;
@@ -163,8 +170,8 @@ bool AudioHelper::writeBytes(const uint16_t *audioData, uint32_t nrOfBytes)
 
     //     return false;
     // }
- 
-    return true; 
+
+    return true;
 }
 
 bool AudioHelper::stopAndClose()
@@ -276,4 +283,90 @@ bool AudioHelper::writeNextBatch()
 bool AudioHelper::readNextBatch()
 {
     return inputDataAvailable;
+}
+
+void AudioHelper::setNextBatchRead() {
+    inputDataAvailable = false;
+}
+
+// TODO zorgen dat ze opvolgend zijn anders werkt het natuurlijk niet he
+
+bool AudioHelper::calibrate()
+{
+    // TODO can be nicer
+    if (calibrationCounter < CALIBRATION_ITERATIONS)
+    {
+        // Get average for microphone ordering:
+        // for (int i = 0; i < NUM_CHANNELS; i++)
+        // {
+        //     microphoneAverages[i] += calculateAverage(audioData[i], FRAMES_PER_BUFFER);
+        // }
+
+        calibrationCounter++;
+
+        return false;
+    }
+
+    if (calibrationCounter == CALIBRATION_ITERATIONS)
+    {
+        determineMicrophoneOrder();
+    }
+
+    return true;
+}
+
+/// @brief Sort the microphones by saving the correct order of indexes to an array.
+void AudioHelper::determineMicrophoneOrder()
+{
+    // Skipping if task is already executed once:
+    if (microphonesAreOrdered)
+    {
+        return;
+    }
+
+    double averages[NUM_CHANNELS];
+    uint8_t lowestAverageIdxs[2];
+
+    cout << "Averages: ";
+
+    for (int channel = 0; channel < NUM_CHANNELS; channel++)
+    {
+        int16_t *channelData = audioData[channel];
+
+        averages[channel] = microphoneAverages[channel] / CALIBRATION_ITERATIONS; // calculateAverage(channelData, FRAMES_PER_BUFFER); // Take lowest averages
+
+        
+
+        cout << averages[channel] << ", ";
+
+        
+    }
+
+    cout << endl;
+
+    // Finding two lowest average values their indexes and sorting them:
+    lowestAverageIdxs[0] = min_element(averages, averages + NUM_CHANNELS) - averages;
+    averages[lowestAverageIdxs[0]] = UINT16_MAX;
+    lowestAverageIdxs[1] = min_element(averages, averages + NUM_CHANNELS) - averages;
+
+    sort(lowestAverageIdxs, lowestAverageIdxs + 2);
+
+    // Swapping for edge case:
+    if (lowestAverageIdxs[0] == 0 && lowestAverageIdxs[1] == 7)
+    {
+        lowestAverageIdxs[1] = 0;
+    }
+
+    // Resotring order:
+    for (int i = 0; i < NUM_CHANNELS - 2; i++)
+    {
+        microphonesOrdered[i] = (lowestAverageIdxs[1] + 1 + i) % (NUM_CHANNELS);
+    }
+
+    microphonesAreOrdered = true;
+}
+
+uint8_t *AudioHelper::getMicrophonesOrdered()
+{
+    return microphonesOrdered;
 }
