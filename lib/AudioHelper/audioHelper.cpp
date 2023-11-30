@@ -57,9 +57,6 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 
     inputDataAvailable = true;
 
-    //uint16_t maxVal = *max_element(audioData[0], audioData[0] + FRAMES_PER_BUFFER);
-    //cout << "Max value: " << maxVal << endl;
-
     return paContinue;
 }
 
@@ -280,74 +277,66 @@ bool AudioHelper::writeNextBatch()
 {
     return writeNext;
 }
+
 bool AudioHelper::readNextBatch()
 {
     return inputDataAvailable;
 }
 
-void AudioHelper::setNextBatchRead() {
+void AudioHelper::setNextBatchRead()
+{
     inputDataAvailable = false;
 }
 
-// TODO zorgen dat ze opvolgend zijn anders werkt het natuurlijk niet he
-
-bool AudioHelper::calibrate()
-{
-    // TODO can be nicer
-    if (calibrationCounter < CALIBRATION_ITERATIONS)
-    {
-        // Get average for microphone ordering:
-        // for (int i = 0; i < NUM_CHANNELS; i++)
-        // {
-        //     microphoneAverages[i] += calculateAverage(audioData[i], FRAMES_PER_BUFFER);
-        // }
-
-        calibrationCounter++;
-
-        return false;
-    }
-
-    if (calibrationCounter == CALIBRATION_ITERATIONS)
-    {
-        determineMicrophoneOrder();
-    }
-
-    return true;
-}
-
 /// @brief Sort the microphones by saving the correct order of indexes to an array.
-void AudioHelper::determineMicrophoneOrder()
+
+
+bool AudioHelper::determineMicrophoneOrder()
 {
     // Skipping if task is already executed once:
     if (microphonesAreOrdered)
     {
-        return;
+        return true;
     }
 
     double averages[NUM_CHANNELS];
-    uint8_t lowestAverageIdxs[2];
+    int8_t lowestAverageIdxs[2];
+    uint8_t iteration = 0;
+    bool found = false;
 
-    cout << "Averages: ";
-
+    // 0. Calulate the average of each channel:
     for (int channel = 0; channel < NUM_CHANNELS; channel++)
     {
         int16_t *channelData = audioData[channel];
 
-        averages[channel] = microphoneAverages[channel] / CALIBRATION_ITERATIONS; // calculateAverage(channelData, FRAMES_PER_BUFFER); // Take lowest averages
-
-        
-
-        cout << averages[channel] << ", ";
-
-        
+        averages[channel] = calculateAverage(channelData, FRAMES_PER_BUFFER);
     }
 
-    cout << endl;
+    while (!found)
+    {
+        iteration++;
 
-    // Finding two lowest average values their indexes and sorting them:
-    lowestAverageIdxs[0] = min_element(averages, averages + NUM_CHANNELS) - averages;
-    averages[lowestAverageIdxs[0]] = UINT16_MAX;
-    lowestAverageIdxs[1] = min_element(averages, averages + NUM_CHANNELS) - averages;
+        // 1. Find the lowest average value its index:
+        lowestAverageIdxs[0] = min_element(averages, averages + NUM_CHANNELS) - averages;
+
+        // 2. Set second index to the one before the first, as that channel is always in front:
+        lowestAverageIdxs[1] = ((lowestAverageIdxs[0] - 1) % NUM_CHANNELS + NUM_CHANNELS) % NUM_CHANNELS;
+
+        // 3. Check if the second channel does not contain empty values, just to verify:
+        if (hasNegativeValues(audioData[lowestAverageIdxs[1]], FRAMES_PER_BUFFER, 5))
+        {
+            averages[lowestAverageIdxs[0]] = INT16_MAX;
+
+            if (iteration == NUM_CHANNELS)
+            {
+                return false;
+            }
+
+            continue;
+        }
+
+        found = true;
+    }
 
     sort(lowestAverageIdxs, lowestAverageIdxs + 2);
 
@@ -357,13 +346,21 @@ void AudioHelper::determineMicrophoneOrder()
         lowestAverageIdxs[1] = 0;
     }
 
+    cout << "Microphone order: ";
+
     // Resotring order:
     for (int i = 0; i < NUM_CHANNELS - 2; i++)
     {
         microphonesOrdered[i] = (lowestAverageIdxs[1] + 1 + i) % (NUM_CHANNELS);
+
+        cout << unsigned(microphonesOrdered[i]) << ", ";
     }
 
+    cout << endl;
+
     microphonesAreOrdered = true;
+
+    return true;
 }
 
 uint8_t *AudioHelper::getMicrophonesOrdered()

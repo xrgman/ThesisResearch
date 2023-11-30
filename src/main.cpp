@@ -33,6 +33,8 @@ void sigIntHandler(int signum)
         gnuPlots[i].clear();
     }
 
+    cout << "Stopping program forcefully!\n";
+
     // Exit the program:
     exit(signum);
 }
@@ -150,15 +152,15 @@ void graphSineWave5FFT()
             continue;
         }
 
-        uint16_t sineWaveData[FRAMES_PER_BUFFER];
+        int16_t sineWaveData[FRAMES_PER_BUFFER];
 
         for (int i = 0; i < FRAMES_PER_BUFFER; ++i)
         {
             double time = (double)i / SAMPLE_RATE;
             double amplitude = sin(2.0 * M_PI * frequency * time);
-            // sineWaveData[i] = amplitude;
 
-            sineWaveData[i] = static_cast<uint16_t>((amplitude + 1.0) * 0.5 * UINT16_MAX); // This works
+            //sineWaveData[i] = static_cast<uint16_t>((amplitude + 1.0) * 0.5 * UINT16_MAX); // This works
+            sineWaveData[i] = static_cast<int16_t>(amplitude * INT16_MAX);
 
             // sineWaveData[i] = static_cast<uint16_t>(numeric_limits<uint16_t>::max() * 0.5 * sin(2.0 * M_PI * frequency * time) + 0.5 * numeric_limits<uint16_t>::max());
         }
@@ -209,7 +211,11 @@ void prepareGnuPlot()
 
     for (int i = 0; i < nrOfChannelsToPlot; i++)
     {
-        gnuPlots[0] << "'-' with lines title 'Mic " << (i + 1) << "', ";
+        gnuPlots[0] << "'-' with lines title 'Mic " << (i + 1) << "'";
+
+        if(i < nrOfChannelsToPlot - 1) {
+           gnuPlots[0] <<  ", ";
+        }
     }
 
     gnuPlots[0] << endl;
@@ -222,7 +228,7 @@ void graphInputStream()
     {
         gnuPlots[i] << "set title 'Frequency Domain Representation'\n";
         gnuPlots[i] << "set xrange [0:25000]\n";
-        gnuPlots[i] << "set yrange [0:1]\n";
+        //gnuPlots[i] << "set yrange [0:1]\n";
         gnuPlots[i] << "set xlabel 'Frequency (Hz)'\n";
         gnuPlots[i] << "set ylabel 'Magnitude'\n";
     }
@@ -246,10 +252,10 @@ void graphInputStream()
         prepareGnuPlot();
 
         // Determine order of microphones, only executed once:
-        // audioHelper.determineMicrophoneOrder();
-        if (!audioHelper.calibrate())
-        {
-            continue;
+        if(!audioHelper.determineMicrophoneOrder()) {
+            cout << "Failed to determine microphone order! Stopping program.\n";
+
+            return;
         }
 
         // Looping over all microphone inputs:
@@ -258,15 +264,13 @@ void graphInputStream()
             uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
             int16_t *channelData = audioHelper.audioData[channelIdx];
 
-            cout << "Channel index: " << static_cast<int>(channelIdx) << " Yo\n";
-
             // Performing FFT to transform data into the frequency domain:
             vector<kiss_fft_cpx> fftOutput;
 
             fftOutput.resize(FRAMES_PER_BUFFER);
 
             // Perform FFT :
-            // performFFT(channelData, fftOutput, FRAMES_PER_BUFFER); //TODODODODODODODODODODODODOD
+            performFFT(channelData, fftOutput, FRAMES_PER_BUFFER);
 
             // Plotting frequency spectrum:
             vector<pair<double, double>> magnitudeSpectrum;
@@ -301,9 +305,9 @@ int main()
 
     // openAndPlayWavFile();
 
-    // graphSineWave5FFT();
-    // graphInputStream();
-    recordToWavFile();
+    //graphSineWave5FFT();
+    graphInputStream();
+    //recordToWavFile();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();

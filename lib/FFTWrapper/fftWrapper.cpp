@@ -17,7 +17,7 @@ void initializeFFT(uint32_t size)
 }
 
 // Per channel
-void performFFT(uint16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t size)
+void performFFT(int16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t size)
 {
     if(size != fftSize) {
         //Error
@@ -28,7 +28,8 @@ void performFFT(uint16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t 
     // Preparing data by converting to double and scaling to [-1.0, 1.0]
     for (int i = 0; i < size; i++)
     {
-        fftInput[i].r = (double)inputData[i] / (UINT16_MAX - 0)* 2.0 - 1.0; //(uint16_t_MAX - UINT16_t_MIN)
+        //fftInput[i].r = (double)inputData[i] / (UINT16_MAX - 0)* 2.0 - 1.0; //(uint16_t_MAX - UINT16_t_MIN)
+        fftInput[i].r = (double)inputData[i] / (double)INT16_MAX;
         fftInput[i].i = 0.0;
     }
 

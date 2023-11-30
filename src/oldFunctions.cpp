@@ -90,3 +90,21 @@ void graphSineWave5()
     gp << "plot '-' with lines title 'Sine Wave'\n";
     gp.send1d(data);
 }
+
+ // cout << "Checking audiodata at index " << unsigned(lowestAverageIdxs[1]) << ", Data origial (" << unsigned(lowestAverageIdxs[0]) << ", average: " << unsigned(averages[lowestAverageIdxs[0]]) << "): ";
+
+        // int n = 0;
+
+        // for (int i = 0; i < FRAMES_PER_BUFFER; i++)
+        // {
+        //     if (i < 20)
+        //     {
+        //         cout << audioData[lowestAverageIdxs[0]][i] << ", ";
+        //     }
+
+        //     if(audioData[lowestAverageIdxs[1]][i] < 0) {
+        //         n++;
+        //     }
+        // }
+
+        // cout << "\nNumber of negatives in front collection: " << n << endl;

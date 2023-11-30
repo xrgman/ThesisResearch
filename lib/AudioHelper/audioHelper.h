@@ -25,8 +25,7 @@ public:
     bool readNextBatch();
     void setNextBatchRead();
 
-    bool calibrate();
-    void determineMicrophoneOrder();
+    bool determineMicrophoneOrder();
     uint8_t* getMicrophonesOrdered();
 
     int16_t audioData[NUM_CHANNELS][FRAMES_PER_BUFFER];

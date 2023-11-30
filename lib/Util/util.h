@@ -3,6 +3,10 @@
 
 #include "main.h"
 
-double calculateAverage(uint16_t *data, uint16_t size);
+double calculateAverage(const uint16_t *data, uint16_t size);
+double calculateAverage(const int16_t *data, uint16_t size);
+
+bool hasNegativeValue(const int16_t *data, uint16_t size);
+bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold);
 
 #endif

@@ -9,6 +9,6 @@
 using namespace std;
 
 void initializeFFT(uint32_t size);
-void performFFT(uint16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t size);
+void performFFT(int16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t size);
 
 #endif
