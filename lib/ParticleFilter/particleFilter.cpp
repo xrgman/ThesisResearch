@@ -52,3 +52,8 @@ const char *ParticleFilter::getMapName()
 {
     return mapData.getName();
 }
+
+MapData* ParticleFilter::getMapData()
+{
+    return &mapData;
+}

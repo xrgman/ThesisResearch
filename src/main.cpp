@@ -9,6 +9,7 @@
 #include "fftWrapper.h"
 #include "util.h"
 #include "particleFilter.h"
+#include "mapRenderer.h"
 
 #include "gnuplot-iostream.h"
 
@@ -23,6 +24,7 @@ AudioHelper audioHelper(SAMPLE_RATE, 16, NUM_CHANNELS);
 vector<Gnuplot> gnuPlots(NUM_CHANNELS);
 
 ParticleFilter particleFilter;
+MapRenderer mapRenderer;
 
 void sigIntHandler(int signum)
 {
@@ -291,7 +293,7 @@ void graphInputStream()
 }
 
 void loadParticleFilter() {
-    const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
+    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
 
     if (!particleFilter.loadMap(filenameMap))
     {
@@ -301,6 +303,9 @@ void loadParticleFilter() {
     else {
         cout << "Sucessfully loaded map " << particleFilter.getMapName() << endl;
     }
+
+    //Render map:
+    mapRenderer.loadMap(particleFilter.getMapData());
 }
 
 int main()

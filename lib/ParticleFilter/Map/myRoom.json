@@ -1,0 +1,37 @@
+{
+    "map_name": "My room",
+    "number_of_cells": 3,
+    "number_of_walls": 10, 
+    "cells": [
+        {
+            "id": 0,
+            "startX": 5,
+            "startY": 5,
+            "stopX": 10,
+            "stopY": 10
+        }
+    ],
+    "Walls": [
+        {
+            "id": 0,
+            "startX": 10,
+            "stopX": 19,
+            "startY": 80,
+            "stopY": 480
+        },
+        {
+            "id": 1,
+            "startX": 10,
+            "stopX": 133,
+            "startY": 480,
+            "stopY": 489
+        },
+        {
+            "id": 2,
+            "startX": 480,
+            "stopX": 489,
+            "startY": 489,
+            "stopY": 548
+        }
+    ]
+}
