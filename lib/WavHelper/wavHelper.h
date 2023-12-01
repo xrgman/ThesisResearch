@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "main.h"
+#include "util.h"
 
 using namespace std;
 

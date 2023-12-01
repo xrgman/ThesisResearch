@@ -1,13 +1,6 @@
 #include "wavHelper.h"
 #include <iostream>
 
-bool openFile(const char *filename, FILE **file, const char *mode)
-{
-    *file = fopen(filename, mode);
-
-    return *file != NULL;
-}
-
 //*************************************************
 //******** WAV header functions *******************
 //*************************************************

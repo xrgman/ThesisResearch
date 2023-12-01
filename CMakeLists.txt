@@ -11,6 +11,15 @@ set(COMPILE_DEFINITIONS -O2 -Wall)
 #Linking to cmake file that locates PortAudio
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
+#Find json library:
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/json.hpp)
+# find_package(nlohmann_json 3.2.0 REQUIRED)
+# add_subdirectory(lib/nlohmann_json)
+include(FetchContent)
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json) 
+
 # Include the CMakeLists.txt in the "lib" folder
 add_subdirectory(lib)
 
@@ -28,7 +37,7 @@ add_executable( demo src/main.cpp )
 target_include_directories(demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${PORTAUDIO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} kissfft)
 
 # Linking libraries
-target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES} ${Boost_LIBRARIES} WavHelper AudioHelper kissfft FFTWrapper Util) 
+target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES} ${Boost_LIBRARIES} WavHelper AudioHelper kissfft FFTWrapper Util ParticleFilter nlohmann_json::nlohmann_json) 
 
 # Copy gnuplot-iostream.h to the build directory
 #configure_file(src/gnuplot-iostream.h ${CMAKE_CURRENT_BINARY_DIR}/gnuplot-iostream.h COPYONLY)

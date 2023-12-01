@@ -54,3 +54,35 @@ bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold)
 
     return false;
 }
+
+bool openFile(const char *filename, FILE **file, const char *mode)
+{
+    *file = fopen(filename, mode);
+
+    return *file != NULL;
+}
+
+long getFileSize(FILE *file)
+{
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    rewind(file);
+
+    return fileSize;
+}
+
+char *readFileText(FILE *file)
+{
+    // Grab the size of the file:
+    long fileSize = getFileSize(file);
+
+    // Read the content of the file into a string
+    char *buffer = new char[fileSize + 1];
+    size_t bytesRead = fread(buffer, 1, fileSize, file);
+    buffer[bytesRead] = '\0'; // Null-terminate the string
+
+    // Close the file
+    fclose(file);
+
+    return buffer;
+}

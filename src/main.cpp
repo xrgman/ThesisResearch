@@ -8,10 +8,11 @@
 #include "audioHelper.h"
 #include "fftWrapper.h"
 #include "util.h"
-
-#include "kiss_fftr.h"
+#include "particleFilter.h"
 
 #include "gnuplot-iostream.h"
+
+
 
 using namespace std;
 
@@ -20,6 +21,8 @@ using namespace std;
 
 AudioHelper audioHelper(SAMPLE_RATE, 16, NUM_CHANNELS);
 vector<Gnuplot> gnuPlots(NUM_CHANNELS);
+
+ParticleFilter particleFilter;
 
 void sigIntHandler(int signum)
 {
@@ -287,6 +290,19 @@ void graphInputStream()
     }
 }
 
+void loadParticleFilter() {
+    const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
+
+    if (!particleFilter.loadMap(filenameMap))
+    {
+        cerr << "Failed to load map!\n";
+        return;
+    }
+    else {
+        cout << "Sucessfully loaded map " << particleFilter.getMapName() << endl;
+    }
+}
+
 int main()
 {
     // Catching sigint event:
@@ -306,8 +322,9 @@ int main()
     // openAndPlayWavFile();
 
     //graphSineWave5FFT();
-    graphInputStream();
+    //graphInputStream();
     //recordToWavFile();
+    loadParticleFilter();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();
