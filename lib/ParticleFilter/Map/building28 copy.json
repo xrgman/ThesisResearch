@@ -1,0 +1,205 @@
+{
+    "map_name": "Building 28 - Second floor",
+    "number_of_cells": 11,
+    "number_of_walls": 17,
+    "cells": [
+        {
+            "id": 1,
+            "startX": 259,
+            "startY": 19,
+            "stopX": 382,
+            "stopY": 572
+        },
+        {
+            "id": 2,
+            "startX": 19,
+            "startY": 572,
+            "stopX": 382,
+            "stopY": 888
+        },
+        {
+            "id": 3,
+            "startX": 19,
+            "startY": 888,
+            "stopX": 382,
+            "stopY": 1204
+        },
+        {
+            "id": 4,
+            "startX": 382,
+            "startY": 777,
+            "stopX": 863,
+            "stopY": 999 
+        },
+        {
+            "id": 5,
+            "startX": 863,
+            "startY": 777,
+            "stopX": 1344,
+            "stopY": 999 
+        },
+        {
+            "id": 6,
+            "startX": 1344,
+            "startY": 777,
+            "stopX": 1825,
+            "stopY": 999 
+        },
+        {
+            "id": 7,
+            "startX": 1825,
+            "startY": 777,
+            "stopX": 2306,
+            "stopY": 999 
+        },
+        {
+            "id": 9,
+            "startX": 2306,
+            "startY": 888,
+            "stopX": 2669,
+            "stopY":  1204
+        },
+        {
+            "id": 10,
+            "startX": 2306,
+            "startY": 572,
+            "stopX": 2669,
+            "stopY":  888
+        },
+        {
+            "id": 11,
+            "startX": 2306,
+            "startY": 177,
+            "stopX": 2429,
+            "stopY":  572
+        },
+        {
+            "id": 12,
+            "startX": 1847,
+            "startY": 10,
+            "stopX": 2429,
+            "stopY": 168  
+        }
+    ],
+    "walls": [
+        {
+            "id": 0,
+            "startX": 250,
+            "startY": 10,
+            "stopX": 391,
+            "stopY": 19
+        },
+        {
+            "id": 1,
+            "startX": 382,
+            "startY": 10, 
+            "stopX": 391,
+            "stopY": 777
+        },
+        {
+            "id": 2,
+            "startX": 382,
+            "startY": 768,
+            "stopX": 1552,
+            "stopY": 777
+        },
+        {
+            "id": 3,
+            "startX": 1653,
+            "startY": 768,
+            "stopX": 2306,
+            "stopY": 777
+        },
+        {
+            "id": 4,
+            "startX": 2297,
+            "startY": 168,
+            "stopX": 2306,
+            "stopY": 777
+        },
+        {
+            "id": 5,
+            "startX": 1829,
+            "startY": 168,
+            "stopX": 2306,
+            "stopY": 177
+        },
+        {
+            "id": 6,
+            "startX": 2429,
+            "startY": 168,
+            "stopX": 2438,
+            "stopY": 572
+        },
+        {
+            "id": 7,
+            "startX": 2429,
+            "startY": 563,
+            "stopX": 2678,
+            "stopY": 572
+        },
+        {
+            "id": 8,
+            "startX": 2669,
+            "startY": 563,
+            "stopX": 2678,
+            "stopY": 1213
+        },
+        {
+            "id": 9,
+            "startX": 2306,
+            "startY": 1204,
+            "stopX": 2678,
+            "stopY": 1213
+        },
+        {
+            "id": 10,
+            "startX": 2306,
+            "startY": 999,
+            "stopX": 2315,
+            "stopY": 1213
+        },
+        {
+            "id": 11,
+            "startX": 382,
+            "startY": 999,
+            "stopX": 2315,
+            "stopY": 1008
+        },
+        {
+            "id": 12,
+            "startX": 382,
+            "startY": 999,
+            "stopX": 391,
+            "stopY": 1213
+        },
+        {
+            "id": 13,
+            "startX": 10,
+            "startY": 1204,
+            "stopX": 391,
+            "stopY": 1213
+        },
+        {
+            "id": 14,
+            "startX": 10,
+            "startY": 563,
+            "stopX": 19,
+            "stopY": 1213
+        },
+        {
+            "id": 15,
+            "startX": 10,
+            "startY": 563,
+            "stopX": 259,
+            "stopY": 572
+        },
+        {
+            "id": 16,
+            "startX": 250,
+            "startY": 10,
+            "stopX": 259,
+            "stopY": 572
+        }
+    ]
+}

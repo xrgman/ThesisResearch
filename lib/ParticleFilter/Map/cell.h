@@ -15,6 +15,11 @@ public:
     int stopX;
     int stopY;
 
+    int getWidth();
+    int getHeight();
+
+    const char *getCellName();
+
     static void from_json(const json &j, Cell &cellData);
 
 private:

@@ -8,3 +8,11 @@ void Wall::from_json(const json &j, Wall &wallData)
     j.at("stopX").get_to(wallData.stopX);
     j.at("stopY").get_to(wallData.stopY);
 }
+
+int Wall::getWidth() {
+    return stopX - startX;
+}
+
+int Wall::getHeight() {
+    return stopY - startY;
+}

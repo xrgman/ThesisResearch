@@ -38,7 +38,7 @@ bool ParticleFilter::loadMap(const char *filename)
     {
         mapData = json::parse(fileContent);
 
-        mapData.print();
+       // mapData.print();
     }
     catch (const json::exception &e)
     {

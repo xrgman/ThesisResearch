@@ -1,7 +1,7 @@
 {
     "map_name": "My room",
-    "number_of_cells": 3,
-    "number_of_walls": 10, 
+    "number_of_cells": 1,
+    "number_of_walls": 3, 
     "cells": [
         {
             "id": 0,
@@ -11,27 +11,27 @@
             "stopY": 10
         }
     ],
-    "Walls": [
+    "walls": [
         {
             "id": 0,
-            "startX": 10,
-            "stopX": 19,
-            "startY": 80,
-            "stopY": 480
+            "startX": 80,
+            "stopX": 480,
+            "startY": 10,
+            "stopY": 19
         },
         {
             "id": 1,
-            "startX": 10,
-            "stopX": 133,
-            "startY": 480,
-            "stopY": 489
+            "startX": 480,
+            "stopX": 489,
+            "startY": 10,
+            "stopY": 142
         },
         {
             "id": 2,
-            "startX": 480,
-            "stopX": 489,
-            "startY": 489,
-            "stopY": 548
+            "startX": 489,
+            "stopX": 548,
+            "startY": 133,
+            "stopY": 142
         }
     ]
 }

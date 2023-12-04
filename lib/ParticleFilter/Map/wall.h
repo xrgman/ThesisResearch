@@ -15,6 +15,9 @@ public:
     int stopX;
     int stopY;
 
+    int getWidth();
+    int getHeight();
+
     static void from_json(const json &j, Wall &cellData);
 
 private:

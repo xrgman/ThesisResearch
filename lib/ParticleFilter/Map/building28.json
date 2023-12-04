@@ -1,29 +1,205 @@
 {
     "map_name": "Building 28 - Second floor",
-    "number_of_cells": 3,
-    "number_of_walls": 10,
+    "number_of_cells": 11,
+    "number_of_walls": 17,
     "cells": [
         {
-            "id": 0,
-            "startX": 5,
-            "startY": 5,
-            "stopX": 10,
-            "stopY": 10
-        },
-        {
             "id": 1,
-            "startX": 10,
-            "startY": 10,
-            "stopX": 20,
-            "stopY": 20
+            "startX": 249,
+            "startY": 9,
+            "stopX": 372,
+            "stopY": 562
         },
         {
             "id": 2,
-            "startX": 40,
-            "startY": 50,
-            "stopX": 80,
-            "stopY": 100
+            "startX": 9,
+            "startY": 562,
+            "stopX": 372,
+            "stopY": 878
+        },
+        {
+            "id": 3,
+            "startX": 9,
+            "startY": 878,
+            "stopX": 372,
+            "stopY": 1194
+        },
+        {
+            "id": 4,
+            "startX": 372,
+            "startY": 767,
+            "stopX": 853,
+            "stopY": 989 
+        },
+        {
+            "id": 5,
+            "startX": 853,
+            "startY": 767,
+            "stopX": 1334,
+            "stopY": 989 
+        },
+        {
+            "id": 6,
+            "startX": 1334,
+            "startY": 767,
+            "stopX": 1815,
+            "stopY": 989 
+        },
+        {
+            "id": 7,
+            "startX": 1815,
+            "startY": 767,
+            "stopX": 2296,
+            "stopY": 989 
+        },
+        {
+            "id": 9,
+            "startX": 2296,
+            "startY": 878,
+            "stopX": 2659,
+            "stopY":  1194
+        },
+        {
+            "id": 10,
+            "startX": 2296,
+            "startY": 562,
+            "stopX": 2659,
+            "stopY":  878
+        },
+        {
+            "id": 11,
+            "startX": 2296,
+            "startY": 167,
+            "stopX": 2419,
+            "stopY":  562
+        },
+        {
+            "id": 12,
+            "startX": 1837,
+            "startY": 0,
+            "stopX": 2419,
+            "stopY": 158  
         }
     ],
-    "Walls": []
+    "walls": [
+        {
+            "id": 0,
+            "startX": 240,
+            "startY": 0,
+            "stopX": 381,
+            "stopY": 9
+        },
+        {
+            "id": 1,
+            "startX": 372,
+            "startY": 0, 
+            "stopX": 381,
+            "stopY": 767
+        },
+        {
+            "id": 2,
+            "startX": 372,
+            "startY": 758,
+            "stopX": 1542,
+            "stopY": 767
+        },
+        {
+            "id": 3,
+            "startX": 1643,
+            "startY": 758,
+            "stopX": 2296,
+            "stopY": 767
+        },
+        {
+            "id": 4,
+            "startX": 2287,
+            "startY": 158,
+            "stopX": 2296,
+            "stopY": 767
+        },
+        {
+            "id": 5,
+            "startX": 1819,
+            "startY": 158,
+            "stopX": 2296,
+            "stopY": 167
+        },
+        {
+            "id": 6,
+            "startX": 2419,
+            "startY": 158,
+            "stopX": 2428,
+            "stopY": 562
+        },
+        {
+            "id": 7,
+            "startX": 2419,
+            "startY": 553,
+            "stopX": 2668,
+            "stopY": 562
+        },
+        {
+            "id": 8,
+            "startX": 2659,
+            "startY": 553,
+            "stopX": 2668,
+            "stopY": 1203
+        },
+        {
+            "id": 9,
+            "startX": 2296,
+            "startY": 1194,
+            "stopX": 2668,
+            "stopY": 1203
+        },
+        {
+            "id": 10,
+            "startX": 2296,
+            "startY": 989,
+            "stopX": 2305,
+            "stopY": 1203
+        },
+        {
+            "id": 11,
+            "startX": 372,
+            "startY": 989,
+            "stopX": 2305,
+            "stopY": 998
+        },
+        {
+            "id": 12,
+            "startX": 372,
+            "startY": 989,
+            "stopX": 381,
+            "stopY": 1203
+        },
+        {
+            "id": 13,
+            "startX": 0,
+            "startY": 1194,
+            "stopX": 381,
+            "stopY": 1203
+        },
+        {
+            "id": 14,
+            "startX": 0,
+            "startY": 553,
+            "stopX": 9,
+            "stopY": 1203
+        },
+        {
+            "id": 15,
+            "startX": 0,
+            "startY": 553,
+            "stopX": 249,
+            "stopY": 562
+        },
+        {
+            "id": 16,
+            "startX": 240,
+            "startY": 0,
+            "stopX": 249,
+            "stopY": 562
+        }
+    ]
 }

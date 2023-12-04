@@ -14,7 +14,6 @@
 #include "gnuplot-iostream.h"
 
 
-
 using namespace std;
 
 #define nrOfChannelsToPlot 2 // NUM_CHANNELS
@@ -293,7 +292,7 @@ void graphInputStream()
 }
 
 void loadParticleFilter() {
-    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    const char *filenameMap = "../lib/ParticleFilter/Map/building28.json"; 
 
     if (!particleFilter.loadMap(filenameMap))
     {
@@ -301,11 +300,11 @@ void loadParticleFilter() {
         return;
     }
     else {
-        cout << "Sucessfully loaded map " << particleFilter.getMapName() << endl;
+        cout << "Sucessfully loaded map " << particleFilter.getMapName() << endl; 
     }
 
     //Render map:
-    mapRenderer.loadMap(particleFilter.getMapData());
+    mapRenderer.loadMap(particleFilter.getMapData(), 3);
 }
 
 int main()

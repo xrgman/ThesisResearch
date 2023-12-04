@@ -28,10 +28,23 @@ public:
         return name.c_str();
     };
 
-    uint16_t getNumberOfCells()
+    int getNumberOfCells()
     {
         return numberOfCells;
     };
+
+    int getNumberOfWalls()
+    {
+        return numberOfWalls;
+    };
+
+    std::vector<Cell> getCells() {
+        return cells;
+    }
+
+    std::vector<Wall> getWalls() {
+        return walls;
+    }
 
     void print()
     {
@@ -45,6 +58,15 @@ public:
             Cell cell = cells[i];
 
             std::cout << "\t\t{ID: " << cell.id << ", startX: " << cell.startX << ", startY: " << cell.startY << ", stopX: " << cell.stopX << ", stopY: " << cell.stopY << "}\n";
+        }
+
+        std::cout << "\tWalls: \n";
+
+        for (int i = 0; i < numberOfWalls; i++)
+        {
+            Wall wall = walls[i];
+
+            std::cout << "\t\t{ID: " << wall.id << ", startX: " << wall.startX << ", startY: " << wall.startY << ", stopX: " << wall.stopX << ", stopY: " << wall.stopY << "}\n";
         }
     }
 
