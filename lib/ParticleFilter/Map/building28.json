@@ -2,6 +2,7 @@
     "map_name": "Building 28 - Second floor",
     "number_of_cells": 11,
     "number_of_walls": 17,
+    "number_of_doors": 2,
     "cells": [
         {
             "id": 1,
@@ -200,6 +201,22 @@
             "startY": 0,
             "stopX": 249,
             "stopY": 562
+        }
+    ],
+    "doors": [
+        {
+            "id": 0,
+            "startX": 1542,
+            "startY": 758,
+            "stopX": 1643,
+            "stopY": 767
+        },
+        {
+            "id": 1,
+            "startX": 2296,
+            "startY": 158,
+            "stopX": 2419,
+            "stopY": 167
         }
     ]
 }

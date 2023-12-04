@@ -13,7 +13,6 @@
 
 #include "gnuplot-iostream.h"
 
-
 using namespace std;
 
 #define nrOfChannelsToPlot 2 // NUM_CHANNELS
@@ -163,7 +162,7 @@ void graphSineWave5FFT()
             double time = (double)i / SAMPLE_RATE;
             double amplitude = sin(2.0 * M_PI * frequency * time);
 
-            //sineWaveData[i] = static_cast<uint16_t>((amplitude + 1.0) * 0.5 * UINT16_MAX); // This works
+            // sineWaveData[i] = static_cast<uint16_t>((amplitude + 1.0) * 0.5 * UINT16_MAX); // This works
             sineWaveData[i] = static_cast<int16_t>(amplitude * INT16_MAX);
 
             // sineWaveData[i] = static_cast<uint16_t>(numeric_limits<uint16_t>::max() * 0.5 * sin(2.0 * M_PI * frequency * time) + 0.5 * numeric_limits<uint16_t>::max());
@@ -217,8 +216,9 @@ void prepareGnuPlot()
     {
         gnuPlots[0] << "'-' with lines title 'Mic " << (i + 1) << "'";
 
-        if(i < nrOfChannelsToPlot - 1) {
-           gnuPlots[0] <<  ", ";
+        if (i < nrOfChannelsToPlot - 1)
+        {
+            gnuPlots[0] << ", ";
         }
     }
 
@@ -232,7 +232,7 @@ void graphInputStream()
     {
         gnuPlots[i] << "set title 'Frequency Domain Representation'\n";
         gnuPlots[i] << "set xrange [0:25000]\n";
-        //gnuPlots[i] << "set yrange [0:1]\n";
+        // gnuPlots[i] << "set yrange [0:1]\n";
         gnuPlots[i] << "set xlabel 'Frequency (Hz)'\n";
         gnuPlots[i] << "set ylabel 'Magnitude'\n";
     }
@@ -256,7 +256,8 @@ void graphInputStream()
         prepareGnuPlot();
 
         // Determine order of microphones, only executed once:
-        if(!audioHelper.determineMicrophoneOrder()) {
+        if (!audioHelper.determineMicrophoneOrder())
+        {
             cout << "Failed to determine microphone order! Stopping program.\n";
 
             return;
@@ -291,20 +292,40 @@ void graphInputStream()
     }
 }
 
-void loadParticleFilter() {
-    const char *filenameMap = "../lib/ParticleFilter/Map/building28.json"; 
+void loadParticleFilter()
+{
+    const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
 
     if (!particleFilter.loadMap(filenameMap))
     {
         cerr << "Failed to load map!\n";
         return;
     }
-    else {
-        cout << "Sucessfully loaded map " << particleFilter.getMapName() << endl; 
+    else
+    {
+        cout << "Sucessfully loaded map " << particleFilter.getMapName() << endl;
     }
 
-    //Render map:
-    mapRenderer.loadMap(particleFilter.getMapData(), 3);
+    // Initialize map renderer:
+    mapRenderer.initialize(particleFilter.getMapData(), 3);
+
+    bool done = false;
+
+    while (!done)
+    {
+        // TODO particle filter update here :)
+        // Something like: particlefilter.update();
+        //Then take list of particles and pass it tot the update map function
+        
+
+        //Update map:
+        if(!mapRenderer.updateMap()) {
+            done = true;
+        }
+    }
+
+    //Cleanup renderer:
+    mapRenderer.stop();
 }
 
 int main()
@@ -325,9 +346,9 @@ int main()
 
     // openAndPlayWavFile();
 
-    //graphSineWave5FFT();
-    //graphInputStream();
-    //recordToWavFile();
+    // graphSineWave5FFT();
+    // graphInputStream();
+    // recordToWavFile();
     loadParticleFilter();
 
     audioHelper.clearBuffers();
