@@ -18,6 +18,8 @@ public:
     int getWidth();
     int getHeight();
 
+    bool isCoordinateInsideCell(int x, int y);
+
     const char *getCellName();
 
     static void from_json(const json &j, Cell &cellData);

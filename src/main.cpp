@@ -294,7 +294,11 @@ void graphInputStream()
 
 void loadParticleFilter()
 {
-    const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
+    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    const uint8_t scale = 2;
+
+    // const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
+    // const uint8_t scale = 3;
 
     if (!particleFilter.loadMap(filenameMap))
     {
@@ -306,8 +310,11 @@ void loadParticleFilter()
         cout << "Sucessfully loaded map " << particleFilter.getMapName() << endl;
     }
 
+    //Initialize particle filter:
+    particleFilter.initializeParticlesUniformly();
+
     // Initialize map renderer:
-    mapRenderer.initialize(particleFilter.getMapData(), 3);
+    mapRenderer.initialize(particleFilter.getMapData(), scale);
 
     bool done = false;
 
@@ -316,7 +323,7 @@ void loadParticleFilter()
         // TODO particle filter update here :)
         // Something like: particlefilter.update();
         //Then take list of particles and pass it tot the update map function
-        
+
 
         //Update map:
         if(!mapRenderer.updateMap()) {
@@ -337,12 +344,12 @@ int main()
     audioHelper.clearBuffers();
 
     // Opening audio streams:
-    if (!audioHelper.initializeAndOpen())
-    {
-        cout << "Initializing audio helper has failed!\n";
+    // if (!audioHelper.initializeAndOpen())
+    // {
+    //     cout << "Initializing audio helper has failed!\n";
 
-        return 0;
-    }
+    //     return 0;
+    // }
 
     // openAndPlayWavFile();
 

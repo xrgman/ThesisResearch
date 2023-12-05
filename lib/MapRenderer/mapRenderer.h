@@ -6,8 +6,8 @@
 
 #include "Map/mapData.h"
 
-#define WINDOW_WIDTH 944//1280
-#define WINDOW_HEIGHT 446//720 
+#define WINDOW_WIDTH 800//1280
+#define WINDOW_HEIGHT 600//720 
 
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 30

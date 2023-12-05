@@ -1,38 +1,215 @@
 {
     "map_name": "My room",
-    "number_of_cells": 1,
-    "number_of_walls": 3, 
+    "number_of_cells": 8,
+    "number_of_walls": 19, 
     "number_of_doors": 2,
     "cells": [
         {
-            "id": 0,
-            "startX": 5,
-            "startY": 5,
-            "stopX": 10,
-            "stopY": 10
+            "id": 1,
+            "startX": 79,
+            "startY": 9,
+            "stopX": 233,
+            "stopY": 180
+        },
+        {
+            "id": 2,
+            "startX": 233,
+            "startY": 9,
+            "stopX": 479,
+            "stopY": 180
+        },
+        {
+            "id": 3,
+            "startX": 233,
+            "startY": 180,
+            "stopX": 547,
+            "stopY": 402
+        },
+        {
+            "id": 4,
+            "startX": 233,
+            "startY": 402,
+            "stopX": 547,
+            "stopY": 624
+        },
+        {
+            "id": 5,
+            "startX": 233,
+            "startY": 624,
+            "stopX": 547,
+            "stopY": 842
+        },
+        {
+            "id": 6,
+            "startX": 9,
+            "startY": 624,
+            "stopX": 233,
+            "stopY": 842
+        },
+        {
+            "id": 7,
+            "startX": 123,
+            "startY": 399,
+            "stopX": 224,
+            "stopY": 612
+        },
+        {
+            "id": 8,
+            "startX": 9,
+            "startY": 189,
+            "stopX": 224,
+            "stopY": 307
         }
     ],
     "walls": [
         {
             "id": 0,
-            "startX": 80,
-            "stopX": 480,
-            "startY": 10,
-            "stopY": 19
+            "startX": 70,
+            "startY": 0,
+            "stopX": 488,
+            "stopY": 9
         },
         {
             "id": 1,
-            "startX": 480,
-            "stopX": 489,
-            "startY": 10,
-            "stopY": 142
+            "startX": 479,
+            "startY": 0,
+            "stopX": 488,
+            "stopY": 132
         },
         {
             "id": 2,
-            "startX": 489,
-            "stopX": 548,
-            "startY": 133,
-            "stopY": 142
+            "startX": 479,
+            "startY": 123,
+            "stopX": 556,
+            "stopY": 132
+        },
+        {
+            "id": 3,
+            "startX": 547,
+            "startY": 123,
+            "stopX": 556,
+            "stopY": 851
+        },
+        {
+            "id": 4,
+            "startX": 0,
+            "startY": 842,
+            "stopX": 556,
+            "stopY": 851
+        },
+        {
+            "id": 5,
+            "startX": 0,
+            "startY": 615,
+            "stopX": 9,
+            "stopY": 851
+        },
+        {
+            "id": 6,
+            "startX": 0,
+            "startY": 615,
+            "stopX": 233,
+            "stopY": 624
+        },
+        {
+            "id": 7,
+            "startX": 224,
+            "startY": 607,
+            "stopX": 233,
+            "stopY": 624
+        },
+        {
+            "id": 8,
+            "startX": 224,
+            "startY": 180,
+            "stopX": 233,
+            "stopY": 516
+        },
+        {
+            "id": 9,
+            "startX": 70,
+            "startY": 180,
+            "stopX": 233,
+            "stopY": 189
+        },
+        {
+            "id": 10,
+            "startX": 70,
+            "startY": 0,
+            "stopX": 79,
+            "stopY": 189
+        },
+        {
+            "id": 11,
+            "startX": 114,
+            "startY": 607,
+            "stopX": 233,
+            "stopY": 621
+        },
+        {
+            "id": 12,
+            "startX": 114,
+            "startY": 390,
+            "stopX": 123,
+            "stopY": 621
+        },
+        {
+            "id": 13,
+            "startX": 114,
+            "startY": 390,
+            "stopX": 128,
+            "stopY": 399
+        },
+        {
+            "id": 14,
+            "startX": 219,
+            "startY": 390,
+            "stopX": 233,
+            "stopY": 399
+        },
+        {
+            "id": 15,
+            "startX": 114,
+            "startY": 307,
+            "stopX": 123,
+            "stopY": 399
+        },
+        {
+            "id": 16,
+            "startX": 0,
+            "startY": 307,
+            "stopX": 123,
+            "stopY": 316
+        },
+        {
+            "id": 17,
+            "startX": 0,
+            "startY": 180,
+            "stopX": 9,
+            "stopY": 316
+        },
+        {
+            "id": 18,
+            "startX": 0,
+            "startY": 180,
+            "stopX": 233,
+            "stopY": 189
+        }
+    ],
+    "doors": [
+        {
+            "id": 0,
+            "startX": 224,
+            "startY": 516,
+            "stopX": 233,
+            "stopY": 607
+        },
+        {
+            "id": 1,
+            "startX": 128,
+            "startY": 390,
+            "stopX": 219,
+            "stopY": 399
         }
     ]
 }
