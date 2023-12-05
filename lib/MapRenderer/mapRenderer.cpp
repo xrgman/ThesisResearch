@@ -77,7 +77,7 @@ bool MapRenderer::initialize(MapData *mapData, uint8_t scale)
     return true;
 }
 
-bool MapRenderer::updateMap()
+bool MapRenderer::updateMap(const Particle particles[], const int nrOfParticles)
 {
     // Checking if window was closed:
     SDL_Event event;
@@ -94,12 +94,14 @@ bool MapRenderer::updateMap()
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
+    // Render map layout:
     renderMap(renderer, font, scale);
 
+    // Render particles on the map:
+    renderParticles(renderer, particles, nrOfParticles);
+    
     // Present the renderer
     SDL_RenderPresent(renderer);
-
-    // Cleanup
 
     return true;
 }
@@ -142,7 +144,7 @@ void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scal
     // Drawing all cells:
     std::vector<Cell> cells = mapData->getCells();
 
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
 
     for (int i = 0; i < mapData->getNumberOfCells(); i++)
     {
@@ -175,6 +177,22 @@ void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scal
             (int)std::ceil(door.getHeight() / scale)};
 
         SDL_RenderFillRect(renderer, &rect);
+    }
+}
+
+void MapRenderer::renderParticles(SDL_Renderer *renderer, const Particle particles[], const int nrOfParticles)
+{
+    // Set color to red
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+    for (int i = 0; i < nrOfParticles; i++)
+    {
+        Particle particle = particles[i];
+
+        SDL_RenderDrawPoint(
+            renderer, 
+            (int)std::ceil(particle.getXCoordinate() / scale) + BORDER_WIDTH, 
+            (int)std::ceil(particle.getYcoordinate() / scale) + BORDER_HEIGHT);
     }
 }
 

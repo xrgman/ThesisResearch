@@ -11,6 +11,9 @@ public:
     Particle();
     Particle(int ID, int xCoordinate, int yCoordinate, int direction, float weight);
 
+    int getXCoordinate();
+    int getYcoordinate();
+
 private:
     int ID;          // To distinguish the particles from each other
     int xCoordinate; // Will be between 0-MAX screen width pixel

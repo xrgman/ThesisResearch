@@ -5,9 +5,10 @@
 #include <SDL2/SDL_ttf.h>
 
 #include "Map/mapData.h"
+#include "particle.h"
 
-#define WINDOW_WIDTH 800//1280
-#define WINDOW_HEIGHT 600//720 
+#define WINDOW_WIDTH 1920//1280
+#define WINDOW_HEIGHT 1080//720 
 
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 30
@@ -19,7 +20,7 @@ class MapRenderer
 {
 public:
     bool initialize(MapData *mapData, uint8_t scale);
-    bool updateMap();
+    bool updateMap(const Particle particles[], const int nrOfParticles);
     void stop();
 
 private: 
@@ -31,6 +32,7 @@ private:
     TTF_Font *font;
 
     void renderMap(SDL_Renderer* renderer, TTF_Font* font, uint8_t scale);
+    void renderParticles(SDL_Renderer* renderer, const Particle particles[], const int nrOfParticles);
     void writeTextCenterRect(SDL_Renderer *renderer, TTF_Font *font, SDL_Color textColor, const char *text, SDL_Rect rectangle);
 };
 

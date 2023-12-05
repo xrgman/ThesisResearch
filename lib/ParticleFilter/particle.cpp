@@ -24,3 +24,13 @@ Particle::Particle(int ID, int xCoordinate, int yCoordinate, int direction, floa
     this->direction = direction;
     this->weight = weight;
 }
+
+int Particle::getXCoordinate()
+{
+    return this->xCoordinate;
+}
+
+int Particle::getYcoordinate()
+{
+    return this->yCoordinate;
+}

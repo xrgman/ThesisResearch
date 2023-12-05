@@ -12,6 +12,8 @@ class ParticleFilter
 public:
     bool loadMap(const char *filename);
     const char* getMapName();
+    Particle* getParticles();
+    int getNumberOfParticles();
 
     bool initializeParticlesUniformly();
 
@@ -20,7 +22,7 @@ public:
 private:
     MapData mapData;
 
-    Particle particles[NUMBER_OF_PARTICLES];
+    std::vector<Particle> particles;
 };
 
 #endif

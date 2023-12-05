@@ -295,7 +295,7 @@ void graphInputStream()
 void loadParticleFilter()
 {
     const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
-    const uint8_t scale = 2;
+    const uint8_t scale = 1;
 
     // const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
     // const uint8_t scale = 3;
@@ -310,7 +310,7 @@ void loadParticleFilter()
         cout << "Sucessfully loaded map " << particleFilter.getMapName() << endl;
     }
 
-    //Initialize particle filter:
+    // Initialize particle filter:
     particleFilter.initializeParticlesUniformly();
 
     // Initialize map renderer:
@@ -322,16 +322,16 @@ void loadParticleFilter()
     {
         // TODO particle filter update here :)
         // Something like: particlefilter.update();
-        //Then take list of particles and pass it tot the update map function
+        // Then take list of particles and pass it tot the update map function
 
-
-        //Update map:
-        if(!mapRenderer.updateMap()) {
+        // Update map:
+        if (!mapRenderer.updateMap(particleFilter.getParticles(), particleFilter.getNumberOfParticles()))
+        {
             done = true;
         }
     }
 
-    //Cleanup renderer:
+    // Cleanup renderer:
     mapRenderer.stop();
 }
 
@@ -339,6 +339,9 @@ int main()
 {
     // Catching sigint event:
     signal(SIGINT, sigIntHandler);
+
+    //Preparing random number generator:
+    srand(time(NULL));
 
     // Filling buffers with 0's:
     audioHelper.clearBuffers();
