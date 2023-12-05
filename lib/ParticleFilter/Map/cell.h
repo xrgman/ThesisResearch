@@ -18,7 +18,7 @@ public:
     int getWidth();
     int getHeight();
 
-    bool isCoordinateInsideCell(int x, int y);
+    bool containsPoint(int x, int y);
 
     const char *getCellName();
 

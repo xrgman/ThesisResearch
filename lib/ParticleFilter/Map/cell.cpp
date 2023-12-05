@@ -25,14 +25,9 @@ int Cell::getHeight()
 /// @param x X coordinate to check.
 /// @param y Y coordinate to check.
 /// @return Whether or not the coordinate is inside the cell.
-bool Cell::isCoordinateInsideCell(int x, int y)
+bool Cell::containsPoint(int x, int y)
 {
-    if (x >= startX && x <= stopX && y >= startY && y <= stopY)
-    {
-        return true;
-    }
-
-    return false;
+    return x >= startX && x <= stopX && y >= startY && y <= stopY;
 }
 
 /// @brief Get the name of the Cell, consisting out of C{ID}.

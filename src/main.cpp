@@ -313,6 +313,8 @@ void loadParticleFilter()
     // Initialize particle filter:
     particleFilter.initializeParticlesUniformly();
 
+    particleFilter.processMovement(10, 90);
+
     // Initialize map renderer:
     mapRenderer.initialize(particleFilter.getMapData(), scale);
 

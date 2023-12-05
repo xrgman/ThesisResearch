@@ -10,4 +10,6 @@
 
 #define FRAMES_PER_BUFFER 2048
 
+#define DIAMETER_WHEEL 12 //12CM
+
 #endif
