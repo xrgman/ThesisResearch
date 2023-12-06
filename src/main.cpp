@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <chrono>
 #include <thread>
+#include <SDL2/SDL.h>
 
 #include "main.h"
 #include "wavHelper.h"
@@ -40,6 +41,43 @@ void sigIntHandler(int signum)
 
     // Exit the program:
     exit(signum);
+}
+
+/// @brief Around 40cm is travel distance of one wheel rotation
+void processKeyBoard()
+{
+    if (!mapRenderer.newKeyPressed)
+    {
+        return;
+    }
+
+    if (mapRenderer.KEYS[SDLK_w])
+    {
+        particleFilter.processMovement(40, 0);
+
+        mapRenderer.newKeyPressed = false;
+    }
+
+    if (mapRenderer.KEYS[SDLK_a])
+    {
+        particleFilter.processMovement(40, 270);
+
+        mapRenderer.newKeyPressed = false;
+    }
+
+    if (mapRenderer.KEYS[SDLK_s])
+    {
+        particleFilter.processMovement(40, 190);
+
+        mapRenderer.newKeyPressed = false;
+    }
+
+    if (mapRenderer.KEYS[SDLK_d])
+    {
+        particleFilter.processMovement(40, 90);
+
+        mapRenderer.newKeyPressed = false;
+    }
 }
 
 void openAndPlayWavFile()
@@ -313,8 +351,6 @@ void loadParticleFilter()
     // Initialize particle filter:
     particleFilter.initializeParticlesUniformly();
 
-    particleFilter.processMovement(10, 90);
-
     // Initialize map renderer:
     mapRenderer.initialize(particleFilter.getMapData(), scale);
 
@@ -322,15 +358,14 @@ void loadParticleFilter()
 
     while (!done)
     {
-        // TODO particle filter update here :)
-        // Something like: particlefilter.update();
-        // Then take list of particles and pass it tot the update map function
-
         // Update map:
         if (!mapRenderer.updateMap(particleFilter.getParticles(), particleFilter.getNumberOfParticles()))
         {
             done = true;
         }
+
+        // Processing keyboard presses:
+        processKeyBoard();
     }
 
     // Cleanup renderer:
@@ -342,7 +377,7 @@ int main()
     // Catching sigint event:
     signal(SIGINT, sigIntHandler);
 
-    //Preparing random number generator:
+    // Preparing random number generator:
     srand(time(NULL));
 
     // Filling buffers with 0's:

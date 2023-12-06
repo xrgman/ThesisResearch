@@ -8,7 +8,7 @@ using json = nlohmann::json;
 
 ParticleFilter::ParticleFilter() : generator(rd()), normal_distribution(NOISE_MEAN, NOISE_STDEV)
 {
-}
+} 
 
 //*************************************************
 //******** Map functions **************************
@@ -57,9 +57,9 @@ MapData *ParticleFilter::getMapData()
     return &mapData;
 }
 
-//*************************************************
+//************************************************* 
 //******** Initialization particle filter *********
-//*************************************************
+//*************************************************    
 
 /// @brief Get the array containing all the particles.
 /// @return Pointer to the start of the array containing all particles.

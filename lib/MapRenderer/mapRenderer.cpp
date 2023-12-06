@@ -74,19 +74,44 @@ bool MapRenderer::initialize(MapData *mapData, uint8_t scale)
         return false;
     }
 
+    // Initialize keys unpressed:
+    for (int i = 0; i < 322; i++)
+    {
+        KEYS[i] = false;
+    }
+
     return true;
 }
 
 bool MapRenderer::updateMap(const Particle particles[], const int nrOfParticles)
 {
-    // Checking if window was closed:
+    // Processing events:
     SDL_Event event;
 
     while (SDL_PollEvent(&event))
     {
-        if (event.type == SDL_QUIT)
+        switch (event.type)
         {
+        case SDL_QUIT:
             return false;
+        case SDL_KEYDOWN:
+            if (KEYS[event.key.keysym.sym])
+            {
+                newKeyPressed = false;
+            }
+            else
+            {
+                KEYS[event.key.keysym.sym] = true;
+
+                newKeyPressed = true;
+            }
+
+            break;
+        case SDL_KEYUP:
+            KEYS[event.key.keysym.sym] = false;
+            break;
+        default:
+            break;
         }
     }
 
@@ -99,7 +124,7 @@ bool MapRenderer::updateMap(const Particle particles[], const int nrOfParticles)
 
     // Render particles on the map:
     renderParticles(renderer, particles, nrOfParticles);
-    
+
     // Present the renderer
     SDL_RenderPresent(renderer);
 
@@ -185,8 +210,8 @@ void MapRenderer::renderParticles(SDL_Renderer *renderer, const Particle particl
         Particle particle = particles[i];
 
         SDL_RenderDrawPoint(
-            renderer, 
-            (int)std::ceil(particle.getXCoordinate() / scale) + BORDER_WIDTH, 
+            renderer,
+            (int)std::ceil(particle.getXCoordinate() / scale) + BORDER_WIDTH,
             (int)std::ceil(particle.getYcoordinate() / scale) + BORDER_HEIGHT);
     }
 }

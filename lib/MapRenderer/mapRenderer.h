@@ -7,8 +7,8 @@
 #include "Map/mapData.h"
 #include "particle.h"
 
-#define WINDOW_WIDTH 1920//1280
-#define WINDOW_HEIGHT 1080//720 
+#define WINDOW_WIDTH 600//1280
+#define WINDOW_HEIGHT 900//720 
 
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 30
@@ -22,6 +22,9 @@ public:
     bool initialize(MapData *mapData, uint8_t scale);
     bool updateMap(const Particle particles[], const int nrOfParticles);
     void stop();
+
+    bool KEYS[322];
+    bool newKeyPressed = false;
 
 private: 
     MapData *mapData;
