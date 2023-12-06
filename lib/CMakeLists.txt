@@ -4,7 +4,7 @@ add_library(AudioHelper SHARED AudioHelper/audioHelper.cpp ${CMAKE_CURRENT_SOURC
 add_library(kissfft SHARED kissfft/kiss_fft.c kissfft/kiss_fftr.c)
 add_library(FFTWrapper SHARED FFTWrapper/fftWrapper.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../src/main.h)
 add_library(Util SHARED Util/util.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../src/main.h)
-add_library(ParticleFilter SHARED ParticleFilter/particleFilter.cpp  ${CMAKE_CURRENT_SOURCE_DIR}/../src/main.h ParticleFilter/particle.cpp ParticleFilter/Map/mapData.h ParticleFilter/Map/cell.cpp ParticleFilter/Map/wall.cpp ParticleFilter/Map/door.cpp ) 
+add_library(ParticleFilter SHARED ParticleFilter/particleFilter.cpp  ${CMAKE_CURRENT_SOURCE_DIR}/../src/main.h ParticleFilter/particle.cpp ParticleFilter/Map/mapData.h ParticleFilter/Map/cell.cpp ParticleFilter/Map/wall.cpp ParticleFilter/Map/door.cpp ParticleFilter/Map/line.h) 
 add_library(MapRenderer SHARED MapRenderer/mapRenderer.cpp)
 
 # Set the library output directory

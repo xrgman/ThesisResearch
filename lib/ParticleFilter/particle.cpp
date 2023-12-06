@@ -2,7 +2,7 @@
 
 #include <random>
 
-Particle Particle::createParticleInCell(int ID, float weight, Cell cell)
+Particle Particle::createParticleInCell(int ID, double weight, Cell cell)
 {
     // Generate x and y coordinates randomly:
     int xCoordinate = cell.startX + rand() % (cell.stopX - cell.startX + 1);
@@ -16,7 +16,7 @@ Particle::Particle()
 {
 }
 
-Particle::Particle(int ID, int xCoordinate, int yCoordinate, int direction, float weight)
+Particle::Particle(int ID, int xCoordinate, int yCoordinate, int direction, double weight)
 {
     this->ID = ID;
     this->xCoordinate = xCoordinate;
@@ -33,4 +33,24 @@ int Particle::getXCoordinate()
 int Particle::getYcoordinate()
 {
     return this->yCoordinate;
+}
+
+double Particle::getWeight() {
+    return this->weight;
+}
+
+/// @brief Update the coordinates of the particle.
+/// @param newXcoordinate New X coordinate of the particle.
+/// @param newYCoordinate New Y coordinate of the particle.
+void Particle::updateCoordinates(int newXcoordinate, int newYCoordinate)
+{
+    this->xCoordinate = newXcoordinate;
+    this->yCoordinate = newYCoordinate;
+}
+
+/// @brief Update the weight of the particle.
+/// @param newWeight New weight of the particle.
+void Particle::updateWeight(double newWeight)
+{
+    this->weight = newWeight;
 }

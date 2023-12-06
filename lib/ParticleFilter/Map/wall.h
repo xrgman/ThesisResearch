@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <nlohmann/json.hpp>
 
+#include "line.h"
+
 using json = nlohmann::json;
 
 class Wall
@@ -17,6 +19,8 @@ public:
 
     int getWidth();
     int getHeight();
+
+    bool isIntersectedBy(Line line);
 
     static void from_json(const json &j, Wall &cellData);
 

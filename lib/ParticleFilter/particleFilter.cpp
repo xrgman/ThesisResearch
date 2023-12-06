@@ -1,11 +1,14 @@
 #include "particleFilter.h"
 #include "util.h"
 
-#include <random>
 #include <iostream>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
+
+ParticleFilter::ParticleFilter() : generator(rd()), normal_distribution(NOISE_MEAN, NOISE_STDEV)
+{
+}
 
 //*************************************************
 //******** Map functions **************************
@@ -63,22 +66,23 @@ MapData *ParticleFilter::getMapData()
 Particle *ParticleFilter::getParticles()
 {
     return this->particles.data();
-}
+} 
 
 /// @brief Get the number of particles inside the particle array.
 /// @return Number of particles inside the array.
 int ParticleFilter::getNumberOfParticles()
 {
-    return NUMBER_OF_PARTICLES;
+    return particlesInArray;
 }
 
 /// @brief Create a fixed amount of particles, that are spread uniformly over all cells in the map.
 void ParticleFilter::initializeParticlesUniformly()
 {
     const int particlesPerCell = NUMBER_OF_PARTICLES / mapData.getNumberOfCells(); // We take it for granted that we will not exactly get the number of particles in the define.
-    const float weight = 1.0f / NUMBER_OF_PARTICLES;                               // Initial particle weight is equal amongst all particles.
+    const double weight = (double)1 / NUMBER_OF_PARTICLES;                         // Initial particle weight is equal amongst all particles.
 
     // Preparing particle array:
+    particlesInArray = 0;
     particles.clear();
     particles.reserve(NUMBER_OF_PARTICLES);
 
@@ -90,6 +94,8 @@ void ParticleFilter::initializeParticlesUniformly()
             int particleID = i * particlesPerCell + j;
 
             particles[particleID] = Particle::createParticleInCell(particleID, weight, mapData.getCells()[i]);
+
+            particlesInArray++;
         }
     }
 }
@@ -101,7 +107,7 @@ void ParticleFilter::initializeParticlesUniformly()
 // distance travelled = pi * diameter
 // Diameter wheel = 12CM
 void ParticleFilter::processMovement(double distance, int angle)
-{
+{ 
     int noise1, noise2;
 
     // Calculate movement along the x and y axis:
@@ -112,34 +118,51 @@ void ParticleFilter::processMovement(double distance, int angle)
     std::cout << "Movement (" << distance << "cm) at " << angle << " degrees. X: " << movementX << ", Y: " << movementY << ".\n";
 
     // Checking if there are any particles:
-    if (particles.empty())
+    if (particlesInArray <= 0)
     {
         std::cerr << "No particles found, make sure to initialize before processing any movement.\n";
 
         return;
     }
 
+    std::vector<int> correctParticleIdxs;
+    std::vector<int> incorrectParticleIdxs;
+    const double weigthAddition = (double)1 / NUMBER_OF_PARTICLES;
+
     // Looping over all particles and update their position:
     for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
     {
-        Particle particle = particles[i];
+        Particle &particle = particles[i];
 
         // Calculate noise:
-        calculateGaussianNoise(noise1, NOISE_STDEV, NOISE_MEAN, distance);
-        calculateGaussianNoise(noise2, NOISE_STDEV, NOISE_MEAN, distance);
+        calculateGaussianNoise(noise1, distance);
+        calculateGaussianNoise(noise2, distance);
 
         // Calculating new x and y coordinates:
         int newXCoordinate = particle.getXCoordinate() + (int)movementX + noise1;
         int newYCoordinate = particle.getYcoordinate() + (int)movementY + noise2;
 
         // Checking if new coordinates are allowed and that the particle has not travelled through any walls:
-        if (isCoordinateAllowed(newXCoordinate, newYCoordinate))
+        if (isCoordinateAllowed(newXCoordinate, newYCoordinate) && !didParticleTravelThroughWall(particle.getXCoordinate(), particle.getYcoordinate(), newXCoordinate, newYCoordinate))
         {
-            // Update coordinates
+            // Update coordinates of the particle:
+            particle.updateCoordinates(newXCoordinate, newYCoordinate);
+
+            // Update weight of the particle:
+            particle.updateWeight(particle.getWeight() + weigthAddition);
+
+            correctParticleIdxs.push_back(i);
+        }
+        else
+        {
+            incorrectParticleIdxs.push_back(i);
         }
     }
 
-    // Process movement part!
+    std::cout << "In total " << incorrectParticleIdxs.size() << " particles are out of bound and " << correctParticleIdxs.size() << " are ok.\n";
+
+    // Process new particle locations:
+    processNewParticleLocations(correctParticleIdxs.data(), incorrectParticleIdxs.data(), correctParticleIdxs.size(), incorrectParticleIdxs.size(), distance);
 }
 
 //*************************************************
@@ -162,16 +185,13 @@ void ParticleFilter::calculateMovementAlongAxis(double distance, int angle, doub
 /// @param stdev Standard deviation to use.
 /// @param mean Mean to use.
 /// @param distance Distance travelled (cm), noise shoud be less than this.
-void ParticleFilter::calculateGaussianNoise(int &noise, double stdev, double mean, double distance)
+void ParticleFilter::calculateGaussianNoise(int &noise, double distance)
 {
-    std::default_random_engine generator;
-    std::normal_distribution<double> dist(mean, stdev);
-
     do
     {
-        noise = dist(generator);
+        noise = normal_distribution(generator);
 
-    } while (noise > distance);
+    } while (noise > distance || noise < -distance);
 }
 
 /// @brief Check if coordinate is allowed, meaning it is inside one of the cells.
@@ -194,8 +214,110 @@ bool ParticleFilter::isCoordinateAllowed(int xCoordinate, int yCoordinate)
     return false;
 }
 
+/// @brief Check if a particle has not moved through any walls during its movement.
+/// @param originalXCoordinate The original X coordinate of the particle.
+/// @param originalYCoordinate The original Y coordinate of the particle.
+/// @param newXcoordinate The new X coordinate of the particle.
+/// @param newYCoordinate The new Y coordinate of the particle.
+/// @return Whether or not any walls are intersected.
 bool ParticleFilter::didParticleTravelThroughWall(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate)
 {
+    Line line = {originalXCoordinate, originalYCoordinate, newXcoordinate, newYCoordinate};
+
+    // Looping over all walls to check for intersection:
+    for (int i = 0; i < mapData.getNumberOfWalls(); i++)
+    {
+        Wall wall = mapData.getWalls()[i];
+
+        if (wall.isIntersectedBy(line))
+        {
+            return true;
+        }
+    }
 
     return false;
+}
+
+/// @brief Process the out-of-bound particles, by assigning new valid coordinates based on correct particles with high weights.
+/// @param correctParticleIdxs List of correct particle indexes.
+/// @param incorrectParticleIdxs List of incorrect particle indexes.
+/// @param nrOfCorrectParticles Number of correct particles.
+/// @param nrOfIncorrectParticles Number of incorrect particles.
+/// @param distance Distance travelled.
+void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[], const int incorrectParticleIdxs[], int nrOfCorrectParticles, int nrOfIncorrectParticles, double distance)
+{
+    // If all particles are out of bounds, do nothing for now:
+    if (nrOfIncorrectParticles == NUMBER_OF_PARTICLES || nrOfCorrectParticles == 0)
+    {
+        return;
+    }
+
+    // Creating a particle distribution based on the correct particles:
+    std::vector<double> particleDistribution(nrOfCorrectParticles);
+
+    for (int i = 0; i < nrOfCorrectParticles; i++)
+    {
+        int particleId = correctParticleIdxs[i];
+
+        particleDistribution[i] = particles[particleId].getWeight();
+    }
+
+    // Creating emperical distribution from this:
+    std::discrete_distribution<int> empirical_distribution(particleDistribution.begin(), particleDistribution.end());
+
+    // Looping over all wrong particles, to get them a new and valid position:
+    for (int i = 0; i < nrOfIncorrectParticles; i++)
+    {
+        Particle &particle = particles[incorrectParticleIdxs[i]];
+
+        // Choose one of the correct particles to fit the out-of-bound particle onto:
+        int correctParticleIdx;
+
+        do
+        {
+            correctParticleIdx = empirical_distribution(generator);
+        } while (correctParticleIdx < 0 || correctParticleIdx > nrOfCorrectParticles);
+
+        Particle chosenParticle = particles[correctParticleIdxs[correctParticleIdx]];
+
+        // Create new coordinates for the particle, that are allowed:
+        int noise1, noise2;
+        int newXCoordinate, newYcoordinate;
+
+        do
+        {
+            calculateGaussianNoise(noise1, distance);
+            calculateGaussianNoise(noise2, distance);
+
+            newXCoordinate = chosenParticle.getXCoordinate() + noise1;
+            newYcoordinate = chosenParticle.getYcoordinate() + noise2;
+        } while (!isCoordinateAllowed(newXCoordinate, newYcoordinate));
+
+        // Save new coordinates in the particle:
+        particle.updateCoordinates(newXCoordinate, newYcoordinate);
+
+        // Reset weight of incorrect particle:
+        particle.updateWeight((double)1 / NUMBER_OF_PARTICLES);
+    }
+
+    // Normalize weights of the particles:
+    normalizeParticleWeights();
+}
+
+/// @brief Normalizes the weight of all particles, using the sum of all weights.
+void ParticleFilter::normalizeParticleWeights()
+{
+    double weightSumParticles = 0.0;
+
+    // Summing up weight of all particles:
+    for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
+    {
+        weightSumParticles += particles[i].getWeight();
+    }
+
+    // Updating weight of each particle:
+    for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
+    {
+        particles[i].updateWeight(particles[i].getWeight() / weightSumParticles);
+    }
 }

@@ -128,11 +128,6 @@ void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scal
     {
         Wall wall = walls[i];
 
-        // SDL_Rect rect = {
-        //     wall.startX,
-        //     wall.startY,
-        //     wall.getWidth(),
-        //     wall.getHeight()};
         SDL_Rect rect = {
             (int)std::ceil(wall.startX / scale) + BORDER_WIDTH,
             (int)std::ceil(wall.startY / scale) + BORDER_HEIGHT,
