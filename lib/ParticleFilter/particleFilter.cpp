@@ -8,7 +8,8 @@ using json = nlohmann::json;
 
 ParticleFilter::ParticleFilter() : generator(rd()), normal_distribution(NOISE_MEAN, NOISE_STDEV)
 {
-} 
+    this->selectedCellIdx = -1;
+}
 
 //*************************************************
 //******** Map functions **************************
@@ -57,16 +58,16 @@ MapData *ParticleFilter::getMapData()
     return &mapData;
 }
 
-//************************************************* 
+//*************************************************
 //******** Initialization particle filter *********
-//*************************************************    
+//*************************************************
 
 /// @brief Get the array containing all the particles.
 /// @return Pointer to the start of the array containing all particles.
 Particle *ParticleFilter::getParticles()
 {
     return this->particles.data();
-} 
+}
 
 /// @brief Get the number of particles inside the particle array.
 /// @return Number of particles inside the array.
@@ -107,7 +108,7 @@ void ParticleFilter::initializeParticlesUniformly()
 // distance travelled = pi * diameter
 // Diameter wheel = 12CM
 void ParticleFilter::processMovement(double distance, int angle)
-{ 
+{
     int noise1, noise2;
 
     // Calculate movement along the x and y axis:
@@ -125,9 +126,21 @@ void ParticleFilter::processMovement(double distance, int angle)
         return;
     }
 
+    // Clear selected cell:
+    selectedCellIdx = -1;
+
     std::vector<int> correctParticleIdxs;
     std::vector<int> incorrectParticleIdxs;
     const double weigthAddition = (double)1 / NUMBER_OF_PARTICLES;
+
+    // Keeping track of nr of particles in cell:
+    int particlesPerCell[mapData.getNumberOfCells()];
+    int cellIdx;
+
+    for (int i = 0; i < mapData.getNumberOfCells(); i++)
+    {
+        particlesPerCell[i] = 0;
+    }
 
     // Looping over all particles and update their position:
     for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
@@ -143,7 +156,7 @@ void ParticleFilter::processMovement(double distance, int angle)
         int newYCoordinate = particle.getYcoordinate() + (int)movementY + noise2;
 
         // Checking if new coordinates are allowed and that the particle has not travelled through any walls:
-        if (isCoordinateAllowed(newXCoordinate, newYCoordinate) && !didParticleTravelThroughWall(particle.getXCoordinate(), particle.getYcoordinate(), newXCoordinate, newYCoordinate))
+        if (isCoordinateAllowed(newXCoordinate, newYCoordinate, cellIdx) && !didParticleTravelThroughWall(particle.getXCoordinate(), particle.getYcoordinate(), newXCoordinate, newYCoordinate))
         {
             // Update coordinates of the particle:
             particle.updateCoordinates(newXCoordinate, newYCoordinate);
@@ -151,7 +164,14 @@ void ParticleFilter::processMovement(double distance, int angle)
             // Update weight of the particle:
             particle.updateWeight(particle.getWeight() + weigthAddition);
 
+            // Marking particle as correct:
             correctParticleIdxs.push_back(i);
+
+            // Marking the cell the particle is in:
+            if (cellIdx >= 0)
+            {
+                particlesPerCell[cellIdx]++;
+            }
         }
         else
         {
@@ -162,7 +182,15 @@ void ParticleFilter::processMovement(double distance, int angle)
     std::cout << "In total " << incorrectParticleIdxs.size() << " particles are out of bound and " << correctParticleIdxs.size() << " are ok.\n";
 
     // Process new particle locations:
-    processNewParticleLocations(correctParticleIdxs.data(), incorrectParticleIdxs.data(), correctParticleIdxs.size(), incorrectParticleIdxs.size(), distance);
+    processNewParticleLocations(correctParticleIdxs.data(), incorrectParticleIdxs.data(), correctParticleIdxs.size(), incorrectParticleIdxs.size(), distance, particlesPerCell);
+
+    // Select cell with most particles in it:
+    determineLocalizationCell(particlesPerCell);
+}
+
+int ParticleFilter::getSelectedCellIdx()
+{
+    return this->selectedCellIdx;
 }
 
 //*************************************************
@@ -198,12 +226,13 @@ void ParticleFilter::calculateGaussianNoise(int &noise, double distance)
 /// @param xCoordinate X coordinate to check.
 /// @param yCoordinate Y coordinate to check.
 /// @return Whether or not the X/Y coordinate is allowed on the map.
-bool ParticleFilter::isCoordinateAllowed(int xCoordinate, int yCoordinate)
+bool ParticleFilter::isCoordinateAllowed(int xCoordinate, int yCoordinate, int &cellIdx)
 {
     // Looping over all cells to check if the coordinate is inside it:
     for (int i = 0; i < mapData.getNumberOfCells(); i++)
     {
         Cell cell = mapData.getCells()[i];
+        cellIdx = i;
 
         if (cell.containsPoint(xCoordinate, yCoordinate))
         {
@@ -244,8 +273,11 @@ bool ParticleFilter::didParticleTravelThroughWall(int originalXCoordinate, int o
 /// @param nrOfCorrectParticles Number of correct particles.
 /// @param nrOfIncorrectParticles Number of incorrect particles.
 /// @param distance Distance travelled.
-void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[], const int incorrectParticleIdxs[], int nrOfCorrectParticles, int nrOfIncorrectParticles, double distance)
+/// @param particlesPerCell Reference to array containing the number of particles per cell, this is updated here with cells of the out-of-bound particles.
+void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[], const int incorrectParticleIdxs[], int nrOfCorrectParticles, int nrOfIncorrectParticles, double distance, int *particlesPerCell)
 {
+    int cellIdx;
+
     // If all particles are out of bounds, do nothing for now:
     if (nrOfIncorrectParticles == NUMBER_OF_PARTICLES || nrOfCorrectParticles == 0)
     {
@@ -291,13 +323,19 @@ void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[]
 
             newXCoordinate = chosenParticle.getXCoordinate() + noise1;
             newYcoordinate = chosenParticle.getYcoordinate() + noise2;
-        } while (!isCoordinateAllowed(newXCoordinate, newYcoordinate));
+        } while (!isCoordinateAllowed(newXCoordinate, newYcoordinate, cellIdx));
 
         // Save new coordinates in the particle:
         particle.updateCoordinates(newXCoordinate, newYcoordinate);
 
         // Reset weight of incorrect particle:
         particle.updateWeight((double)1 / NUMBER_OF_PARTICLES);
+
+        // Marking the cell that the particle is in:
+        if (cellIdx >= 0)
+        {
+            particlesPerCell[cellIdx]++;
+        }
     }
 
     // Normalize weights of the particles:
@@ -319,5 +357,18 @@ void ParticleFilter::normalizeParticleWeights()
     for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
     {
         particles[i].updateWeight(particles[i].getWeight() / weightSumParticles);
+    }
+}
+
+/// @brief Determine the cell with the most particles in it and check if it has enough particles for convergence.
+/// @param particlesPerCell Array containing the number of particles per cell.
+void ParticleFilter::determineLocalizationCell(int *particlesPerCell)
+{
+    int cellWithMostParticlesIdx = findMaxIndex(particlesPerCell, mapData.getNumberOfCells());
+    int numberOfParticlesInCell = particlesPerCell[cellWithMostParticlesIdx];
+
+    if (numberOfParticlesInCell > MIN_NUMBER_OF_PARTICLES_CONVERGENCE)
+    {
+        selectedCellIdx = cellWithMostParticlesIdx;
     }
 }

@@ -7,10 +7,10 @@
   <li><s>Record audio from microphones (WAV file)</s></li>
   <li><s>Show plot of frequency spectrum</s></li>
   <li><s>Correct the microphone order</s></li>
-  <li><s>Create the possibility to load in map<</s></li>
+  <li><s>Create the possibility to load in map</s></li>
   <li><s>Create basic particle filter, by plotting dots uniformly</s></li>
   <li><s>Update particle filter on movement</s></li>
-  <li>Show current cell based on particles</li>
+  <li><s>Show current cell based on particles</s></li>
   <li>Create message protocol (chirp) between robots via audio</li>
   <li>Determine DOA of received chirp</li>
   <li>Update particle filter based on data from audio</li>

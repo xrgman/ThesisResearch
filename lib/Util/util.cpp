@@ -55,6 +55,26 @@ bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold)
     return false;
 }
 
+int findMaxIndex(const int *array, int size)
+{
+    if (size <= 0)
+    {
+        return -1;
+    }
+
+    int idx = 0;
+
+    for (int i = 0; i < size; i++)
+    {
+        if (array[i] > array[idx])
+        {
+            idx = i;
+        }
+    }
+
+    return idx;
+}
+
 bool openFile(const char *filename, FILE **file, const char *mode)
 {
     *file = fopen(filename, mode);

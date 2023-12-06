@@ -20,7 +20,7 @@ class MapRenderer
 {
 public:
     bool initialize(MapData *mapData, uint8_t scale);
-    bool updateMap(const Particle particles[], const int nrOfParticles);
+    bool updateMap(const Particle particles[], const int nrOfParticles, const int selectedCellIdx);
     void stop();
 
     bool KEYS[322];
@@ -34,7 +34,7 @@ private:
     SDL_Renderer *renderer;
     TTF_Font *font;
 
-    void renderMap(SDL_Renderer* renderer, TTF_Font* font, uint8_t scale);
+    void renderMap(SDL_Renderer* renderer, TTF_Font* font, uint8_t scale, const int selectedCellIdx);
     void renderParticles(SDL_Renderer* renderer, const Particle particles[], const int nrOfParticles);
     void writeTextCenterRect(SDL_Renderer *renderer, TTF_Font *font, SDL_Color textColor, const char *text, SDL_Rect rectangle);
 };

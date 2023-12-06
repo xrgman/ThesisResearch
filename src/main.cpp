@@ -58,23 +58,23 @@ void processKeyBoard()
         mapRenderer.newKeyPressed = false;
     }
 
-    if (mapRenderer.KEYS[SDLK_a])
+    if (mapRenderer.KEYS[SDLK_d])
     {
-        particleFilter.processMovement(40, 270);
+        particleFilter.processMovement(40, 90);
 
         mapRenderer.newKeyPressed = false;
     }
 
     if (mapRenderer.KEYS[SDLK_s])
     {
-        particleFilter.processMovement(40, 190);
+        particleFilter.processMovement(40, 180);
 
         mapRenderer.newKeyPressed = false;
     }
 
-    if (mapRenderer.KEYS[SDLK_d])
+    if (mapRenderer.KEYS[SDLK_a])
     {
-        particleFilter.processMovement(40, 90);
+        particleFilter.processMovement(40, 270);
 
         mapRenderer.newKeyPressed = false;
     }
@@ -359,7 +359,7 @@ void loadParticleFilter()
     while (!done)
     {
         // Update map:
-        if (!mapRenderer.updateMap(particleFilter.getParticles(), particleFilter.getNumberOfParticles()))
+        if (!mapRenderer.updateMap(particleFilter.getParticles(), particleFilter.getNumberOfParticles(), particleFilter.getSelectedCellIdx()))
         {
             done = true;
         }

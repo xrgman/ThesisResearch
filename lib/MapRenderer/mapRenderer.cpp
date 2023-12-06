@@ -83,7 +83,7 @@ bool MapRenderer::initialize(MapData *mapData, uint8_t scale)
     return true;
 }
 
-bool MapRenderer::updateMap(const Particle particles[], const int nrOfParticles)
+bool MapRenderer::updateMap(const Particle particles[], const int nrOfParticles, const int selectedCellIdx)
 {
     // Processing events:
     SDL_Event event;
@@ -120,7 +120,7 @@ bool MapRenderer::updateMap(const Particle particles[], const int nrOfParticles)
     SDL_RenderClear(renderer);
 
     // Render map layout:
-    renderMap(renderer, font, scale);
+    renderMap(renderer, font, scale, selectedCellIdx);
 
     // Render particles on the map:
     renderParticles(renderer, particles, nrOfParticles);
@@ -141,7 +141,7 @@ void MapRenderer::stop()
     SDL_Quit();
 }
 
-void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scale)
+void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scale, const int selectedCellIdx)
 {
     // Set line color
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -176,7 +176,15 @@ void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scal
             (int)std::ceil(cell.getWidth() / scale),
             (int)std::ceil(cell.getHeight() / scale)};
 
-        SDL_RenderDrawRect(renderer, &rect);
+        // Check if current cell is the converged cell, if so fill it in.
+        if (selectedCellIdx == i)
+        {
+            SDL_RenderFillRect(renderer, &rect);
+        }
+        else
+        {
+            SDL_RenderDrawRect(renderer, &rect);
+        }
 
         writeTextCenterRect(renderer, font, {0, 0, 0}, cell.getCellName(), rect);
     }

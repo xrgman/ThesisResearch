@@ -9,6 +9,8 @@ double calculateAverage(const int16_t *data, uint16_t size);
 bool hasNegativeValue(const int16_t *data, uint16_t size);
 bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold);
 
+int findMaxIndex(const int *array, int size);
+
 bool openFile(const char *filename, FILE **file, const char *mode);
 long getFileSize(FILE *file);
 char *readFileText(FILE *file);
