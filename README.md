@@ -9,9 +9,11 @@
   <li><s>Correct the microphone order</s></li>
   <li><s>Create the possibility to load in map<</s></li>
   <li><s>Create basic particle filter, by plotting dots uniformly</s></li>
-  <li>Update particle filter on movement?</li>
+  <li><s>Update particle filter on movement</s></li>
+  <li>Show current cell based on particles</li>
   <li>Create message protocol (chirp) between robots via audio</li>
   <li>Determine DOA of received chirp</li>
   <li>Update particle filter based on data from audio</li>
+  <li>Link movement from robot to movement in particle filter</li>
   <li></li>
 </ol>
