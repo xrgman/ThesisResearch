@@ -12,4 +12,6 @@
 
 #define DIAMETER_WHEEL 12 //12CM
 
+#define ROBOT_ID 1
+
 #endif

@@ -75,6 +75,25 @@ int findMaxIndex(const int *array, int size)
     return idx;
 }
 
+/// @brief Fill the given array with 0's, to initialize it.
+/// @param array Array to fill with zeros.
+/// @param size Size of the array.
+void fillArrayWithZeros(int16_t *array, const int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = 0;
+    }
+}
+
+/// @brief Convert a double value into a int16_t.
+/// @param value Value to convert.
+/// @return Value represented as int16_t.
+int16_t doubleToInt16(double value)
+{
+    return static_cast<int16_t>(value * INT16_MAX);
+}
+
 bool openFile(const char *filename, FILE **file, const char *mode)
 {
     *file = fopen(filename, mode);

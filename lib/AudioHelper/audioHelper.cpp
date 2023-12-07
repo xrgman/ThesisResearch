@@ -18,8 +18,8 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
 int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
     // We want to put data into the outputbuffer as soon as this one is called.
-    uint16_t *inputData = (uint16_t *)inputData;
-    uint16_t *outputData = (uint16_t *)outputBuffer;
+    int16_t *inputData = (int16_t *)inputData;
+    int16_t *outputData = (int16_t *)outputBuffer;
 
     // Copying over data:
     if (bufferIdx == 0)
@@ -146,7 +146,7 @@ bool AudioHelper::initializeAndOpen()
     return true;
 }
 
-bool AudioHelper::writeBytes(const uint16_t *audioData, uint32_t nrOfBytes)
+bool AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
 {
     writeNext = false;
 

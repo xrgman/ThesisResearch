@@ -11,6 +11,7 @@
 #include "util.h"
 #include "particleFilter.h"
 #include "mapRenderer.h"
+#include "audioCodec.h"
 
 #include "gnuplot-iostream.h"
 
@@ -24,6 +25,8 @@ vector<Gnuplot> gnuPlots(NUM_CHANNELS);
 
 ParticleFilter particleFilter;
 MapRenderer mapRenderer;
+
+AudioCodec audioCoded;
 
 void sigIntHandler(int signum)
 {
@@ -102,8 +105,8 @@ void openAndPlayWavFile()
             continue;
         }
 
-        uint16_t audioData[FRAMES_PER_BUFFER];
-        size_t bytesRead = fread((char *)audioData, 2, FRAMES_PER_BUFFER, fileRead);
+        int16_t audioData[FRAMES_PER_BUFFER];
+        size_t bytesRead = fread(audioData, 2, FRAMES_PER_BUFFER, fileRead);
 
         // Writing to helper:
         if (!audioHelper.writeBytes(audioData, bytesRead))
@@ -154,7 +157,7 @@ void recordToWavFile()
     }
 
     // Write data to file:
-    writeWavFile(filename, dataToWrite);
+    writeWavFile(filename, dataToWrite.data(), dataToWrite.size(), SAMPLE_RATE, 16, NUM_CHANNELS);
 
     cout << "Successfully written " << numberOfSeconds << " sconds to wav file '" << filename << "'\n";
 }
@@ -372,6 +375,51 @@ void loadParticleFilter()
     mapRenderer.stop();
 }
 
+void encodeMessageForAudio()
+{
+    const char *filename = "encoding.wav";
+    int16_t codedAudioData[AUDIO_CODEC_SIZE];
+
+    audioCoded.encode(codedAudioData, AUDIO_CODEC_SIZE, ROBOT_ID);
+
+    // Write data to file:
+    writeWavFile(filename, codedAudioData, AUDIO_CODEC_SIZE, SAMPLE_RATE, 16, 1);
+
+    int bytesRead = 0;
+
+    // while (bytesRead < AUDIO_CODEC_SIZE)
+    // {
+    //     // Waiting for batch to be written:
+    //     if (!audioHelper.writeNextBatch())
+    //     {
+    //         usleep(1);
+
+    //         continue;
+    //     }
+
+    //     //Determing number of bytes left to send:
+    //     uint16_t bytesToWrite = bytesRead + bytesRead < AUDIO_CODEC_SIZE ? FRAMES_PER_BUFFER : AUDIO_CODEC_SIZE - bytesRead;
+
+    //     // Writing to helper:
+    //     if (!audioHelper.writeBytes(codedAudioData + bytesRead, bytesToWrite))
+    //     {
+    //         // cout << "Something went"
+
+    //         break;
+    //     }
+
+    //     bytesRead += FRAMES_PER_BUFFER;
+    // }
+
+    int b = 10;
+
+    // STEP 1: Use audioCoded.Encode to create the message to be sent -> Check if this does not generate an array thats way too big.....
+    // Step 2: During the loop, send X bytes to audioHelper every iteration.
+    // Step 3: When done end this function :)
+
+    // Walk over a window (LENGTH == PREAMBLE) and if preamble is found start gathering X bytes and then send it through the codec I guess
+}
+
 int main()
 {
     // Catching sigint event:
@@ -384,19 +432,20 @@ int main()
     audioHelper.clearBuffers();
 
     // Opening audio streams:
-    // if (!audioHelper.initializeAndOpen())
-    // {
-    //     cout << "Initializing audio helper has failed!\n";
+    if (!audioHelper.initializeAndOpen())
+    {
+        cout << "Initializing audio helper has failed!\n";
 
-    //     return 0;
-    // }
+        return 0;
+    }
 
     // openAndPlayWavFile();
 
     // graphSineWave5FFT();
     // graphInputStream();
     // recordToWavFile();
-    loadParticleFilter();
+    // loadParticleFilter();
+    encodeMessageForAudio();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();

@@ -27,6 +27,6 @@ struct WavHeader {
 
 bool openWAVFile(const char *filename, FILE **fileRead, bool printHeader);
 
-void writeWavFile(const char *filename, vector<int16_t> data);
+void writeWavFile(const char *filename, const int16_t* data, int size, uint32_t sampleRate, uint16_t bitsPerSample, uint16_t numChannels);
 
 #endif

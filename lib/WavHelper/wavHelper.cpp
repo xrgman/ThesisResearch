@@ -126,7 +126,7 @@ bool openWAVFile(const char *filename, FILE **fileRead, bool printHeader)
     return true;
 }
 
-void writeWavFile(const char *filename, vector<int16_t> data)
+void writeWavFile(const char *filename, const int16_t* data, int size, uint32_t sampleRate, uint16_t bitsPerSample, uint16_t numChannels)
 {
     // Opening file:
     FILE *file = fopen(filename, "w");
@@ -137,12 +137,12 @@ void writeWavFile(const char *filename, vector<int16_t> data)
         return;
     }
 
-    WavHeader wavHeader = createWavHeader(SAMPLE_RATE, 16, NUM_CHANNELS);
+    WavHeader wavHeader = createWavHeader(sampleRate, bitsPerSample, numChannels);
 
     fwrite(&wavHeader, 1, sizeof(WavHeader), file);
 
     // Writing data:
-    fwrite(data.data(), sizeof(int16_t), data.size(), file);
+    fwrite(data, sizeof(int16_t), size, file);
 
     uint32_t fileSize = ftell(file) - 8; // File size minus the RIFF chunkID and chunkSize
     fseek(file, 4, SEEK_SET);
@@ -150,7 +150,7 @@ void writeWavFile(const char *filename, vector<int16_t> data)
 
     // Offset to the subchunk2Size field
     fseek(file, 40, SEEK_SET);
-    uint32_t dataSize = data.size() * sizeof(int16_t);
+    uint32_t dataSize = size * sizeof(int16_t);
     fwrite(&dataSize, 4, 1, file);
 
     // Close the WAV file

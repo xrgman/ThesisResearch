@@ -17,7 +17,7 @@ public:
     AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels);
 
     bool initializeAndOpen();
-    bool writeBytes(const uint16_t *audioData, uint32_t nrOfBytes);
+    bool writeBytes(const int16_t *audioData, uint32_t nrOfBytes);
     bool stopAndClose();
 
     void clearBuffers();
@@ -42,8 +42,8 @@ private:
     uint8_t microphonesOrdered[6]; // Containing indexes of audiodata sorted correctly.
 
     //Used in callback:
-    uint16_t buffer1[FRAMES_PER_BUFFER];
-    uint16_t buffer2[FRAMES_PER_BUFFER];
+    int16_t buffer1[FRAMES_PER_BUFFER];
+    int16_t buffer2[FRAMES_PER_BUFFER];
     uint8_t bufferIdx;
     bool writeNext;
     bool inputDataAvailable;
