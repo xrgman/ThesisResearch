@@ -1,46 +1,17 @@
 #include "audioCodec.h"
 #include "util.h"
-#include <math.h>
+#include <cmath>
 
 #define START_FREQ_CHRIP 5500.0
 #define STOP_FREQ_CHIRP 9500.0
 
+#define CHIRP_AMPLITUDE 0.5
 #define PREAMBLE_DURATION 0.2
+#define KAISER_WINDOW_BETA 4
 
-// Simple example function that creates a linear chirp:
-void createChirp(int16_t *output, int outputSize, double startFreq, double endFreq, double duration)
+AudioCodec::AudioCodec()
 {
-    // for (size_t i = 0; i < outputSize; ++i)
-    // {
-    //     double t = static_cast<double>(i) / SAMPLE_RATE; // Time in seconds
-
-    //     // Linear frequency sweep from 5500 Hz to 9500 Hz
-    //     double frequency = startFreq + (endFreq - startFreq) * t / duration;
-
-    //     // Generate a sinusoidal waveform for the chirp
-    //     double amplitude = 0.5; // Adjust as needed
-    //     double signal = amplitude * sin(2.0 * M_PI * frequency * t);
-
-    //     // Convert to int16_t and store in the array
-    //     output[i] = doubleToInt16(signal) // Assuming 16-bit PCM
-    // }
-    double f0 = startFreq;
-    double f1 = endFreq;
-    double t1 = duration;
-
-    double w1 = 2 * M_PI * f0;
-    double w2 = 2 * M_PI * f1;
-
-    for (size_t i = 0; i < outputSize; ++i)
-    {
-        double t = static_cast<double>(i) / SAMPLE_RATE; // Time in seconds
-        double amplitude = 0.5;                          // Adjust as needed
-
-        double signal = amplitude * cos(w1 * t + (w2 - w1) * t * t / (2 * duration)); //This seems to work
-
-        // Convert to int16_t and store in the array
-        output[i] = static_cast<int16_t>(32767.0 * signal); // Assuming 16-bit PCM
-    }
+    this->volume = 1.0;
 }
 
 // Transmit at upper bound of supported range for microphones
@@ -57,7 +28,8 @@ void AudioCodec::encode(int16_t *output, int outputSize, int senderId) // Output
     // Initialize output array with zeros:
     fillArrayWithZeros(output, outputSize);
 
-    createChirp(output, outputSize, START_FREQ_CHRIP, STOP_FREQ_CHIRP, 5.0);
+    // Encode preamble to the front of the message
+    encodePreamble(output, START_FREQ_CHRIP, STOP_FREQ_CHIRP);
     // 5 second chirp example:
 
     // Create and add preamble to the sound data:
@@ -68,8 +40,63 @@ void AudioCodec::encode(int16_t *output, int outputSize, int senderId) // Output
     // Calculate CRC:
 }
 
-// 0.2s?
-//  We want the preamble to be just one chirp, does not need to be orthogonal
-void AudioCodec::encodePreamble(int16_t *output, double startFrequency, double endFrequency)
+/// @brief Generate a linear chirp frequency sweep between a start and stop frequency.
+/// @param output Output array to store the chirp in, size should be at least SAMPLE_RATE * duration.
+/// @param startFrequency Start frequency of the chirp.
+/// @param stopFrequency Stop frequency of the chirp.
+/// @param duration Duration of the chirp.
+void AudioCodec::generateChirp(int16_t *output, double startFrequency, double stopFrequency, double duration)
 {
+    int size = SAMPLE_RATE * duration;
+
+    for (int i = 0; i < size; i++)
+    {
+        // Caluclate time in seconds:
+        double t = static_cast<double>(i) / SAMPLE_RATE;
+
+        // Linear frequency sweep:
+        double frequency = startFrequency + (stopFrequency - startFrequency) * t / (2 * duration);
+
+        // Generate a sinusoidal waveform for the chirp:
+        double signal = CHIRP_AMPLITUDE * sin(2.0 * M_PI * frequency * t);
+
+        // Convert to int16_t and store in the array:
+        output[i] = doubleToInt16(signal);
+    }
+}
+
+
+/// @brief Encode the preamble into the output buffer.
+/// @param output The output buffer.
+/// @param startFrequency Start frequency of the preamble.
+/// @param stopFrequency Stop frequency of the preamble.
+void AudioCodec::encodePreamble(int16_t *output, double startFrequency, double stopFrequency)
+{
+    int size = SAMPLE_RATE * PREAMBLE_DURATION;
+
+    generateChirp(output, startFrequency, stopFrequency, PREAMBLE_DURATION);
+
+    // Loop over all items in the chirp and modify them by applying volume correction and kaiser window:
+    for (int i = 0; i < size; i++)
+    {
+        // Apply volume:
+        output[i] *= volume;
+
+        // Apply kaiser window:
+        output[i] = applyKaiserWindow(output[i], size, i, KAISER_WINDOW_BETA);
+    }
+}
+
+/// @brief Apply kaiser window function to a given value.
+/// @param value Value to apply kaiser window to.
+/// @param totalSize Total size of the kaiser window.
+/// @param i Current position in the kaiser window.
+/// @param beta Shape parameter.
+/// @return Value with applied kaiser window over it.
+int16_t AudioCodec::applyKaiserWindow(int16_t value, int totalSize, int i, int beta)
+{
+    double windowValue = std::cyl_bessel_i(0, beta * std::sqrt(1.0 - std::pow(2.0 * i / (totalSize - 1) - 1.0, 2.0))) /
+                             std::cyl_bessel_i(0, beta);
+
+    return value * windowValue;
 }

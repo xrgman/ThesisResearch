@@ -13,12 +13,19 @@ struct AudioCodecResult {
 class AudioCodec
 {
 public:
-    void encode(int16_t* output, int outputSize, int senderId);
+    AudioCodec();
+
+    void encode(int16_t *output, int outputSize, int senderId);
 
     AudioCodecResult decode(); //Input should be an array? Or we do it bit for bit, thats probably better
 
 private:
-    void encodePreamble(int16_t *output, double startFrequency, double endFrequency);
+    double volume;
+
+    void generateChirp(int16_t *output, double startFrequency, double stopFrequency, double duration);
+    void encodePreamble(int16_t *output, double startFrequency, double stopFrequency);
+
+    int16_t applyKaiserWindow(int16_t value, int totalSize, int i, int beta);
 };
 
 #endif
