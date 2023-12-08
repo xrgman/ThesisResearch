@@ -12,8 +12,12 @@ bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold);
 int findMaxIndex(const int *array, int size);
 
 void fillArrayWithZeros(int16_t *array, const int size);
+void fillArrayWithZeros(double *array, const int size);
 
 int16_t doubleToInt16(double value);
+
+void uint8ToBits(uint8_t value, uint8_t bits[8]);
+void stringToBits(const char *data, int size, uint8_t *bits);
 
 bool openFile(const char *filename, FILE **file, const char *mode);
 long getFileSize(FILE *file);
