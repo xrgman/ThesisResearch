@@ -6,7 +6,7 @@
 #define START_FREQ_CHRIP 5500.0
 #define STOP_FREQ_CHIRP 9500.0
 
-#define CHIRP_AMPLITUDE 0.5
+#define CHIRP_AMPLITUDE 1.0 //Was 0.5
 #define PREAMBLE_DURATION 0.2
 #define ENCODING_BIT_DURATION 0.006956521739130435
 #define KAISER_WINDOW_BETA 4
@@ -97,19 +97,19 @@ void AudioCodec::bitToChirp(double *output, uint8_t bit, AudioCodecFrequencyPair
     for (int i = 0; i < numberOfSubChirps; i++)
     {
         // Generate chirp:
-        generateChirp(output, symbols[i], durationPerSubChirp);
+        generateChirp(&output[size * i], symbols[i], durationPerSubChirp);
 
         // Loop over all items in the chirp and modify them by applying volume correction and kaiser window:
-        for (int i = 0; i < size; i++)
+        for (int j = 0; j < size; j++)
         {
             // Apply volume:
-            output[i] *= volume;
+            output[size * i + j] *= volume;
 
             // Apply kaiser window:
-            output[i] = applyKaiserWindow(output[i], size, i, KAISER_WINDOW_BETA);
+            output[size * i + j] = applyKaiserWindow(output[size * i + j], size, j, KAISER_WINDOW_BETA);
         }
     }
-}
+} 
 
 /// @brief Translate a whole array of bits into miltiple chirps.
 /// @param output Output array where the chrips will be placed into.

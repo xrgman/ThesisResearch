@@ -3,7 +3,7 @@
 
 #include "main.h"
 
-#define AUDIO_CODEC_SIZE 220500
+#define AUDIO_CODEC_SIZE 44100
 #define NUMBER_OF_SUB_CHIRPS 8
 
 struct AudioCodecResult
