@@ -56,6 +56,8 @@
         "codecvt": "cpp",
         "forward_list": "cpp",
         "map": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "condition_variable": "cpp",
+        "mutex": "cpp"
     }
 }

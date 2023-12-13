@@ -35,14 +35,17 @@ include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS})
 find_package(Boost COMPONENTS iostreams REQUIRED)
 find_package(Threads REQUIRED)
 
+# Find Armadillo package
+find_package(Armadillo REQUIRED PATHS /usr/lib/arm-linux-gnueabihf/libarmadillo.so)
+
 #Creating executable
 add_executable( demo src/main.cpp )  
 
 # Include PortAudio headers
-target_include_directories(demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${PORTAUDIO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${SDL2_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS} kissfft)
+target_include_directories(demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${PORTAUDIO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${SDL2_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS} kissfft ${ARMADILLO_INCLUDE_DIRS})
  
 # Linking libraries
-target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES} ${Boost_LIBRARIES} ${SDL2_LIBRARIES} ${SDL2_TTF_LIBRARIES} WavHelper AudioHelper kissfft FFTWrapper Util ParticleFilter nlohmann_json::nlohmann_json MapRenderer AudioCodec) 
+target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES} ${Boost_LIBRARIES} ${SDL2_LIBRARIES} ${SDL2_TTF_LIBRARIES} WavHelper AudioHelper kissfft FFTWrapper Util ParticleFilter nlohmann_json::nlohmann_json MapRenderer AudioCodec ${ARMADILLO_LIBRARIES}) 
 
 # Copy gnuplot-iostream.h to the build directory
 #configure_file(src/gnuplot-iostream.h ${CMAKE_CURRENT_BINARY_DIR}/gnuplot-iostream.h COPYONLY)

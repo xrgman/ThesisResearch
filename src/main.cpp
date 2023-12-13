@@ -3,6 +3,8 @@
 #include <chrono>
 #include <thread>
 #include <SDL2/SDL.h>
+#include <cmath>
+#include <armadillo>
 
 #include "main.h"
 #include "wavHelper.h"
@@ -16,9 +18,13 @@
 #include "gnuplot-iostream.h"
 
 using namespace std;
+using namespace arma;
 
 #define nrOfChannelsToPlot 2 // NUM_CHANNELS
 #define FREQ
+
+// Func defs:
+void dataDecodedCallback(AudioCodecResult result);
 
 AudioHelper audioHelper(SAMPLE_RATE, 16, NUM_CHANNELS);
 vector<Gnuplot> gnuPlots(NUM_CHANNELS);
@@ -26,7 +32,7 @@ vector<Gnuplot> gnuPlots(NUM_CHANNELS);
 ParticleFilter particleFilter;
 MapRenderer mapRenderer;
 
-AudioCodec audioCoded;
+AudioCodec audioCodec(dataDecodedCallback);
 
 void sigIntHandler(int signum)
 {
@@ -44,6 +50,12 @@ void sigIntHandler(int signum)
 
     // Exit the program:
     exit(signum);
+}
+
+void dataDecodedCallback(AudioCodecResult result)
+{
+
+    int test = 10;
 }
 
 /// @brief Around 40cm is travel distance of one wheel rotation
@@ -185,7 +197,7 @@ void graphSineWave5FFT()
     const double frequency = 5000.0;
 
     // Initialize the FFT:
-    initializeFFT(FRAMES_PER_BUFFER);
+    initializeFFT(FRAMES_PER_BUFFER, STFT_WINDOW_SIZE);
 
     while (true)
     {
@@ -279,7 +291,7 @@ void graphInputStream()
     }
 
     // Initialize the FFT:
-    initializeFFT(FRAMES_PER_BUFFER);
+    initializeFFT(FRAMES_PER_BUFFER, STFT_WINDOW_SIZE);
 
     while (true)
     {
@@ -380,7 +392,7 @@ void encodeMessageForAudio()
     const char *filename = "encoding.wav";
     int16_t codedAudioData[AUDIO_CODEC_SIZE];
 
-    audioCoded.encode(codedAudioData, AUDIO_CODEC_SIZE, ROBOT_ID);
+    audioCodec.encode(codedAudioData, AUDIO_CODEC_SIZE, ROBOT_ID);
 
     // Write data to file:
     writeWavFile(filename, codedAudioData, AUDIO_CODEC_SIZE, SAMPLE_RATE, 16, 1);
@@ -420,6 +432,49 @@ void encodeMessageForAudio()
     // Walk over a window (LENGTH == PREAMBLE) and if preamble is found start gathering X bytes and then send it through the codec I guess
 }
 
+void decodeMessageForAudio()
+{
+    const char *filename = "encoding.wav";
+
+    FILE *fileRead;
+
+    if (!openWAVFile(filename, &fileRead, true))
+    {
+        cout << "Failed to open WAV file...\n";
+    }
+
+    // Initialize the FFT:
+    initializeFFT(PREAMBLE_BITS, STFT_WINDOW_SIZE);
+
+    // Reading successfull, so decoding it:
+    while (!feof(fileRead))
+    {
+        int16_t audioData[FRAMES_PER_BUFFER];
+        size_t bytesRead = fread(audioData, 2, FRAMES_PER_BUFFER, fileRead);
+
+        // Looping over all bits:
+        // for (int i = 0; i < bytesRead; i ++)
+        // {
+        //     // Looping over all microphones:
+        //     for (int channel = 0; channel < NUM_CHANNELS; channel++)
+        //     {
+        //         audioCodec.decode(audioData[i*8 + channel], channel);
+        //     }
+        // }
+
+        // SAMPLE FILE HAS ONLY ONE CHANNEL:
+        for (int i = 0; i < bytesRead; i++)
+        {
+            audioCodec.decode(audioData[i], 0);
+        }
+    }
+
+    // Closing file:
+    fclose(fileRead);
+
+    cout << "Done decoding WAV file!\n";
+}
+
 int main()
 {
     // Catching sigint event:
@@ -436,7 +491,7 @@ int main()
     {
         cout << "Initializing audio helper has failed!\n";
 
-        return 0;
+        //return 0;
     }
 
     // openAndPlayWavFile();
@@ -445,7 +500,15 @@ int main()
     // graphInputStream();
     // recordToWavFile();
     // loadParticleFilter();
-    encodeMessageForAudio();
+    // encodeMessageForAudio();
+
+    // SDL_Delay(1000);
+
+    // cout << "Starting decoding!\n";
+
+    decodeMessageForAudio();
+
+    //readAnPlotSpectogram();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();

@@ -18,6 +18,13 @@ double calculateAverage(const int16_t *data, uint16_t size)
     return sum / size;
 }
 
+double calculateAverage(const double *data, uint16_t size)
+{
+    double sum = accumulate(data, data + size, 0.0);
+
+    return sum / size;
+}
+
 /// @brief Check if a collection contains a negative value.
 /// @param data Data to be checked on negative values.
 /// @param size Size of the data set.
@@ -75,10 +82,26 @@ int findMaxIndex(const int *array, int size)
     return idx;
 }
 
+void fillArrayWithZeros(uint8_t *array, const int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = 0;
+    }
+}
+
 /// @brief Fill the given array with 0's, to initialize it.
 /// @param array Array to fill with zeros.
 /// @param size Size of the array.
 void fillArrayWithZeros(int16_t *array, const int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = 0;
+    }
+}
+
+void fillArrayWithZeros(int *array, const int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -97,12 +120,30 @@ void fillArrayWithZeros(double *array, const int size)
     }
 }
 
+/// @brief Set values between start and stop index in an array.
+/// @param array 
+/// @param startIdx 
+/// @param stopIdx 
+/// @param value 
+void setValues(uint8_t *array, const int startIdx, const int stopIdx, const uint8_t value)
+{
+    for (int i = startIdx; i < stopIdx; i++)
+    {
+        array[i] = value;
+    }
+}
+
 /// @brief Convert a double value into a int16_t.
 /// @param value Value to convert.
 /// @return Value represented as int16_t.
 int16_t doubleToInt16(double value)
 {
     return static_cast<int16_t>(value * INT16_MAX);
+}
+
+double int16ToDouble(int16_t value)
+{
+    return static_cast<double>(value) / INT16_MAX;
 }
 
 void uint8ToBits(uint8_t value, uint8_t bits[8])

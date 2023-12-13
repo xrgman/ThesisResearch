@@ -17,3 +17,5 @@
   <li>Link movement from robot to movement in particle filter</li>
   <li></li>
 </ol>
+
+- Check if chirp generation can be turned back from cos -> sin
