@@ -257,10 +257,14 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
         int readingPosition = startReadingPosition[microphoneId];
 
+        //Create a vector with the correct data before sending 
+
         if (containsPreamble(&decodingBuffer[microphoneId][readingPosition], PREAMBLE_BITS))
         {
             // LOG TIME! and start receiving other data
             std::cout << "Preamble found!";
+            //After knowing when the preamble ends, we can start to receive the message. Here we know that from end + (nr of bites per bit) every time a bit can be read until x nr of bits are read.
+            
         }
 
         // We read, so update reading position:
@@ -374,17 +378,22 @@ void AudioCodec::getConvResult(const double *window, int windowSize, const doubl
     // Plot each convolution data
 
     gp2 << "plot '-' with lines title 'Convolution'\n";
-    gp2 << "set yrange [0:6]\n";
+    //gp2 << "set yrange [0:6]\n";
     gp2.send(envelope);
 
     // Add a horizontal line for preamble_min_peak
-    gp2 << "replot " << preamble_min_peak << " with lines lt 1 lc rgb 'black' title 'Preamble Min Peak'\n";
+    gp2 << "plot " << preamble_min_peak << " with lines lt 1 lc rgb 'black' title 'Preamble Min Peak'\n";
 
     // Wait for user to close the plot
     std::cout << "Press enter to exit." << std::endl;
     std::cin.get();
 }
 
+/// @brief Perform the hilbert transformation. 
+/// Steps from: https://nl.mathworks.com/help/signal/ref/hilbert.html
+/// @param input Input array.
+/// @param output Output array.
+/// @param size Size of the input array.
 void AudioCodec::performHilbertTransform(const double *input, kiss_fft_cpx *output, int size)
 {
     // 1. Perform FFT on input data:
