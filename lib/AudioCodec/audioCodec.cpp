@@ -165,7 +165,7 @@ void AudioCodec::generateChirp(double *output, AudioCodecFrequencyPair frequenci
 
         output[i] = signal;
     }
-}
+} 
 
 /// @brief Apply kaiser window function to a given value.
 /// @param value Value to apply kaiser window to.
