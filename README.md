@@ -12,7 +12,7 @@
   <li><s>Update particle filter on movement</s></li>
   <li><s>Show current cell based on particles</s></li>
   <li><s>Encode message data in the form of audio</s></li>
-  <li>Create messages with SNR of -5</li>
+  <li><s>Create messages with SNR of -5</s></li>
   <li>Create message protocol (chirp) between robots via audio</li>
   <li>Determine DOA of received chirp</li>
   <li>Update particle filter based on data from audio</li>
