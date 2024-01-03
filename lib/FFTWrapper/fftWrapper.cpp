@@ -70,6 +70,16 @@ void performFFT(const kiss_fft_cpx *inputData, kiss_fft_cpx *outputData, uint32_
 
     // Perform FFT:
     kiss_fft(fftConfiguration, inputData, outputData);
+
+    // Perform normalization if inverse fft is performed:
+    if (inverse)
+    {
+        for (int i = 0; i < size; i++)
+        {
+            outputData[i].r /= size;
+            outputData[i].i /= size;
+        }
+    }
 }
 
 void applySTFT(const double *inputData, int inputDataSize, vector<std::vector<double>> &output, int windowSize, int overlap)

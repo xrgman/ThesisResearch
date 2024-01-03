@@ -71,7 +71,7 @@ private:
     bool containsPreamble(const double* window, int windowSize);
 
     void getConvResult(const double* window, int windowSize, const double symbol[], int symbolSize);
-    void performHilbertTransform(const double *input, kiss_fft_cpx *output, int size);
+    void hilbert(const double *input, kiss_fft_cpx *output, int size);
 };
 
 #endif

@@ -350,7 +350,7 @@ void AudioCodec::getConvResult(const double *window, int windowSize, const doubl
     // double analyticalSignal[windowSize];
     kiss_fft_cpx analyticalSignal[windowSize];
 
-    performHilbertTransform(result.data(), analyticalSignal, windowSize);
+    hilbert(result.data(), analyticalSignal, windowSize);
 
     // Perform abs on all:
     vector<double> envelope(windowSize);
@@ -389,50 +389,62 @@ void AudioCodec::getConvResult(const double *window, int windowSize, const doubl
     std::cin.get();
 }
 
+
+//*************************************************
+//******** General ********************************
+//*************************************************
+
 /// @brief Perform the hilbert transformation. 
 /// Steps from: https://nl.mathworks.com/help/signal/ref/hilbert.html
 /// @param input Input array.
 /// @param output Output array.
 /// @param size Size of the input array.
-void AudioCodec::performHilbertTransform(const double *input, kiss_fft_cpx *output, int size)
+void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size)
 {
+    kiss_fft_cfg fftPlan = kiss_fft_alloc(size, 0, nullptr, nullptr);
+
     // 1. Perform FFT on input data:
     vector<kiss_fft_cpx> fftInput;
 
     fftInput.resize(size);
 
     // Perform FFT :
-    performFFT(input, fftInput, size);
+    performFFT(fftPlan, input, fftInput, size);
 
     // 2. Create vector h, whose elements h(i) have value: 1 for i = 0, (n/2) | 2 for i = 1, 2, … , (n/2)-1 | 0 for i = (n/2)+1, … , n
-    kiss_fft_cpx h[size];
+    kiss_fft_cpx hilbertKernal[size];
 
     for (int i = 0; i < size; i++)
     {
         if (i == 0 || (i == size / 2 && size % 2 == 0))
         {
-            h[i].r = 1;
+            //Keep values the same:
+            hilbertKernal[i].r = fftInput[i].r;
+            hilbertKernal[i].i = fftInput[i].i;
         }
         else if (i > 0 && i < size / 2)
         {
-            h[i].r = 2;
+            //Double the gain:
+            hilbertKernal[i].r = 2 * fftInput[i].r;
+            hilbertKernal[i].i = 2 * fftInput[i].i;
         }
         else
         {
-            h[i].r = 0;
+            //Zero out elements of upper half:
+            hilbertKernal[i].r = 0;
+            hilbertKernal[i].i = 0;
         }
-
-        h[i].i = 0;
     }
 
-    // 3. Calculate element-wise product of x and h:
-    kiss_fft_cpx multiplicationResult[size];
-
-    complexMultiplication(fftInput.data(), h, size, multiplicationResult);
-
-    // 4. Calculate inverse FFT of step 3 result and returns first n elements of the result:
-    performFFT(multiplicationResult, output, size, true);
+    // 3. Calculate inverse FFT of step 2 result and returns first n elements of the result:
+    performFFT(hilbertKernal, output, size, true);
 }
+
+
+
+
+
+
 
 // bool plotted = false;
 // Gnuplot gnuPlot;
