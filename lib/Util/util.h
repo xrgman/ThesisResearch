@@ -17,6 +17,9 @@ void fillArrayWithZeros(int16_t *array, const int size);
 void fillArrayWithZeros(int *array, const int size);
 void fillArrayWithZeros(double *array, const int size);
 
+void divideAllElements(double *array, const int size, const double divisor);
+void cumsum(double *array, const int size);
+
 void setValues(uint8_t *array, const int startIdx, const int stopIdx, const uint8_t value);
 
 int16_t doubleToInt16(double value);

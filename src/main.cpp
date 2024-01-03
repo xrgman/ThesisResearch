@@ -32,7 +32,7 @@ vector<Gnuplot> gnuPlots(NUM_CHANNELS);
 ParticleFilter particleFilter;
 MapRenderer mapRenderer;
 
-AudioCodec audioCodec(dataDecodedCallback);
+AudioCodec audioCodec(dataDecodedCallback, SAMPLES_PER_SYMBOL, SF, BW);
 
 void sigIntHandler(int signum)
 {

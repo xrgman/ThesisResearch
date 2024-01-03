@@ -13,12 +13,37 @@
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samples_per_symbol, uint8_t spreading_factor, int bandwith)
 {
     this->data_decoded_callback = data_decoded_callback;
     this->volume = 1.0;
     this->frequencyPair.startFrequency = START_FREQ_CHRIP;
     this->frequencyPair.stopFrequency = STOP_FREQ_CHIRP;
+
+    this->samples_per_symbol = samples_per_symbol;
+    this->spreading_factor = spreading_factor;
+    this->bandwith = bandwith;
+
+    // Fields that are set once and should not be altered:
+    this->Fs = (samples_per_symbol / std::pow(2, spreading_factor)) * bandwith;
+    this->Fc = Fs / 2 - bandwith / 2;
+    this->num_symbols = std::pow(2, spreading_factor);
+    this->Tc = (double)1 / bandwith;
+    this->Ts = num_symbols * Tc;
+    this->F_begin = Fc - bandwith / 2;
+    this->F_end = Fc + bandwith / 2;
+    this->sampling_delta = samples_per_symbol / num_symbols;
+
+    // Creating down chirp that is used for decoding:
+    double downChirp[samples_per_symbol];
+
+    linespace(F_begin, F_end, samples_per_symbol, downChirp, true);
+
+    //Performing modification to create the complex signal representation of the down chirp:
+    divideAllElements(downChirp, samples_per_symbol, Fs); //Divide every element by the sampling frequency
+    cumsum(downChirp, samples_per_symbol);
+    createSinWaveFromFreqs(downChirp, samples_per_symbol);
+    hilbert(downChirp, downChirp_complex, samples_per_symbol);
 
     fillArrayWithZeros(numberOfReceivedBits, NUM_CHANNELS);
     fillArrayWithZeros(startReadingPosition, NUM_CHANNELS);
@@ -165,7 +190,7 @@ void AudioCodec::generateChirp(double *output, AudioCodecFrequencyPair frequenci
 
         output[i] = signal;
     }
-} 
+}
 
 /// @brief Apply kaiser window function to a given value.
 /// @param value Value to apply kaiser window to.
@@ -257,14 +282,13 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
         int readingPosition = startReadingPosition[microphoneId];
 
-        //Create a vector with the correct data before sending 
+        // Create a vector with the correct data before sending
 
         if (containsPreamble(&decodingBuffer[microphoneId][readingPosition], PREAMBLE_BITS))
         {
             // LOG TIME! and start receiving other data
             std::cout << "Preamble found!";
-            //After knowing when the preamble ends, we can start to receive the message. Here we know that from end + (nr of bites per bit) every time a bit can be read until x nr of bits are read.
-            
+            // After knowing when the preamble ends, we can start to receive the message. Here we know that from end + (nr of bites per bit) every time a bit can be read until x nr of bits are read.
         }
 
         // We read, so update reading position:
@@ -378,7 +402,7 @@ void AudioCodec::getConvResult(const double *window, int windowSize, const doubl
     // Plot each convolution data
 
     gp2 << "plot '-' with lines title 'Convolution'\n";
-    //gp2 << "set yrange [0:6]\n";
+    // gp2 << "set yrange [0:6]\n";
     gp2.send(envelope);
 
     // Add a horizontal line for preamble_min_peak
@@ -389,12 +413,11 @@ void AudioCodec::getConvResult(const double *window, int windowSize, const doubl
     std::cin.get();
 }
 
-
 //*************************************************
 //******** General ********************************
 //*************************************************
 
-/// @brief Perform the hilbert transformation. 
+/// @brief Perform the hilbert transformation.
 /// Steps from: https://nl.mathworks.com/help/signal/ref/hilbert.html
 /// @param input Input array.
 /// @param output Output array.
@@ -418,19 +441,19 @@ void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size)
     {
         if (i == 0 || (i == size / 2 && size % 2 == 0))
         {
-            //Keep values the same:
+            // Keep values the same:
             hilbertKernal[i].r = fftInput[i].r;
             hilbertKernal[i].i = fftInput[i].i;
         }
         else if (i > 0 && i < size / 2)
         {
-            //Double the gain:
+            // Double the gain:
             hilbertKernal[i].r = 2 * fftInput[i].r;
             hilbertKernal[i].i = 2 * fftInput[i].i;
         }
         else
         {
-            //Zero out elements of upper half:
+            // Zero out elements of upper half:
             hilbertKernal[i].r = 0;
             hilbertKernal[i].i = 0;
         }
@@ -440,11 +463,43 @@ void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size)
     performFFT(hilbertKernal, output, size, true);
 }
 
+/// @brief Fills the output array with evenly spaced values between the start and stop value
+/// @param start Lower bound of the series.
+/// @param stop Upper bound of the series.
+/// @param numPoints Number of points in between start and stop value.
+/// @param output Output array, in which the points will be stored.
+/// @param inverse Put the spacing into the output array in reverse order (so stop in in front and start in back)
+void AudioCodec::linespace(const double start, const double stop, const int numPoints, double *output, const bool inverse)
+{
+    // Calculating the progression per step:
+    double step = (stop - start) / (numPoints - 1);
 
+    // Filling the array:
+    for (int i = 0; i < numPoints; i++)
+    {
+        double val = start + i * step;
 
+        if (!inverse)
+        {
+            output[i] = val;
+        }
+        else
+        {
+            output[numPoints - 1 - i] = val;
+        }
+    }
+}
 
-
-
+/// @brief Creates a sine wave signal from an array of frequencies.
+/// @param array Array containing the cumsum of the frequencies.
+/// @param size Size of the array.
+void AudioCodec::createSinWaveFromFreqs(double *array, const int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = sin(2 * M_PI * array[i]);
+    }
+}
 
 // bool plotted = false;
 // Gnuplot gnuPlot;

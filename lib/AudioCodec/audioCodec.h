@@ -12,6 +12,12 @@
 #define PREAMBLE_DURATION 0.2
 #define PREAMBLE_BITS (int) (PREAMBLE_DURATION * SAMPLE_RATE)
 
+
+//From the complex ecoding example:
+#define SAMPLES_PER_SYMBOL 2048
+#define SF 8
+#define BW 4000
+                    
 struct AudioCodecResult
 {
     int senderId;
@@ -28,7 +34,7 @@ struct AudioCodecFrequencyPair
 class AudioCodec
 {
 public:
-    AudioCodec(void(*data_decoded_callback)(AudioCodecResult));
+    AudioCodec(void(*data_decoded_callback)(AudioCodecResult), int samples_per_symbol, uint8_t spreading_factor, int bandwith);
 
     void encode(int16_t *output, int outputSize, uint8_t senderId);
 
@@ -38,6 +44,18 @@ private:
     double volume;
     AudioCodecFrequencyPair frequencyPair;
     void (*data_decoded_callback)(AudioCodecResult);
+
+    //From the complex ecoding example:
+    int samples_per_symbol, bandwith;
+    uint8_t spreading_factor;
+
+    // Fields that are used for encoding and decoding (should not be altered!):
+    int Fs, Fc, num_symbols, F_begin, F_end;
+    uint8_t sampling_delta; //Number of samples to skip between each symbol when decoding
+    double Tc, Ts;
+
+    //DownChirp:
+    kiss_fft_cpx downChirp_complex[SAMPLES_PER_SYMBOL];
 
     //ENCODING:
     void encodePreamble(double *output, bool flipped);
@@ -72,6 +90,8 @@ private:
 
     void getConvResult(const double* window, int windowSize, const double symbol[], int symbolSize);
     void hilbert(const double *input, kiss_fft_cpx *output, int size);
+    void linespace(const double start, const double stop, const int numPoints, double *output, const bool inverse);
+    void createSinWaveFromFreqs(double *array, const int size);
 };
 
 #endif

@@ -120,11 +120,38 @@ void fillArrayWithZeros(double *array, const int size)
     }
 }
 
+/// @brief Divide all elements in an array by a specific value.
+/// @param array Array to be modified.
+/// @param size Size of the array.
+/// @param divisor Divisor.
+void divideAllElements(double *array, const int size, const double divisor)
+{
+    for (int i = 0l; i < size; i++)
+    {
+        array[i] /= divisor;
+    }
+}
+
+/// @brief Create the cumulative sum of all elements.
+/// @param array Array to be summed
+/// @param size Size of the array
+void cumsum(double *array, const int size)
+{
+    double sum = 0.0;
+
+    for (int i = 0; i < size; i++)
+    {
+        sum += array[i];
+
+        array[i] = sum;
+    }
+}
+
 /// @brief Set values between start and stop index in an array.
-/// @param array 
-/// @param startIdx 
-/// @param stopIdx 
-/// @param value 
+/// @param array
+/// @param startIdx
+/// @param stopIdx
+/// @param value
 void setValues(uint8_t *array, const int startIdx, const int stopIdx, const uint8_t value)
 {
     for (int i = startIdx; i < stopIdx; i++)
