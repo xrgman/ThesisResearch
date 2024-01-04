@@ -434,7 +434,7 @@ void encodeMessageForAudio()
 
 void decodeMessageForAudio()
 {
-    const char *filename = "encoding.wav";
+    const char *filename = "SEND.wav";
 
     FILE *fileRead;
 

@@ -27,5 +27,6 @@ void performFFTConvolve(const int16_t *inputData, int inputDataSize, const doubl
 
 void complexMultiplication(const kiss_fft_cpx *input1, const kiss_fft_cpx *input2, const int size, kiss_fft_cpx *output);
 void complexAbsolute(const kiss_fft_cpx *input, double* output, int size);
+void complexDivisionAll(kiss_fft_cpx *input, int size, double divisor);
 
 #endif

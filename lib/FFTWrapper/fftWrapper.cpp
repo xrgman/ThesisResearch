@@ -307,6 +307,9 @@ void complexMultiplication(const kiss_fft_cpx *input1, const kiss_fft_cpx *input
 {
     for (int i = 0; i < size; i++)
     {
+        double test = input1[i].r * input2[i].r - input1[i].i * input2[i].i;
+        double test2 = input1[i].r * input2[i].i + input1[i].i * input2[i].r;
+
         output[i].r = input1[i].r * input2[i].r - input1[i].i * input2[i].i;
         output[i].i = input1[i].r * input2[i].i + input1[i].i * input2[i].r;
     }
@@ -317,5 +320,18 @@ void complexAbsolute(const kiss_fft_cpx *input, double *output, int size)
     for (int i = 0; i < size; i++)
     {
         output[i] = sqrt(pow(input[i].r, 2) + pow(input[i].i, 2));
+    }
+}
+
+/// @brief Divide all elements of a complex list by a specific divisor
+/// @param input Input complex array. 
+/// @param size Size of the array.
+/// @param divisor Divisor.
+void complexDivisionAll(kiss_fft_cpx *input, int size, double divisor)
+{
+    for (int i = 0; i < size; i++)
+    {
+        input[i].r /= divisor;
+        input[i].i /= divisor;
     }
 }

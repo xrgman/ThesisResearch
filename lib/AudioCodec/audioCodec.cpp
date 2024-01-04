@@ -34,16 +34,27 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
     this->F_end = Fc + bandwith / 2;
     this->sampling_delta = samples_per_symbol / num_symbols;
 
+    // Creating the original upchirp:
+    linespace(F_begin, F_end, samples_per_symbol, upChirp, false);
+
     // Creating down chirp that is used for decoding:
+    double downChirp_frequencies[samples_per_symbol];
     double downChirp[samples_per_symbol];
+    kiss_fft_cpx downChirp_complex_full[samples_per_symbol];
 
-    linespace(F_begin, F_end, samples_per_symbol, downChirp, true);
+    linespace(F_begin, F_end, samples_per_symbol, downChirp_frequencies, true);
 
-    //Performing modification to create the complex signal representation of the down chirp:
-    divideAllElements(downChirp, samples_per_symbol, Fs); //Divide every element by the sampling frequency
-    cumsum(downChirp, samples_per_symbol);
-    createSinWaveFromFreqs(downChirp, samples_per_symbol);
-    hilbert(downChirp, downChirp_complex, samples_per_symbol);
+    // Creating sine wave from downchirp frequencies:
+    createSinWaveFromFreqs(downChirp_frequencies, downChirp, samples_per_symbol);
+    hilbert(downChirp, downChirp_complex_full, samples_per_symbol); // Adding complex part
+
+    // Storing only 256 samples from the complex result:
+    for (int i = 0; i < num_symbols; i++)
+    {
+        int n = i * sampling_delta;
+
+        downChirp_complex[i] = downChirp_complex_full[n];
+    }
 
     fillArrayWithZeros(numberOfReceivedBits, NUM_CHANNELS);
     fillArrayWithZeros(startReadingPosition, NUM_CHANNELS);
@@ -93,6 +104,26 @@ void AudioCodec::encode(int16_t *output, int outputSize, uint8_t senderId) // Ou
     {
         output[i] = doubleToInt16(outputBuffer[i]);
     }
+}
+
+/// @brief Encode a specific symbol into a sine wave chirp with a specific offset.
+/// @param output Array which will contain the sine wave.
+/// @param symbol Symbol to be encoded.
+void AudioCodec::encode_symbol(double *output, int symbol)
+{
+    // Determine shift in the frequencies:
+    int shift = (int)floor((double)symbol * samples_per_symbol / num_symbols);
+
+    // Creating frequency window:
+    double frequency_window[samples_per_symbol];
+
+    for (int i = 0; i < samples_per_symbol; i++)
+    {
+        frequency_window[i] = upChirp[(shift + i) % samples_per_symbol];
+    }
+
+    // Creating sine wave representation of the signal:
+    createSinWaveFromFreqs(frequency_window, output, samples_per_symbol);
 }
 
 /// @brief Encode the preamble into the output buffer.
@@ -273,48 +304,80 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
     double value = int16ToDouble(bit);
 
     // Saving value in corresponding buffer:
-    decodingBuffer[microphoneId][numberOfReceivedBits[microphoneId] % PREAMBLE_BITS] = value;
+    decodingBuffer[microphoneId][numberOfReceivedBits[microphoneId] % samples_per_symbol] = value;
+
+    // Keeping track of the number of received bits:
+    numberOfReceivedBits[microphoneId]++;
 
     // Checking if buffer has been filled enough for first preamble check:
-    if (bufferFilled[microphoneId] || numberOfReceivedBits[microphoneId] + 1 >= PREAMBLE_BITS)
+    if (bufferFilled[microphoneId] || numberOfReceivedBits[microphoneId] >= samples_per_symbol)
     {
         bufferFilled[microphoneId] = true;
 
+        // Determine current reading position from the buffer:
         int readingPosition = startReadingPosition[microphoneId];
 
-        // Create a vector with the correct data before sending
+        // Creating frame:
+        double frame[samples_per_symbol];
 
-        if (containsPreamble(&decodingBuffer[microphoneId][readingPosition], PREAMBLE_BITS))
+        for (int j = 0; j < samples_per_symbol; j++)
         {
-            // LOG TIME! and start receiving other data
-            std::cout << "Preamble found!";
-            // After knowing when the preamble ends, we can start to receive the message. Here we know that from end + (nr of bites per bit) every time a bit can be read until x nr of bits are read.
+            frame[j] = decodingBuffer[microphoneId][(readingPosition + j) % samples_per_symbol];
         }
 
-        // We read, so update reading position:
+        // Determine the most like symbol of the current frame:
+        int symbol = decode_symbol(frame, samples_per_symbol);
+        int symbolBufferWritePosition = decodingStore[microphoneId].symbolBufferWritePosition;
+
+        // Checking if symbol buffer is filled:
+        if (symbolBufferWritePosition >= SYMBOL_BUFFER_SIZE)
+        {
+            int readPositionFirst = symbolBufferWritePosition % SYMBOL_BUFFER_SIZE;
+            int readPositionSecond = (readPositionFirst + samples_per_symbol) % SYMBOL_BUFFER_SIZE;
+
+            // Checking if preamble is found:
+            if (containsPreamble(symbolBuffer[microphoneId][readPositionFirst], symbolBuffer[microphoneId][readPositionSecond], symbol))
+            {
+                // For now we assume that the 3th preamble occurence is the correct one:
+                decodingStore[microphoneId].preambleFoundCount++;
+
+                if (decodingStore[microphoneId].preambleFoundCount == 3)
+                {
+                    // Marking preamble as found:
+                    decodingStore[microphoneId].preambleFound = true;
+                    decodingStore[microphoneId].symbolDecodingPosition = symbolBufferWritePosition;
+
+                    // Recording the position of the preamble, to be used for doa calculation:
+                    decodingResult.preambleDetectionPosition[microphoneId] = symbolBufferWritePosition - samples_per_symbol * 2;
+
+                    // Printing that the preamble was found:
+                    cout << "Preamble found at position: " << decodingResult.preambleDetectionPosition[microphoneId] << endl;
+                }
+            }
+
+            // Checking if decoding if in progress:
+            if (decodingStore[microphoneId].preambleFound && decodingStore[microphoneId].symbolDecodingPosition + samples_per_symbol <= symbolBufferWritePosition)
+            {
+            }
+        }
+
+        // Saving symbol for later:
+        symbolBuffer[microphoneId][symbolBufferWritePosition % SYMBOL_BUFFER_SIZE] = symbol;
+        decodingStore[microphoneId].symbolBufferWritePosition++;
+        // symbolBufferWrite[microphoneId]++;
+
+        // Updating reading position:
         startReadingPosition[microphoneId]++;
     }
 
     // When detected: save the time for doa calculation accross the mics.
 
     // In the decoding example it is done using auto correlation
-
-    numberOfReceivedBits[microphoneId]++;
 }
 
-bool AudioCodec::containsPreamble(const double *window, int windowSize)
+bool AudioCodec::containsPreamble(int firstSymbol, int secondSymbol, int thirthSymbol)
 {
-    // Get the original preamble, but then flipped:
-    double originalPreamble[PREAMBLE_BITS];
-
-    encodePreamble(originalPreamble, true);
-
-    // Calculate the correlation results from convolving:
-    getConvResult(window, windowSize, originalPreamble, PREAMBLE_BITS);
-
-    int test = 10;
-
-    return false;
+    return firstSymbol == 17 && secondSymbol == 49 && thirthSymbol == 205;
 }
 
 std::vector<double> oaconvolve(const std::vector<int16_t> &data, const std::vector<double> &symbol, vector<double> &result, const std::string &mode = "same")
@@ -413,10 +476,52 @@ void AudioCodec::getConvResult(const double *window, int windowSize, const doubl
     std::cin.get();
 }
 
+/// @brief Decode a symbol from a specific window.
+/// @param window Window containing a signal.
+/// @param windowSize Size of the window.
+/// @return The most likely symbol that is contained inside the window.
+int AudioCodec::decode_symbol(const double *window, const int windowSize)
+{
+    // 1. Apply hilbert transform overt the window, to get the complex representation:
+    kiss_fft_cpx complex_window_full[windowSize];
+
+    hilbert(window, complex_window_full, windowSize);
+
+    // 2. Get samples from the complex window:
+    kiss_fft_cpx complex_window[num_symbols];
+
+    for (int i = 0; i < num_symbols; i++)
+    {
+        int n = i * sampling_delta;
+
+        complex_window[i] = complex_window_full[n];
+    }
+
+    // 3. Apply point wise multiplication of the window and the downchirp:
+    kiss_fft_cpx window_multiplied[num_symbols];
+
+    complexMultiplication(complex_window, downChirp_complex, num_symbols, window_multiplied);
+
+    // 4. Apply FFT over the multiplied data:
+    kiss_fft_cpx window_fft[num_symbols];
+
+    performFFT(window_multiplied, window_fft, num_symbols, false);
+    complexDivisionAll(window_fft, num_symbols, num_symbols);
+
+    // 5. Take absolute values:
+    double window_absolute[num_symbols];
+
+    complexAbsolute(window_fft, window_absolute, num_symbols);
+
+    // 6. Finding maximum value and returining the index of it as the symbol:
+    return findMaxIndex(window_absolute, num_symbols);
+}
+
 //*************************************************
 //******** General ********************************
 //*************************************************
 
+// TODO! Fix first element error
 /// @brief Perform the hilbert transformation.
 /// Steps from: https://nl.mathworks.com/help/signal/ref/hilbert.html
 /// @param input Input array.
@@ -461,6 +566,9 @@ void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size)
 
     // 3. Calculate inverse FFT of step 2 result and returns first n elements of the result:
     performFFT(hilbertKernal, output, size, true);
+
+    // 4. Cleaning up:
+    free(fftPlan);
 }
 
 /// @brief Fills the output array with evenly spaced values between the start and stop value
@@ -490,106 +598,23 @@ void AudioCodec::linespace(const double start, const double stop, const int numP
     }
 }
 
-/// @brief Creates a sine wave signal from an array of frequencies.
-/// @param array Array containing the cumsum of the frequencies.
-/// @param size Size of the array.
-void AudioCodec::createSinWaveFromFreqs(double *array, const int size)
+/// @brief Create a sine wave representation of an array of frequencies.
+/// @param input Input array containing the frequencies.
+/// @param output Output array containing the sine wave.
+/// @param size Size of the arrays.
+void AudioCodec::createSinWaveFromFreqs(const double *input, double *output, const int size)
 {
+    double sum = 0;
+
     for (int i = 0; i < size; i++)
     {
-        array[i] = sin(2 * M_PI * array[i]);
+        // 1. Devide frequency by the sampling frequency:
+        double dividing = input[i] / Fs;
+
+        // 2. Cumulativily sum the frequencies
+        sum += dividing;
+
+        // 3. Create sine wave representation
+        output[i] = sin(2 * M_PI * sum);
     }
 }
-
-// bool plotted = false;
-// Gnuplot gnuPlot;
-
-// bool AudioCodec::containsPreamble(const double *window, int windowSize)
-// {
-
-//     // Parameters for STFT
-//     int segmentSize = 256;
-//     int overlap = 128;
-
-//     vector<vector<double>> result;
-
-//     // Apply STFT
-//     performSTFT(window, windowSize, segmentSize, overlap, result);
-
-//     int windows = 10;
-
-//     // Plot the STFT using Gnuplot
-//     Gnuplot gp;
-
-//     gp << "set pm3d map\n";
-//     gp << "set xlabel 'Time Frame'\n";
-//     gp << "set ylabel 'Frequency Bin'\n";
-//     gp << "set yrange [5000:10000]\n";
-//     gp << "splot '-' matrix with image\n";
-
-//     for (int window = 0; window < windows; window++)
-//     {
-//         vector<double> windowData = result[window];
-
-//         for (int i = 0; i < STFT_WINDOW_SIZE; i++)
-//         {
-//             double time = window * STFT_WINDOW_SIZE / SAMPLE_RATE;
-//             double frequency = static_cast<double>(i) * SAMPLE_RATE / STFT_WINDOW_SIZE;
-//             double magnitudeValue = 10 * log10(windowData[i]); // Convert to log db scale
-
-//             gp << time << " " << frequency << " " << magnitudeValue << "\n";
-//         }
-
-//         // gp << "\n";
-//     }
-
-//     gp << "e\n";
-
-//     gp << "pause mouse key\n";
-
-//     // vector<kiss_fft_cpx> fftOutput;
-
-//     // // Perform FFT:
-//     // performFFT(window, fftOutput, windowSize);
-
-//     // // Calculate corresponding frequencies for each FFT bin
-//     // double binWidth = SAMPLE_RATE / windowSize; // 5
-
-//     // // Find the bin indices corresponding to the start and stop frequencies of the chirp
-//     // int startBin = static_cast<int>(frequencyPair.startFrequency / binWidth); // 1100 -> this represents the start frequency index
-//     // int stopBin = static_cast<int>(frequencyPair.stopFrequency / binWidth);   // 1900 -> this represents stop frequency index
-
-//     // // Analyze the frequency content within the specified range
-//     // // for (int i = 0; i < windowSize; ++i)
-//     // // {
-//     // //     double magnitude = std::sqrt(fftOutput[i].r * fftOutput[i].r + fftOutput[i].i * fftOutput[i].i);
-
-//     // //    //Plot this shizzle :)
-//     // //     int test = 10;
-//     // // }
-
-//     // vector<pair<double, double>> magnitudeSpectrum;
-
-//     // for (int i = 0; i < FRAMES_PER_BUFFER; ++i)
-//     // {
-//     //     double frequency = static_cast<double>(i) * SAMPLE_RATE / windowSize; // Duration = num points / sample rate
-//     //     double magnitude = 2.0 * sqrt(fftOutput[i].r * fftOutput[i].r + fftOutput[i].i * fftOutput[i].i) / windowSize;
-
-//     //     magnitudeSpectrum.push_back(std::make_pair(frequency, magnitude));
-//     // }
-
-//     // if (!plotted)
-//     // {
-//     //     plotted = true;
-
-//     //     gnuPlot << "set title 'Frequency Domain Representation'\n";
-//     //     gnuPlot << "set xrange [0:25000]\n";
-//     //     // gnuPlots[i] << "set yrange [0:1]\n";
-//     //     gnuPlot << "set xlabel 'Frequency (Hz)'\n";
-//     //     gnuPlot << "set ylabel 'Magnitude'\n";
-//     //     gnuPlot << "plot '-' with lines title 'Mic 1'" << endl;
-//     //     gnuPlot.send1d(magnitudeSpectrum);
-//     // }
-
-//     return false;
-// }

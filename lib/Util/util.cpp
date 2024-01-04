@@ -62,7 +62,35 @@ bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold)
     return false;
 }
 
+/// @brief Find the index of the element with the highest value.
+/// @param array Array containing the elements.
+/// @param size Size of the array.
+/// @return Index of the element in the array with the highest value.
 int findMaxIndex(const int *array, int size)
+{
+    if (size <= 0)
+    {
+        return -1;
+    }
+
+    int idx = 0;
+
+    for (int i = 0; i < size; i++)
+    {
+        if (array[i] > array[idx])
+        {
+            idx = i;
+        }
+    }
+
+    return idx;
+}
+
+/// @brief Find the index of the element with the highest value.
+/// @param array Array containing the elements.
+/// @param size Size of the array.
+/// @return Index of the element in the array with the highest value.
+int findMaxIndex(const double *array, int size)
 {
     if (size <= 0)
     {
