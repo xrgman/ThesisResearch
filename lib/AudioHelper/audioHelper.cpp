@@ -46,6 +46,8 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     int16_t *inputData = (int16_t *)inputData; // Not uint16_t but int16
     int16_t *outputData = (int16_t *)outputBuffer;
 
+    bool isBatchProcessed = batchProcessed;
+
     // Grabbing read data:
     for (int i = 0; i < framesPerBuffer; i++)
     {
@@ -56,6 +58,7 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     }
 
     inputDataAvailable = true;
+    batchProcessed = false;
 
     return paContinue;
 }
@@ -290,9 +293,12 @@ void AudioHelper::setNextBatchRead()
     inputDataAvailable = false;
 }
 
+void AudioHelper::signalBatchProcessed()
+{
+    batchProcessed = true;
+}
+
 /// @brief Sort the microphones by saving the correct order of indexes to an array.
-
-
 bool AudioHelper::determineMicrophoneOrder()
 {
     // Skipping if task is already executed once:

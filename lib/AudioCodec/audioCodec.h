@@ -13,13 +13,13 @@
 #define PREAMBLE_BITS (int)(PREAMBLE_DURATION * SAMPLE_RATE)
 
 // From the complex ecoding example, always update all when changing something!:
-#define SAMPLES_PER_SYMBOL 1024//2048 // SAMPLES_PER_SYMBOL / NUM_SYMBOLS == SF
-#define SF 7//8
-#define NUM_SYMBOLS 128//256 // 2^SF
-#define BW 5512.5//4000
+#define SAMPLES_PER_SYMBOL 1024 // 2048 // SAMPLES_PER_SYMBOL / NUM_SYMBOLS == SF
+#define SF 7                    // 8
+#define NUM_SYMBOLS 128         // 256 // 2^SF
+#define BW 5512.5               // 4000
 
 #define SYMBOLS_IN_PREAMBLE 3
-#define SYMBOL_BUFFER_SIZE 2048//4096 //(SAMPLES_PER_SYMBOL * (SYMBOLS_IN_PREAMBLE - 1))
+#define SYMBOL_BUFFER_SIZE 2048 // 4096 //(SAMPLES_PER_SYMBOL * (SYMBOLS_IN_PREAMBLE - 1))
 #define SYMBOLS_DATA_COUNT 3    // Number of symbols to be decoded
 
 struct AudioCodecResult
@@ -77,6 +77,12 @@ class AudioCodec
 public:
     AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samples_per_symbol, uint8_t spreading_factor, int bandwith);
 
+    ~AudioCodec()
+    {
+        free(fft_config);
+        free(fft_config_inv);
+    }
+
     void encode(int16_t *output, int outputSize, uint8_t senderId);
 
     void decode(int16_t bit, uint8_t microphoneId); // Input should be an array? Or we do it bit for bit, thats probably better
@@ -100,6 +106,10 @@ private:
 
     // DownChirp:
     kiss_fft_cpx downChirp_complex[NUM_SYMBOLS];
+
+    // FFT configurations:
+    kiss_fft_cfg fft_config = kiss_fft_alloc(SAMPLES_PER_SYMBOL, 0, nullptr, nullptr);
+    kiss_fft_cfg fft_config_inv = kiss_fft_alloc(SAMPLES_PER_SYMBOL, 1, nullptr, nullptr);
 
     // ENCODING:
     void encode_symbol(double *output, int symbol);

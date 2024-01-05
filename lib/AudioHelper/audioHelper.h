@@ -25,6 +25,8 @@ public:
     bool readNextBatch();
     void setNextBatchRead();
 
+    void signalBatchProcessed();
+
     bool determineMicrophoneOrder();
     uint8_t* getMicrophonesOrdered();
 
@@ -46,6 +48,7 @@ private:
     uint8_t bufferIdx;
     bool writeNext;
     bool inputDataAvailable;
+    bool batchProcessed;
 
     PaStream *outputStream, *inputStream;
 

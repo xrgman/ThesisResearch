@@ -553,15 +553,11 @@ int AudioCodec::decode_symbol(const double *window, const int windowSize)
 /// @param size Size of the input array.
 void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size)
 {
-    kiss_fft_cfg fftPlan = kiss_fft_alloc(size, 0, nullptr, nullptr);
-
     // 1. Perform FFT on input data:
-    vector<kiss_fft_cpx> fftInput;
-
-    fftInput.resize(size);
+    kiss_fft_cpx fftInput[size];
 
     // Perform FFT :
-    performFFT(fftPlan, input, fftInput, size);
+    performFFT(fft_config, input, fftInput, size);
 
     // 2. Create vector h, whose elements h(i) have value: 1 for i = 0, (n/2) | 2 for i = 1, 2, … , (n/2)-1 | 0 for i = (n/2)+1, … , n
     kiss_fft_cpx hilbertKernal[size];
@@ -589,10 +585,7 @@ void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size)
     }
 
     // 3. Calculate inverse FFT of step 2 result and returns first n elements of the result:
-    performFFT(hilbertKernal, output, size, true);
-
-    // 4. Cleaning up:
-    free(fftPlan);
+    performFFT(fft_config_inv, hilbertKernal, output, size, true);
 }
 
 /// @brief Fills the output array with evenly spaced values between the start and stop value

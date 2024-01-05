@@ -39,15 +39,14 @@ void performFFT(int16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t s
     kiss_fft(fftPlan, fftInput.data(), outputData.data());
 }
 
-void performFFT(const double *inputData, vector<kiss_fft_cpx> &outputData, uint32_t size)
+void performFFT(const double *inputData, kiss_fft_cpx *outputData, uint32_t size)
 {
     performFFT(fftPlan, inputData, outputData, size);
 }
 
-void performFFT(kiss_fft_cfg fftConfig, const double *inputData, vector<kiss_fft_cpx> &outputData, uint32_t size)
+void performFFT(kiss_fft_cfg fftConfig, const double *inputData, kiss_fft_cpx *outputData, uint32_t size)
 {
     fftInput.resize(size);
-    outputData.resize(size);
 
     for (int i = 0; i < size; i++)
     {
@@ -55,7 +54,7 @@ void performFFT(kiss_fft_cfg fftConfig, const double *inputData, vector<kiss_fft
         fftInput[i].i = 0.0;
     }
 
-    kiss_fft(fftConfig, fftInput.data(), outputData.data());
+    kiss_fft(fftConfig, fftInput.data(), outputData);
 }
 
 /// @brief Perform the FFT on an input data set of type complex.
@@ -68,8 +67,19 @@ void performFFT(const kiss_fft_cpx *inputData, kiss_fft_cpx *outputData, uint32_
     // Create a config to be used during the FFT:
     kiss_fft_cfg fftConfiguration = kiss_fft_alloc(size, inverse ? 1 : 0, nullptr, nullptr);
 
+    performFFT(fftConfiguration, inputData, outputData, size, inverse);
+}
+
+/// @brief Perform the FFT on an input data set of type complex.
+/// @param fftConfig Configuration to be used when performing FFT
+/// @param inputData Input data.
+/// @param outputData Output data.
+/// @param size Size of the input data array.
+/// @param inverse Perform inverse FFT.
+void performFFT(kiss_fft_cfg fftConfig, const kiss_fft_cpx *inputData, kiss_fft_cpx *outputData, uint32_t size, bool inverse) 
+{
     // Perform FFT:
-    kiss_fft(fftConfiguration, inputData, outputData);
+    kiss_fft(fftConfig, inputData, outputData);
 
     // Perform normalization if inverse fft is performed:
     if (inverse)

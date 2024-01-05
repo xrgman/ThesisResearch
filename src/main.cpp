@@ -454,7 +454,8 @@ void encodeMessageForAudio()
 
 void decodeMessageForAudio()
 {
-    const char *filename = "test.wav";
+    const char *filename = "SEND1.wav";
+    const int frames_per_buffer = 1536;
 
     FILE *fileRead;
 
@@ -469,11 +470,11 @@ void decodeMessageForAudio()
     // Reading successfull, so decoding it:
     while (!feof(fileRead))
     {
-        int16_t audioData[FRAMES_PER_BUFFER];
-        size_t bytesRead = fread(audioData, 2, FRAMES_PER_BUFFER, fileRead);
+        int16_t audioData[frames_per_buffer];
+        size_t bytesRead = fread(audioData, 2, frames_per_buffer, fileRead);
 
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
-        for (int i = 0; i < bytesRead; i += 6)
+        for (int i = 0; i < bytesRead; i += 1)
         {
             audioCodec.decode(audioData[i], 0);
         }
@@ -520,6 +521,8 @@ void decodingLive()
                 audioCodec.decode(channelData[i], channel);
             }
         }
+
+        audioHelper.signalBatchProcessed();
     }
 }
 
@@ -538,12 +541,12 @@ int main()
     audioHelper.clearBuffers();
 
     // Opening audio streams:
-    if (!audioHelper.initializeAndOpen())
-    {
-        cout << "Initializing audio helper has failed!\n";
+    // if (!audioHelper.initializeAndOpen())
+    // {
+    //     cout << "Initializing audio helper has failed!\n";
 
-        return 0;
-    }
+    //     return 0;
+    // }
 
     // openAndPlayWavFile();
 
@@ -557,7 +560,12 @@ int main()
 
     // cout << "Starting decoding!\n";
 
-    //decodeMessageForAudio();
+    decodeMessageForAudio();
+
+    // This works for 10 mins without issues:
+    // while(true) {
+    //     usleep(1);
+    // }
     // decodingLive();
 
     // readAnPlotSpectogram();
