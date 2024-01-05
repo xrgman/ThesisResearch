@@ -26,13 +26,15 @@ using namespace arma;
 // Func defs:
 void dataDecodedCallback(AudioCodecResult result);
 
-AudioHelper audioHelper(SAMPLE_RATE, 16, NUM_CHANNELS);
+AudioHelper audioHelper(SAMPLE_RATE, 16, NUM_CHANNELS_RAW);
 vector<Gnuplot> gnuPlots(NUM_CHANNELS);
 
 ParticleFilter particleFilter;
 MapRenderer mapRenderer;
 
 AudioCodec audioCodec(dataDecodedCallback, SAMPLES_PER_SYMBOL, SF, BW);
+
+bool liveDecoding = true;
 
 void sigIntHandler(int signum)
 {
@@ -54,8 +56,17 @@ void sigIntHandler(int signum)
 
 void dataDecodedCallback(AudioCodecResult result)
 {
+    // For now, printing found symbols:
+    cout << "Found symbols: ";
 
-    int test = 10;
+    for (int i = 0; i < SYMBOLS_DATA_COUNT; i++)
+    {
+        cout << result.decodedSymbols[i] << ", ";
+    }
+
+    cout << endl;
+
+    liveDecoding = false;
 }
 
 /// @brief Around 40cm is travel distance of one wheel rotation
@@ -154,12 +165,21 @@ void recordToWavFile()
 
         audioHelper.setNextBatchRead();
 
+        // Determine order of microphones, only executed once:
+        if (!audioHelper.determineMicrophoneOrder())
+        {
+            cout << "Failed to determine microphone order! Stopping program.\n";
+
+            return;
+        }
+
         // Preparing data to be written:
         for (int sample = 0; sample < FRAMES_PER_BUFFER; sample++)
         {
             for (int channel = 0; channel < NUM_CHANNELS; channel++)
             {
-                int16_t *channelData = audioHelper.audioData[channel];
+                uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
+                int16_t *channelData = audioHelper.audioData[channelIdx];
 
                 dataToWrite.push_back(channelData[sample]);
             }
@@ -434,7 +454,7 @@ void encodeMessageForAudio()
 
 void decodeMessageForAudio()
 {
-    const char *filename = "SEND.wav";
+    const char *filename = "test.wav";
 
     FILE *fileRead;
 
@@ -452,18 +472,8 @@ void decodeMessageForAudio()
         int16_t audioData[FRAMES_PER_BUFFER];
         size_t bytesRead = fread(audioData, 2, FRAMES_PER_BUFFER, fileRead);
 
-        // Looping over all bits:
-        // for (int i = 0; i < bytesRead; i ++)
-        // {
-        //     // Looping over all microphones:
-        //     for (int channel = 0; channel < NUM_CHANNELS; channel++)
-        //     {
-        //         audioCodec.decode(audioData[i*8 + channel], channel);
-        //     }
-        // }
-
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
-        for (int i = 0; i < bytesRead; i++)
+        for (int i = 0; i < bytesRead; i += 6)
         {
             audioCodec.decode(audioData[i], 0);
         }
@@ -475,6 +485,44 @@ void decodeMessageForAudio()
     cout << "Done decoding WAV file!\n";
 }
 
+void decodingLive()
+{
+    cout << "Live decoding started!\n";
+
+    while (liveDecoding)
+    {
+        // Checking if new data is available:
+        if (!audioHelper.readNextBatch())
+        {
+            usleep(1);
+
+            continue;
+        }
+
+        audioHelper.setNextBatchRead();
+
+        // Determine order of microphones, only executed once:
+        if (!audioHelper.determineMicrophoneOrder())
+        {
+            cout << "Failed to determine microphone order! Stopping program.\n";
+
+            return;
+        }
+
+        // Looping over all microphone inputs:
+        for (uint8_t channel = 0; channel < 1; channel++) // NUM_CHANNELS
+        {
+            uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
+            int16_t *channelData = audioHelper.audioData[channelIdx];
+
+            for (int i = 0; i < FRAMES_PER_BUFFER; i++)
+            {
+                audioCodec.decode(channelData[i], channel);
+            }
+        }
+    }
+}
+
 int main()
 {
     // Catching sigint event:
@@ -482,6 +530,9 @@ int main()
 
     // Preparing random number generator:
     srand(time(NULL));
+
+    // Killing running tasks:
+    audioHelper.stopAndClose(false);
 
     // Filling buffers with 0's:
     audioHelper.clearBuffers();
@@ -491,7 +542,7 @@ int main()
     {
         cout << "Initializing audio helper has failed!\n";
 
-        //return 0;
+        return 0;
     }
 
     // openAndPlayWavFile();
@@ -506,9 +557,10 @@ int main()
 
     // cout << "Starting decoding!\n";
 
-    decodeMessageForAudio();
+    //decodeMessageForAudio();
+    // decodingLive();
 
-    //readAnPlotSpectogram();
+    // readAnPlotSpectogram();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();

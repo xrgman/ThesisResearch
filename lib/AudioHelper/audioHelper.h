@@ -18,7 +18,7 @@ public:
 
     bool initializeAndOpen();
     bool writeBytes(const int16_t *audioData, uint32_t nrOfBytes);
-    bool stopAndClose();
+    bool stopAndClose(bool stopOnError = true);
 
     void clearBuffers();
     bool writeNextBatch();
@@ -28,7 +28,7 @@ public:
     bool determineMicrophoneOrder();
     uint8_t* getMicrophonesOrdered();
 
-    int16_t audioData[NUM_CHANNELS][FRAMES_PER_BUFFER];
+    int16_t audioData[NUM_CHANNELS_RAW][FRAMES_PER_BUFFER];
 
 private:
     uint32_t sampleRate;
@@ -37,7 +37,6 @@ private:
 
     uint8_t calibrationCounter;
 
-    uint32_t microphoneAverages[NUM_CHANNELS];
     bool microphonesAreOrdered;
     uint8_t microphonesOrdered[6]; // Containing indexes of audiodata sorted correctly.
 
@@ -47,8 +46,6 @@ private:
     uint8_t bufferIdx;
     bool writeNext;
     bool inputDataAvailable;
-
-    
 
     PaStream *outputStream, *inputStream;
 

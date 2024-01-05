@@ -19,6 +19,12 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
     this->volume = 1.0;
     this->frequencyPair.startFrequency = START_FREQ_CHRIP;
     this->frequencyPair.stopFrequency = STOP_FREQ_CHIRP;
+    this->decodingResult.reset();
+
+    for (uint8_t i; i < NUM_CHANNELS; i++)
+    {
+        decodingStore[i].reset();
+    }
 
     this->samples_per_symbol = samples_per_symbol;
     this->spreading_factor = spreading_factor;
@@ -59,8 +65,6 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
     fillArrayWithZeros(numberOfReceivedBits, NUM_CHANNELS);
     fillArrayWithZeros(startReadingPosition, NUM_CHANNELS);
 }
-
-// Transmit at upper bound of supported range for microphones
 
 //*************************************************
 //******** Encoding *******************************
@@ -336,7 +340,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
             int readPositionSecond = (readPositionFirst + samples_per_symbol) % SYMBOL_BUFFER_SIZE;
 
             // Checking if preamble is found:
-            if (containsPreamble(symbolBuffer[microphoneId][readPositionFirst], symbolBuffer[microphoneId][readPositionSecond], symbol))
+            if (containsPreamble(decodingStore[microphoneId].symbolBuffer[readPositionFirst], decodingStore[microphoneId].symbolBuffer[readPositionSecond], symbol))
             {
                 // For now we assume that the 3th preamble occurence is the correct one:
                 decodingStore[microphoneId].preambleFoundCount++;
@@ -355,16 +359,36 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 }
             }
 
-            // Checking if decoding if in progress:
-            if (decodingStore[microphoneId].preambleFound && decodingStore[microphoneId].symbolDecodingPosition + samples_per_symbol <= symbolBufferWritePosition)
+            // Checking if decoding if in progress (only for mic 0):
+            if (decodingStore[microphoneId].preambleFound && microphoneId == 0 && decodingStore[microphoneId].symbolDecodingPosition + samples_per_symbol <= symbolBufferWritePosition)
             {
+                // TODO: Change this so that it decodes it into meaninfull fields instead of just an array containing raw symbols
+                decodingResult.decodedSymbols[decodingResult.decodedSymbolsCnt] = symbol;
+                decodingResult.decodedSymbolsCnt++;
+
+                // Updating symbol decoding position:
+                decodingStore[microphoneId].symbolDecodingPosition = symbolBufferWritePosition;
+
+                // Checking if all symbols have been received:
+                if (decodingResult.decodedSymbolsCnt >= SYMBOLS_DATA_COUNT)
+                {
+                    // Return data:
+                    data_decoded_callback(decodingResult);
+
+                    // Resetting all fields:
+                    decodingResult.reset();
+
+                    for (uint8_t i; i < NUM_CHANNELS; i++)
+                    {
+                        decodingStore[i].reset();
+                    }
+                }
             }
         }
 
         // Saving symbol for later:
-        symbolBuffer[microphoneId][symbolBufferWritePosition % SYMBOL_BUFFER_SIZE] = symbol;
+        decodingStore[microphoneId].symbolBuffer[symbolBufferWritePosition % SYMBOL_BUFFER_SIZE] = symbol;
         decodingStore[microphoneId].symbolBufferWritePosition++;
-        // symbolBufferWrite[microphoneId]++;
 
         // Updating reading position:
         startReadingPosition[microphoneId]++;
@@ -377,7 +401,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
 bool AudioCodec::containsPreamble(int firstSymbol, int secondSymbol, int thirthSymbol)
 {
-    return firstSymbol == 17 && secondSymbol == 49 && thirthSymbol == 205;
+    return firstSymbol == Preamble_Sequence[0] && secondSymbol == Preamble_Sequence[1] && thirthSymbol == Preamble_Sequence[2];
 }
 
 std::vector<double> oaconvolve(const std::vector<int16_t> &data, const std::vector<double> &symbol, vector<double> &result, const std::string &mode = "same")

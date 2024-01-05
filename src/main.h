@@ -6,7 +6,8 @@
 #include <stdint.h>
 
 #define SAMPLE_RATE 44100
-#define NUM_CHANNELS 8
+#define NUM_CHANNELS_RAW 8
+#define NUM_CHANNELS 6
 
 #define FRAMES_PER_BUFFER 2048
 

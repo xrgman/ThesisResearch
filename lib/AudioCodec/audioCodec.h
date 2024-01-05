@@ -13,34 +13,55 @@
 #define PREAMBLE_BITS (int)(PREAMBLE_DURATION * SAMPLE_RATE)
 
 // From the complex ecoding example, always update all when changing something!:
-#define SAMPLES_PER_SYMBOL 2048 // SAMPLES_PER_SYMBOL / NUM_SYMBOLS == SF
-#define SF 8
-#define NUM_SYMBOLS 256 // 2^SF
-#define BW 4000
+#define SAMPLES_PER_SYMBOL 1024//2048 // SAMPLES_PER_SYMBOL / NUM_SYMBOLS == SF
+#define SF 7//8
+#define NUM_SYMBOLS 128//256 // 2^SF
+#define BW 5512.5//4000
 
 #define SYMBOLS_IN_PREAMBLE 3
-#define SYMBOL_BUFFER_SIZE 4096//(SAMPLES_PER_SYMBOL * (SYMBOLS_IN_PREAMBLE - 1))
-#define SYMBOLS_DATA_COUNT 3 //Number of symbols to be decoded
+#define SYMBOL_BUFFER_SIZE 2048//4096 //(SAMPLES_PER_SYMBOL * (SYMBOLS_IN_PREAMBLE - 1))
+#define SYMBOLS_DATA_COUNT 3    // Number of symbols to be decoded
 
 struct AudioCodecResult
 {
-    int decodedSymbolsCnt = 0;
     int senderId;
-    int decodedSymbols[SYMBOLS_DATA_COUNT];
-    int preambleDetectionPosition[NUM_CHANNELS];
     double doa;
+
+    int decodedSymbolsCnt;
+    int decodedSymbols[SYMBOLS_DATA_COUNT];
+
+    int preambleDetectionCnt;
+    int preambleDetectionPosition[NUM_CHANNELS];
+
+    void reset()
+    {
+        senderId = 0;
+        doa = 0.0;
+
+        decodedSymbolsCnt = 0;
+        preambleDetectionCnt = 0;
+    }
 };
 
 struct AudioCodecDecoding
 {
-    //Symbol decoding fields
-    int symbolBufferWritePosition = 0;
+    // Symbol decoding fields
+    int symbolBufferWritePosition;
+    int symbolBuffer[SYMBOL_BUFFER_SIZE];
 
-    //Preamble detection fields:
-    int preambleFoundCount = 0;
+    // Preamble detection fields:
+    int preambleFoundCount;
     bool preambleFound = false;
-    int symbolDecodingPosition = 0;
 
+    int symbolDecodingPosition;
+
+    void reset()
+    {
+        symbolBufferWritePosition = 0;
+        preambleFoundCount = 0;
+        preambleFound = false;
+        symbolDecodingPosition = 0;
+    }
 };
 
 struct AudioCodecFrequencyPair
@@ -48,6 +69,8 @@ struct AudioCodecFrequencyPair
     double startFrequency;
     double stopFrequency;
 };
+
+static uint16_t Preamble_Sequence[3] = {17, 49, 127};
 
 class AudioCodec
 {
@@ -72,7 +95,7 @@ private:
     uint8_t sampling_delta; // Number of samples to skip between each symbol when decoding
     double Tc, Ts;
 
-    //Upchirp:
+    // Upchirp:
     double upChirp[SAMPLES_PER_SYMBOL];
 
     // DownChirp:
@@ -107,27 +130,22 @@ private:
     int startReadingPosition[NUM_CHANNELS];
     bool bufferFilled[NUM_CHANNELS];
 
-    //Storing bits:
+    // Storing bits:
     double decodingBuffer[NUM_CHANNELS][SAMPLES_PER_SYMBOL];
 
-    //Storing symbols:
-    int symbolBuffer[NUM_CHANNELS][SYMBOL_BUFFER_SIZE];
-
-    //Decoding stores:
+    // Decoding stores:
     AudioCodecDecoding decodingStore[NUM_CHANNELS];
 
-    //Decoding results:
+    // Decoding results:
     AudioCodecResult decodingResult;
 
     bool containsPreamble(int firstSymbol, int secondSymbol, int thirthSymbol);
-
     int decode_symbol(const double *window, const int windowSize);
 
     // General functions:
     void getConvResult(const double *window, int windowSize, const double symbol[], int symbolSize);
     void hilbert(const double *input, kiss_fft_cpx *output, int size);
     void linespace(const double start, const double stop, const int numPoints, double *output, const bool inverse);
-    
     void createSinWaveFromFreqs(const double *input, double *output, const int size);
 };
 

@@ -76,6 +76,8 @@ bool AudioHelper::initializeAndOpen()
     const PaDeviceInfo *deviceInfo;
     uint8_t deviceIdx;
 
+    const PaDeviceInfo *start = Pa_GetDeviceInfo(Pa_GetDefaultInputDevice());
+
     for (uint8_t i = 0; i < Pa_GetDeviceCount(); i++)
     {
         deviceInfo = Pa_GetDeviceInfo(i);
@@ -171,19 +173,19 @@ bool AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
     return true;
 }
 
-bool AudioHelper::stopAndClose()
+bool AudioHelper::stopAndClose(bool stopOnError)
 {
     // Stop and close input stream:
     PaError err = Pa_StopStream(outputStream);
 
-    if (!checkForPaError(err, "output stream stop", false))
+    if (stopOnError && !checkForPaError(err, "output stream stop", false))
     {
         return false;
     }
 
     err = Pa_CloseStream(outputStream);
 
-    if (!checkForPaError(err, "output stream close", false))
+    if (stopOnError && !checkForPaError(err, "output stream close", false))
     {
         return false;
     }
@@ -191,14 +193,14 @@ bool AudioHelper::stopAndClose()
     // Stop and close output stream:
     err = Pa_StopStream(inputStream);
 
-    if (!checkForPaError(err, "input stream stop", false))
+    if (stopOnError && !checkForPaError(err, "input stream stop", false))
     {
         return false;
     }
 
     err = Pa_CloseStream(inputStream);
 
-    if (!checkForPaError(err, "input stream close", false))
+    if (stopOnError && !checkForPaError(err, "input stream close", false))
     {
         return false;
     }
@@ -299,13 +301,13 @@ bool AudioHelper::determineMicrophoneOrder()
         return true;
     }
 
-    double averages[NUM_CHANNELS];
+    double averages[numChannels];
     int8_t lowestAverageIdxs[2];
     uint8_t iteration = 0;
     bool found = false;
 
     // 0. Calulate the average of each channel:
-    for (int channel = 0; channel < NUM_CHANNELS; channel++)
+    for (int channel = 0; channel < numChannels; channel++)
     {
         int16_t *channelData = audioData[channel];
 
@@ -317,17 +319,17 @@ bool AudioHelper::determineMicrophoneOrder()
         iteration++;
 
         // 1. Find the lowest average value its index:
-        lowestAverageIdxs[0] = min_element(averages, averages + NUM_CHANNELS) - averages;
+        lowestAverageIdxs[0] = min_element(averages, averages + numChannels) - averages;
 
         // 2. Set second index to the one before the first, as that channel is always in front:
-        lowestAverageIdxs[1] = ((lowestAverageIdxs[0] - 1) % NUM_CHANNELS + NUM_CHANNELS) % NUM_CHANNELS;
+        lowestAverageIdxs[1] = ((lowestAverageIdxs[0] - 1) % numChannels + numChannels) % numChannels;
 
         // 3. Check if the second channel does not contain empty values, just to verify:
         if (hasNegativeValues(audioData[lowestAverageIdxs[1]], FRAMES_PER_BUFFER, 5))
         {
             averages[lowestAverageIdxs[0]] = INT16_MAX;
 
-            if (iteration == NUM_CHANNELS)
+            if (iteration == numChannels)
             {
                 return false;
             }
@@ -349,9 +351,9 @@ bool AudioHelper::determineMicrophoneOrder()
     cout << "Microphone order: ";
 
     // Resotring order:
-    for (int i = 0; i < NUM_CHANNELS - 2; i++)
+    for (int i = 0; i < numChannels - 2; i++)
     {
-        microphonesOrdered[i] = (lowestAverageIdxs[1] + 1 + i) % (NUM_CHANNELS);
+        microphonesOrdered[i] = (lowestAverageIdxs[1] + 1 + i) % (numChannels);
 
         cout << unsigned(microphonesOrdered[i]) << ", ";
     }
