@@ -47,6 +47,7 @@ void performFFT(const double *inputData, kiss_fft_cpx *outputData, uint32_t size
 void performFFT(kiss_fft_cfg fftConfig, const double *inputData, kiss_fft_cpx *outputData, uint32_t size)
 {
     fftInput.resize(size);
+    fftInput.clear();
 
     for (int i = 0; i < size; i++)
     {
@@ -67,7 +68,11 @@ void performFFT(const kiss_fft_cpx *inputData, kiss_fft_cpx *outputData, uint32_
     // Create a config to be used during the FFT:
     kiss_fft_cfg fftConfiguration = kiss_fft_alloc(size, inverse ? 1 : 0, nullptr, nullptr);
 
+    // Call wrapper function, that performs the FFT:
     performFFT(fftConfiguration, inputData, outputData, size, inverse);
+
+    // Cleanup the configuration:
+    free(fftConfiguration);
 }
 
 /// @brief Perform the FFT on an input data set of type complex.
@@ -76,7 +81,7 @@ void performFFT(const kiss_fft_cpx *inputData, kiss_fft_cpx *outputData, uint32_
 /// @param outputData Output data.
 /// @param size Size of the input data array.
 /// @param inverse Perform inverse FFT.
-void performFFT(kiss_fft_cfg fftConfig, const kiss_fft_cpx *inputData, kiss_fft_cpx *outputData, uint32_t size, bool inverse) 
+void performFFT(kiss_fft_cfg fftConfig, const kiss_fft_cpx *inputData, kiss_fft_cpx *outputData, uint32_t size, bool inverse)
 {
     // Perform FFT:
     kiss_fft(fftConfig, inputData, outputData);
@@ -317,9 +322,6 @@ void complexMultiplication(const kiss_fft_cpx *input1, const kiss_fft_cpx *input
 {
     for (int i = 0; i < size; i++)
     {
-        double test = input1[i].r * input2[i].r - input1[i].i * input2[i].i;
-        double test2 = input1[i].r * input2[i].i + input1[i].i * input2[i].r;
-
         output[i].r = input1[i].r * input2[i].r - input1[i].i * input2[i].i;
         output[i].i = input1[i].r * input2[i].i + input1[i].i * input2[i].r;
     }
@@ -334,7 +336,7 @@ void complexAbsolute(const kiss_fft_cpx *input, double *output, int size)
 }
 
 /// @brief Divide all elements of a complex list by a specific divisor
-/// @param input Input complex array. 
+/// @param input Input complex array.
 /// @param size Size of the array.
 /// @param divisor Divisor.
 void complexDivisionAll(kiss_fft_cpx *input, int size, double divisor)

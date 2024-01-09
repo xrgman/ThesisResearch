@@ -48,6 +48,10 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 
     bool isBatchProcessed = batchProcessed;
 
+    // if(!isBatchProcessed) {
+    //     cout << "BAtch was not processed completely yet!\n";
+    // }
+
     // Grabbing read data:
     for (int i = 0; i < framesPerBuffer; i++)
     {
@@ -297,6 +301,10 @@ void AudioHelper::signalBatchProcessed()
 {
     batchProcessed = true;
 }
+
+//*************************************************
+//******** Microphone ordering ********************
+//*************************************************
 
 /// @brief Sort the microphones by saving the correct order of indexes to an array.
 bool AudioHelper::determineMicrophoneOrder()

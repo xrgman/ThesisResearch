@@ -26,6 +26,7 @@ struct AudioCodecResult
 {
     int senderId;
     double doa;
+    double distance;
 
     int decodedSymbolsCnt;
     int decodedSymbols[SYMBOLS_DATA_COUNT];
@@ -37,6 +38,7 @@ struct AudioCodecResult
     {
         senderId = 0;
         doa = 0.0;
+        distance = 0.0;
 
         decodedSymbolsCnt = 0;
         preambleDetectionCnt = 0;
@@ -71,6 +73,7 @@ struct AudioCodecFrequencyPair
 };
 
 static uint16_t Preamble_Sequence[3] = {17, 49, 127};
+//static uint16_t Preamble_Sequence[3] = {17, 49, 28};
 
 class AudioCodec
 {
@@ -81,6 +84,7 @@ public:
     {
         free(fft_config);
         free(fft_config_inv);
+        free(fft_config_symbols);
     }
 
     void encode(int16_t *output, int outputSize, uint8_t senderId);
@@ -110,6 +114,7 @@ private:
     // FFT configurations:
     kiss_fft_cfg fft_config = kiss_fft_alloc(SAMPLES_PER_SYMBOL, 0, nullptr, nullptr);
     kiss_fft_cfg fft_config_inv = kiss_fft_alloc(SAMPLES_PER_SYMBOL, 1, nullptr, nullptr);
+    kiss_fft_cfg fft_config_symbols = kiss_fft_alloc(NUM_SYMBOLS, 0, nullptr, nullptr);
 
     // ENCODING:
     void encode_symbol(double *output, int symbol);
@@ -152,8 +157,11 @@ private:
     bool containsPreamble(int firstSymbol, int secondSymbol, int thirthSymbol);
     int decode_symbol(const double *window, const int windowSize);
 
+    double calculateDOA();
+
     // General functions:
     void getConvResult(const double *window, int windowSize, const double symbol[], int symbolSize);
+    void fftConvolve(const double *in1, const double *in2, const int size, double *output);
     void hilbert(const double *input, kiss_fft_cpx *output, int size);
     void linespace(const double start, const double stop, const int numPoints, double *output, const bool inverse);
     void createSinWaveFromFreqs(const double *input, double *output, const int size);

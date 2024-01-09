@@ -352,7 +352,14 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                     decodingStore[microphoneId].symbolDecodingPosition = symbolBufferWritePosition;
 
                     // Recording the position of the preamble, to be used for doa calculation:
+                    decodingResult.preambleDetectionCnt++;
                     decodingResult.preambleDetectionPosition[microphoneId] = symbolBufferWritePosition - samples_per_symbol * 2;
+
+                    // Checking if preamble is detected for all microphones:
+                    if (decodingResult.preambleDetectionCnt >= NUM_CHANNELS)
+                    {
+                        decodingResult.doa = calculateDOA();
+                    }
 
                     // Printing that the preamble was found:
                     cout << "Preamble found at position: " << decodingResult.preambleDetectionPosition[microphoneId] << endl;
@@ -402,38 +409,6 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 bool AudioCodec::containsPreamble(int firstSymbol, int secondSymbol, int thirthSymbol)
 {
     return firstSymbol == Preamble_Sequence[0] && secondSymbol == Preamble_Sequence[1] && thirthSymbol == Preamble_Sequence[2];
-}
-
-std::vector<double> oaconvolve(const std::vector<int16_t> &data, const std::vector<double> &symbol, vector<double> &result, const std::string &mode = "same")
-{
-    int dataSize = static_cast<int>(data.size());
-    int symbolSize = static_cast<int>(symbol.size());
-
-    // std::vector<double> result(dataSize, 0.0);
-
-    int start = 0;
-    int end = dataSize - 1;
-
-    if (mode == "same")
-    {
-        start = symbolSize / 2;
-        end = dataSize - 1 - start;
-    }
-
-    for (int i = start; i <= end; ++i)
-    {
-        for (int j = 0; j < symbolSize; ++j)
-        {
-            int dataIndex = i - start + j;
-
-            if (dataIndex >= 0 && dataIndex < dataSize)
-            {
-                result[i] += data[dataIndex] * symbol[j];
-            }
-        }
-    }
-
-    return result;
 }
 
 void AudioCodec::getConvResult(const double *window, int windowSize, const double symbol[], int symbolSize)
@@ -529,7 +504,7 @@ int AudioCodec::decode_symbol(const double *window, const int windowSize)
     // 4. Apply FFT over the multiplied data:
     kiss_fft_cpx window_fft[num_symbols];
 
-    performFFT(window_multiplied, window_fft, num_symbols, false);
+    performFFT(fft_config_symbols, window_multiplied, window_fft, num_symbols, false);
     complexDivisionAll(window_fft, num_symbols, num_symbols);
 
     // 5. Take absolute values:
@@ -541,9 +516,62 @@ int AudioCodec::decode_symbol(const double *window, const int windowSize)
     return findMaxIndex(window_absolute, num_symbols);
 }
 
+double AudioCodec::calculateDOA()
+{
+    // Use arrival times and geometry of mic array :)
+}
+
 //*************************************************
 //******** General ********************************
 //*************************************************
+
+// TODO look into speeding up the fft by increasing size to match something efficient.
+
+void AudioCodec::fftConvolve(const double *in1, const double *in2, const int size, double *output)
+{
+    // 1. Calculate the length to be used in the alogrithm:
+    int N = size * 2 - 1;
+
+    // 2. Add zero padding
+    double in1_padded[N], in2_padded[N];
+
+    for (int i; i < N; i++)
+    {
+        in1_padded[i] = i < size ? in1[i] : 0;
+        in2_padded[i] = i < size ? in2[i] : 0;
+    }
+
+    // TODO move this one:
+    kiss_fft_cfg fft_config_convolve = kiss_fft_alloc(N, 0, nullptr, nullptr);
+    kiss_fft_cfg fft_config_convolve_inv = kiss_fft_alloc(N, 1, nullptr, nullptr);
+
+    // 3. Transform both inputs to the frequency domain:
+    kiss_fft_cpx cx_in1[N];
+    kiss_fft_cpx cx_in2[N];
+
+    performFFT(fft_config_convolve, in2_padded, cx_in2, N);
+    performFFT(fft_config_convolve, in1_padded, cx_in1, N);
+
+    // 4. Perform point-wise multiplication
+    kiss_fft_cpx cx_result[N];
+
+    complexMultiplication(cx_in1, cx_in2, N, cx_result);
+
+    // 5. Perform inverse FFT:
+    performFFT(fft_config_convolve_inv, cx_result, cx_result, N, true);
+
+    // 6. Take centered real result:
+    int start = (N - size) / 2;
+    int end = start + size;
+
+    for (int i = 0; i < size; i++)
+    {
+        output[i] = cx_result[start + i].r;
+    }
+
+    free(fft_config_convolve);
+    free(fft_config_convolve_inv);
+}
 
 // TODO! Fix first element error
 /// @brief Perform the hilbert transformation.

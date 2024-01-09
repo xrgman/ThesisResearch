@@ -149,8 +149,8 @@ void openAndPlayWavFile()
 void recordToWavFile()
 {
     vector<int16_t> dataToWrite;
-    const char *filename = "test.wav";
-    const int numberOfSeconds = 10;
+    const char *filename = "test_sp7_two.wav";
+    const int numberOfSeconds = 3;
     int iteration = 0;
 
     while ((iteration * FRAMES_PER_BUFFER) < (SAMPLE_RATE * numberOfSeconds))
@@ -452,9 +452,8 @@ void encodeMessageForAudio()
     // Walk over a window (LENGTH == PREAMBLE) and if preamble is found start gathering X bytes and then send it through the codec I guess
 }
 
-void decodeMessageForAudio()
+void decodeMessageForAudio(const char *filename)
 {
-    const char *filename = "SEND1.wav";
     const int frames_per_buffer = 1536;
 
     FILE *fileRead;
@@ -476,7 +475,7 @@ void decodeMessageForAudio()
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
         for (int i = 0; i < bytesRead; i += 1)
         {
-            audioCodec.decode(audioData[i], 0);
+            audioCodec.decode(audioData[i], i % NUM_CHANNELS);
         }
     }
 
@@ -510,14 +509,15 @@ void decodingLive()
             return;
         }
 
-        // Looping over all microphone inputs:
-        for (uint8_t channel = 0; channel < 1; channel++) // NUM_CHANNELS
+        // Looping over all frames in the buffer:
+        for (int i = 0; i < FRAMES_PER_BUFFER; i++)
         {
-            uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
-            int16_t *channelData = audioHelper.audioData[channelIdx];
-
-            for (int i = 0; i < FRAMES_PER_BUFFER; i++)
+            // Looping over all microphones:
+            for (uint8_t channel = 0; channel < 1; channel++)
             {
+                uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
+                int16_t *channelData = audioHelper.audioData[channelIdx];
+
                 audioCodec.decode(channelData[i], channel);
             }
         }
@@ -541,31 +541,22 @@ int main()
     audioHelper.clearBuffers();
 
     // Opening audio streams:
-    // if (!audioHelper.initializeAndOpen())
-    // {
-    //     cout << "Initializing audio helper has failed!\n";
+    if (!audioHelper.initializeAndOpen())
+    {
+        cout << "Initializing audio helper has failed!\n";
 
-    //     return 0;
-    // }
+        return 0;
+    }
 
     // openAndPlayWavFile();
-
     // graphSineWave5FFT();
     // graphInputStream();
-    // recordToWavFile();
     // loadParticleFilter();
     // encodeMessageForAudio();
 
-    // SDL_Delay(1000);
+    //recordToWavFile();
+    decodeMessageForAudio("test_sp7_two.wav");
 
-    // cout << "Starting decoding!\n";
-
-    decodeMessageForAudio();
-
-    // This works for 10 mins without issues:
-    // while(true) {
-    //     usleep(1);
-    // }
     // decodingLive();
 
     // readAnPlotSpectogram();
