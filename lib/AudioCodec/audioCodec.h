@@ -22,6 +22,12 @@
 #define SYMBOL_BUFFER_SIZE 2048 // 4096 //(SAMPLES_PER_SYMBOL * (SYMBOLS_IN_PREAMBLE - 1))
 #define SYMBOLS_DATA_COUNT 3    // Number of symbols to be decoded
 
+//Microphone array geometry:
+#define MICROPHONE_ANGLES 60.0 //The angle between the microphones
+#define MICROPHONE_DISTANCE 0.0476 //The distance between the microphones in meters
+
+#define SPEED_OF_SOUND 343.0 //Speed of sound, should be based on temperature!
+
 struct AudioCodecResult
 {
     int senderId;
@@ -78,7 +84,7 @@ static uint16_t Preamble_Sequence[3] = {17, 49, 127};
 class AudioCodec
 {
 public:
-    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samples_per_symbol, uint8_t spreading_factor, int bandwith);
+    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samples_per_symbol, uint8_t spreading_factor, double bandwith);
 
     ~AudioCodec()
     {
@@ -157,7 +163,7 @@ private:
     bool containsPreamble(int firstSymbol, int secondSymbol, int thirthSymbol);
     int decode_symbol(const double *window, const int windowSize);
 
-    double calculateDOA();
+    double calculateDOA(const int *arrivalTimes, const int numChannels);
 
     // General functions:
     void getConvResult(const double *window, int windowSize, const double symbol[], int symbolSize);

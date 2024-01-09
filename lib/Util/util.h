@@ -29,6 +29,8 @@ double int16ToDouble(int16_t value);
 void uint8ToBits(uint8_t value, uint8_t bits[8]);
 void stringToBits(const char *data, int size, uint8_t *bits);
 
+// double positiveModulo(const double val, const double mod);
+
 bool openFile(const char *filename, FILE **file, const char *mode);
 long getFileSize(FILE *file);
 char *readFileText(FILE *file);

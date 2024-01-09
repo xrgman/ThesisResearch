@@ -217,6 +217,11 @@ void stringToBits(const char *data, int size, uint8_t *bits)
     }
 }
 
+// double positiveModulo(const double val, const double mod)
+// {
+//     return (val % mod + mod) % mod;
+// }
+
 bool openFile(const char *filename, FILE **file, const char *mode)
 {
     *file = fopen(filename, mode);

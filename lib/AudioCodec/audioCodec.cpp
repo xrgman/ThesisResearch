@@ -13,7 +13,7 @@
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samples_per_symbol, uint8_t spreading_factor, int bandwith)
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samples_per_symbol, uint8_t spreading_factor, double bandwith)
 {
     this->data_decoded_callback = data_decoded_callback;
     this->volume = 1.0;
@@ -358,7 +358,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                     // Checking if preamble is detected for all microphones:
                     if (decodingResult.preambleDetectionCnt >= NUM_CHANNELS)
                     {
-                        decodingResult.doa = calculateDOA();
+                        decodingResult.doa = calculateDOA(decodingResult.preambleDetectionPosition, NUM_CHANNELS); // TODO: check if num_channels shouldnt just be the amount of detected preambles
                     }
 
                     // Printing that the preamble was found:
@@ -516,9 +516,52 @@ int AudioCodec::decode_symbol(const double *window, const int windowSize)
     return findMaxIndex(window_absolute, num_symbols);
 }
 
-double AudioCodec::calculateDOA()
+/// @brief Calulate the DOA of the sound signal based on the different arrival times of the preamble at each microphone.
+/// @param arrivalTimes The arrival times of the signal.
+/// @param numChannels Number of channels used.
+/// @return The DOA of the signal, rounded to 3 decimal places.
+double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 {
-    // Use arrival times and geometry of mic array :)
+    // 1. Calculate the TDOA between all microphones:
+    double tdoa[numChannels];
+
+    for (int i = 0; i < numChannels; i++)
+    {
+        tdoa[i] = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]) / Fs;
+    }
+
+    // 2. Calculate the angles between the arrivals at the microphones:
+    double theta[numChannels];
+
+    for (int i = 0; i < numChannels; i++)
+    {
+        double anglePair = tdoa[i] * SPEED_OF_SOUND / MICROPHONE_DISTANCE;
+        anglePair = asin(fmin(fmax(anglePair, -1), 1)) * (180.0 / M_PI);
+
+        int index = positive_modulo((i - 1), numChannels);
+
+        if (tdoa[index] >= 0)
+        {
+            anglePair = 180 - anglePair;
+        }
+
+        theta[i] = positive_modulo((anglePair - (i - 1) * MICROPHONE_ANGLES), 360.0);
+    }
+
+    // 3. Get the mean angle:
+    complex<double> sumRadians = 0.0;
+
+    for (int i = 0; i < numChannels; i++)
+    {
+        double angleRadians = theta[i] * (M_PI / 180);
+        complex<double> comp = exp(complex<double>(0, angleRadians));
+
+        sumRadians += exp(complex<double>(0, angleRadians));
+    }
+
+    double angle_mean = positive_modulo(arg(sumRadians) * (180 / M_PI), 360.0);
+
+    return round((360 - angle_mean) * 1000.0) / 1000.0;
 }
 
 //*************************************************
@@ -527,6 +570,11 @@ double AudioCodec::calculateDOA()
 
 // TODO look into speeding up the fft by increasing size to match something efficient.
 
+/// @brief Perform the FFT convolve function, assuming mode = same.
+/// @param in1 First input array.
+/// @param in2 Second input array.
+/// @param size Size of both arrays.
+/// @param output The output array, in which the result will be stored.
 void AudioCodec::fftConvolve(const double *in1, const double *in2, const int size, double *output)
 {
     // 1. Calculate the length to be used in the alogrithm:

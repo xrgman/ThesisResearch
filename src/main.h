@@ -4,6 +4,13 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <cmath>
+
+template <typename T>
+
+T positive_modulo(T val, T mod) {
+    return std::fmod(std::fmod(val, mod) + mod, mod);
+}
 
 #define SAMPLE_RATE 44100
 #define NUM_CHANNELS_RAW 8

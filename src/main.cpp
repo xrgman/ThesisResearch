@@ -146,14 +146,12 @@ void openAndPlayWavFile()
     cout << "Done playing WAV file!\n";
 }
 
-void recordToWavFile()
+void recordToWavFile(const char *filename, const int seconds)
 {
     vector<int16_t> dataToWrite;
-    const char *filename = "test_sp7_two.wav";
-    const int numberOfSeconds = 3;
     int iteration = 0;
 
-    while ((iteration * FRAMES_PER_BUFFER) < (SAMPLE_RATE * numberOfSeconds))
+    while ((iteration * FRAMES_PER_BUFFER) < (SAMPLE_RATE * seconds))
     {
         // Checking if new data is available:
         if (!audioHelper.readNextBatch())
@@ -191,7 +189,7 @@ void recordToWavFile()
     // Write data to file:
     writeWavFile(filename, dataToWrite.data(), dataToWrite.size(), SAMPLE_RATE, 16, NUM_CHANNELS);
 
-    cout << "Successfully written " << numberOfSeconds << " sconds to wav file '" << filename << "'\n";
+    cout << "Successfully written " << seconds << " sconds to wav file '" << filename << "'\n";
 }
 
 void graphSineWave5FFT()
@@ -541,12 +539,12 @@ int main()
     audioHelper.clearBuffers();
 
     // Opening audio streams:
-    if (!audioHelper.initializeAndOpen())
-    {
-        cout << "Initializing audio helper has failed!\n";
+    // if (!audioHelper.initializeAndOpen())
+    // {
+    //     cout << "Initializing audio helper has failed!\n";
 
-        return 0;
-    }
+    //     return 0;
+    // }
 
     // openAndPlayWavFile();
     // graphSineWave5FFT();
@@ -554,8 +552,8 @@ int main()
     // loadParticleFilter();
     // encodeMessageForAudio();
 
-    //recordToWavFile();
-    decodeMessageForAudio("test_sp7_two.wav");
+    //recordToWavFile("test_rec_devices_270deg_30cm.wav", 5);
+    decodeMessageForAudio("../recordings/recording_180deg.wav");
 
     // decodingLive();
 
