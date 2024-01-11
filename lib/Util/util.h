@@ -13,6 +13,8 @@ bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold);
 int findMaxIndex(const int *array, int size);
 int findMaxIndex(const double *array, int size);
 
+int mostOccuring(const int *array, int size);
+
 void fillArrayWithZeros(uint8_t *array, const int size);
 void fillArrayWithZeros(int16_t *array, const int size);
 void fillArrayWithZeros(int *array, const int size);

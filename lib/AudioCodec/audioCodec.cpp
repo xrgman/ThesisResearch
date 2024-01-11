@@ -52,7 +52,7 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
 
     // Creating sine wave from downchirp frequencies:
     createSinWaveFromFreqs(downChirp_frequencies, downChirp, samples_per_symbol);
-    hilbert(downChirp, downChirp_complex_full, samples_per_symbol); // Adding complex part
+    hilbert(downChirp, downChirp_complex_full, samples_per_symbol, fft_config, fft_config_inv); // Adding complex part
 
     // Storing only 256 samples from the complex result:
     for (int i = 0; i < num_symbols; i++)
@@ -62,8 +62,32 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
         downChirp_complex[i] = downChirp_complex_full[n];
     }
 
+    generateConvolutionFields();
+
     fillArrayWithZeros(numberOfReceivedBits, NUM_CHANNELS);
     fillArrayWithZeros(startReadingPosition, NUM_CHANNELS);
+}
+
+void AudioCodec::generateConvolutionFields()
+{
+    //Calculate duration per bit:
+    durationPerBit = getMinSymbolTime(NUMBER_OF_SUB_CHIRPS, REQUIRED_NUMBER_OF_CYCLES, frequencyPair);
+
+    // Calculate the size per bit:
+    sizePerBit = (int)(SAMPLE_RATE * (durationPerBit / NUMBER_OF_SUB_CHIRPS)) * NUMBER_OF_SUB_CHIRPS;
+
+    // Create the original preamble chirp flipped, used for detecting preamble:
+    encodePreamble(originalPreambleFlipped, true);
+
+    // Create encoding symbols
+    generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS);
+
+    // Create flipped decoding symbols:
+    bitToChirp(bit0Flipped, 0, symbols[0], NUMBER_OF_SUB_CHIRPS, durationPerBit);
+    bitToChirp(bit1Flipped, 1, symbols[1], NUMBER_OF_SUB_CHIRPS, durationPerBit);
+
+    reverse(bit0Flipped, bit0Flipped + sizePerBit);
+    reverse(bit1Flipped, bit1Flipped + sizePerBit);
 }
 
 //*************************************************
@@ -77,11 +101,6 @@ void AudioCodec::encode(int16_t *output, int outputSize, uint8_t senderId) // Ou
 
     // Initialize output array with zeros:
     fillArrayWithZeros(outputBuffer, outputSize);
-
-    // Generate the orthogonal sub chirps frequency symbols:
-    AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS];
-
-    generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS);
 
     // Encode preamble to the front of the message
     encodePreamble(outputBuffer, false);
@@ -102,6 +121,7 @@ void AudioCodec::encode(int16_t *output, int outputSize, uint8_t senderId) // Ou
     bitsToChirp(&outputBuffer[preambleOffset], dataBits, 104, symbols, NUMBER_OF_SUB_CHIRPS);
 
     // Calculate CRC:
+    // TODO
 
     // Convert outputBuffer to int16:
     for (int i = 0; i < outputSize; i++)
@@ -187,19 +207,13 @@ void AudioCodec::bitToChirp(double *output, uint8_t bit, AudioCodecFrequencyPair
 /// @param numberOfSubChirps Duration of the whole chirp (so sum of all subchirp durations).
 void AudioCodec::bitsToChirp(double *output, uint8_t *bits, int numberOfBits, AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps)
 {
-    // Calculate the duration per bit:
-    double durationPerBit = getMinSymbolTime(numberOfSubChirps, REQUIRED_NUMBER_OF_CYCLES, frequencyPair);
-
-    // Calculate the size per bit:
-    int size = SAMPLE_RATE * durationPerBit;
-
     // Looping over all bits:
     for (int i = 0; i < numberOfBits; i++)
     {
         int bit = bits[i];
         AudioCodecFrequencyPair *symbolsForBit = symbols[bit];
 
-        bitToChirp(&output[i * size], bit, symbolsForBit, numberOfSubChirps, durationPerBit);
+        bitToChirp(&output[i * sizePerBit], bit, symbolsForBit, numberOfSubChirps, durationPerBit);
     }
 }
 
@@ -379,16 +393,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 // Checking if all symbols have been received:
                 if (decodingResult.decodedSymbolsCnt >= SYMBOLS_DATA_COUNT)
                 {
-                    // Return data:
-                    data_decoded_callback(decodingResult);
-
-                    // Resetting all fields:
-                    decodingResult.reset();
-
-                    for (uint8_t i; i < NUM_CHANNELS; i++)
-                    {
-                        decodingStore[i].reset();
-                    }
+                    finishDecoding();
                 }
             }
         }
@@ -411,70 +416,6 @@ bool AudioCodec::containsPreamble(int firstSymbol, int secondSymbol, int thirthS
     return firstSymbol == Preamble_Sequence[0] && secondSymbol == Preamble_Sequence[1] && thirthSymbol == Preamble_Sequence[2];
 }
 
-void AudioCodec::getConvResult(const double *window, int windowSize, const double symbol[], int symbolSize)
-{
-    // Creating vector containing data in int16_t format:
-    vector<int16_t> windowVec(windowSize);
-    vector<double> symbolVec(symbolSize);
-
-    for (int i = 0; i < windowSize; i++)
-    {
-        windowVec[i] = doubleToInt16(window[i]);
-    }
-
-    for (int i = 0; i < symbolSize; i++)
-    {
-        symbolVec[i] = doubleToInt16(symbol[i]);
-    }
-
-    vector<double> result;
-
-    // Apply convolve
-    performFFTConvolve(window, windowSize, symbol, symbolSize, result);
-
-    // Abs and hilbert data:
-    // double analyticalSignal[windowSize];
-    kiss_fft_cpx analyticalSignal[windowSize];
-
-    hilbert(result.data(), analyticalSignal, windowSize);
-
-    // Perform abs on all:
-    vector<double> envelope(windowSize);
-    complexAbsolute(analyticalSignal, envelope.data(), windowSize);
-
-    // Analytical signal - hilbert
-    // Enevelope - abs
-
-    double preamble_min_peak = 3 * calculateAverage(envelope.data(), windowSize);
-
-    cout << "Preamble peak: " << preamble_min_peak << std::endl;
-
-    // Enevelope it:
-    Gnuplot gp;
-
-    // Plot the data
-    gp << "set title 'preamble data'\n";
-    gp << "plot '-' with lines title 'Data'\n";
-    gp.send(windowVec);
-
-    Gnuplot gp2;
-
-    gp2 << "set title 'preamble data'\n";
-
-    // Plot each convolution data
-
-    gp2 << "plot '-' with lines title 'Convolution'\n";
-    // gp2 << "set yrange [0:6]\n";
-    gp2.send(envelope);
-
-    // Add a horizontal line for preamble_min_peak
-    gp2 << "plot " << preamble_min_peak << " with lines lt 1 lc rgb 'black' title 'Preamble Min Peak'\n";
-
-    // Wait for user to close the plot
-    std::cout << "Press enter to exit." << std::endl;
-    std::cin.get();
-}
-
 /// @brief Decode a symbol from a specific window.
 /// @param window Window containing a signal.
 /// @param windowSize Size of the window.
@@ -484,7 +425,7 @@ int AudioCodec::decode_symbol(const double *window, const int windowSize)
     // 1. Apply hilbert transform overt the window, to get the complex representation:
     kiss_fft_cpx complex_window_full[windowSize];
 
-    hilbert(window, complex_window_full, windowSize);
+    hilbert(window, complex_window_full, windowSize, fft_config, fft_config_inv);
 
     // 2. Get samples from the complex window:
     kiss_fft_cpx complex_window[num_symbols];
@@ -514,6 +455,173 @@ int AudioCodec::decode_symbol(const double *window, const int windowSize)
 
     // 6. Finding maximum value and returining the index of it as the symbol:
     return findMaxIndex(window_absolute, num_symbols);
+}
+
+//*************************************************
+//******** General ********************************
+//*************************************************
+
+// TODO look into speeding up the fft by increasing size to match something efficient.
+
+/// @brief Perform the FFT convolve function, assuming mode = same.
+/// @param in1 First input array.
+/// @param in2 Second input array.
+/// @param size Size of both arrays.
+/// @param output The output array, in which the result will be stored.
+void AudioCodec::fftConvolve(const double *in1, const double *in2, const int size, double *output)
+{
+    // 1. Calculate the length to be used in the alogrithm:
+    int N = size * 2 - 1;
+
+    // 2. Add zero padding
+    double in1_padded[N], in2_padded[N];
+
+    for (int i = 0; i < N; i++)
+    {
+        in1_padded[i] = i < size ? in1[i] : 0;
+        in2_padded[i] = i < size ? in2[i] : 0;
+    }
+
+    // TODO move this one:
+    kiss_fft_cfg fft_config_convolve = kiss_fft_alloc(N, 0, nullptr, nullptr);
+    kiss_fft_cfg fft_config_convolve_inv = kiss_fft_alloc(N, 1, nullptr, nullptr);
+
+    // 3. Transform both inputs to the frequency domain:
+    kiss_fft_cpx cx_in1[N];
+    kiss_fft_cpx cx_in2[N];
+
+    performFFT(fft_config_convolve, in2_padded, cx_in2, N);
+    performFFT(fft_config_convolve, in1_padded, cx_in1, N);
+
+    // 4. Perform point-wise multiplication
+    kiss_fft_cpx cx_result[N];
+
+    complexMultiplication(cx_in1, cx_in2, N, cx_result);
+
+    // 5. Perform inverse FFT:
+    performFFT(fft_config_convolve_inv, cx_result, cx_result, N, true);
+
+    // 6. Take centered real result:
+    int start = (N - size) / 2;
+    int end = start + size;
+
+    for (int i = 0; i < size; i++)
+    {
+        output[i] = cx_result[start + i].r;
+    }
+
+    free(fft_config_convolve);
+    free(fft_config_convolve_inv);
+}
+
+// TODO! Fix first element error
+/// @brief Perform the hilbert transformation.
+/// Steps from: https://nl.mathworks.com/help/signal/ref/hilbert.html
+/// @param input Input array.
+/// @param output Output array.
+/// @param size Size of the input array.
+void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size, kiss_fft_cfg fft_plan, kiss_fft_cfg fft_plan_inv)
+{
+    // 1. Perform FFT on input data:
+    kiss_fft_cpx fftInput[size];
+
+    // Perform FFT :
+    performFFT(fft_plan, input, fftInput, size);
+
+    // 2. Create vector h, whose elements h(i) have value: 1 for i = 0, (n/2) | 2 for i = 1, 2, … , (n/2)-1 | 0 for i = (n/2)+1, … , n
+    kiss_fft_cpx hilbertKernal[size];
+
+    for (int i = 0; i < size; i++)
+    {
+        if (i == 0 || (i == size / 2 && size % 2 == 0))
+        {
+            // Keep values the same:
+            hilbertKernal[i].r = fftInput[i].r;
+            hilbertKernal[i].i = fftInput[i].i;
+        }
+        else if (i > 0 && i < size / 2)
+        {
+            // Double the gain:
+            hilbertKernal[i].r = 2 * fftInput[i].r;
+            hilbertKernal[i].i = 2 * fftInput[i].i;
+        }
+        else
+        {
+            // Zero out elements of upper half:
+            hilbertKernal[i].r = 0;
+            hilbertKernal[i].i = 0;
+        }
+    }
+
+    // 3. Calculate inverse FFT of step 2 result and returns first n elements of the result:
+    performFFT(fft_plan_inv, hilbertKernal, output, size, true);
+}
+
+/// @brief Fills the output array with evenly spaced values between the start and stop value
+/// @param start Lower bound of the series.
+/// @param stop Upper bound of the series.
+/// @param numPoints Number of points in between start and stop value.
+/// @param output Output array, in which the points will be stored.
+/// @param inverse Put the spacing into the output array in reverse order (so stop in in front and start in back)
+void AudioCodec::linespace(const double start, const double stop, const int numPoints, double *output, const bool inverse)
+{
+    // Calculating the progression per step:
+    double step = (stop - start) / (numPoints - 1);
+
+    // Filling the array:
+    for (int i = 0; i < numPoints; i++)
+    {
+        double val = start + i * step;
+
+        if (!inverse)
+        {
+            output[i] = val;
+        }
+        else
+        {
+            output[numPoints - 1 - i] = val;
+        }
+    }
+}
+
+/// @brief Create a sine wave representation of an array of frequencies.
+/// @param input Input array containing the frequencies.
+/// @param output Output array containing the sine wave.
+/// @param size Size of the arrays.
+void AudioCodec::createSinWaveFromFreqs(const double *input, double *output, const int size)
+{
+    double sum = 0;
+
+    for (int i = 0; i < size; i++)
+    {
+        // 1. Devide frequency by the sampling frequency:
+        double dividing = input[i] / Fs;
+
+        // 2. Cumulativily sum the frequencies
+        sum += dividing;
+
+        // 3. Create sine wave representation
+        output[i] = sin(2 * M_PI * sum);
+    }
+}
+
+//*************************************************
+//******** General decoding functions *************
+//*************************************************
+
+/// @brief Function that is called as soon as all data is received, resets the decoding parameters.
+void AudioCodec::finishDecoding()
+{
+    // Return data to callback:
+    data_decoded_callback(decodingResult);
+
+    // Resetting all fields:
+    decodingResult.reset();
+
+    for (uint8_t i = 0; i < NUM_CHANNELS; i++)
+    {
+        decodingStore[i].reset();
+    }
 }
 
 /// @brief Calulate the DOA of the sound signal based on the different arrival times of the preamble at each microphone.
@@ -565,149 +673,173 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 }
 
 //*************************************************
-//******** General ********************************
+//******** Decode convolution *********************
 //*************************************************
 
-// TODO look into speeding up the fft by increasing size to match something efficient.
-
-/// @brief Perform the FFT convolve function, assuming mode = same.
-/// @param in1 First input array.
-/// @param in2 Second input array.
-/// @param size Size of both arrays.
-/// @param output The output array, in which the result will be stored.
-void AudioCodec::fftConvolve(const double *in1, const double *in2, const int size, double *output)
+void AudioCodec::decode_convolution(int16_t bit, uint8_t microphoneId)
 {
-    // 1. Calculate the length to be used in the alogrithm:
-    int N = size * 2 - 1;
+    // Converting received value to double between -1 and 1:
+    double value = int16ToDouble(bit);
 
-    // 2. Add zero padding
-    double in1_padded[N], in2_padded[N];
+    // Saving value in corresponding buffer:
+    decodingBufferConv[microphoneId][numberOfReceivedBits[microphoneId] % PREAMBLE_BITS] = value;
 
-    for (int i; i < N; i++)
+    // Keeping track of the number of received bits:
+    numberOfReceivedBits[microphoneId]++;
+
+    // Checking if buffer has been filled enough for first preamble check:
+    if ((bufferFilled[microphoneId] || numberOfReceivedBits[microphoneId] >= PREAMBLE_BITS) && decodingStore[microphoneId].processedBitsPosition + HOP_SIZE <= numberOfReceivedBits[microphoneId])
     {
-        in1_padded[i] = i < size ? in1[i] : 0;
-        in2_padded[i] = i < size ? in2[i] : 0;
+        bufferFilled[microphoneId] = true;
+        decodingStore[microphoneId].processedBitsPosition = numberOfReceivedBits[microphoneId];
+
+        // Determine current reading position from the buffer:
+        int readingPosition = startReadingPosition[microphoneId];
+
+        // Creating frame:
+        double frame[PREAMBLE_BITS];
+
+        for (int j = 0; j < PREAMBLE_BITS; j++)
+        {
+            frame[j] = decodingBufferConv[microphoneId][(readingPosition + j) % PREAMBLE_BITS];
+        }
+
+        // Checking if frame contains the preamble:
+        int preambleIndex = containsPreamble(frame, PREAMBLE_BITS);
+
+        if (preambleIndex > 0)
+        {
+            decodingStore[microphoneId].preambleSeen = true;
+
+            preambleIndex += readingPosition;
+            decodingStore[microphoneId].preamblePositionStorage.push_back(preambleIndex);
+        }
+        else if (decodingStore[microphoneId].preambleSeen)
+        {
+            decodingStore[microphoneId].preambleSeen = false;
+
+            // Determining real peak:
+            int realPreamblePosition = mostOccuring(decodingStore[microphoneId].preamblePositionStorage.data(), decodingStore[microphoneId].preamblePositionStorage.size());
+
+            decodingStore[microphoneId].preamblePositionStorage.clear();
+            decodingStore[microphoneId].decodingBitsPosition = realPreamblePosition + (PREAMBLE_BITS / 2);
+
+            decodingResult.preambleDetectionPosition[microphoneId] = realPreamblePosition;
+            decodingResult.preambleDetectionCnt++;
+
+            // Checking if preamble is detected for all microphones:
+            if (decodingResult.preambleDetectionCnt >= NUM_CHANNELS)
+            {
+                // Calculate the direction of arrival (DOA):
+                decodingResult.doa = calculateDOA(decodingResult.preambleDetectionPosition, NUM_CHANNELS); // TODO: check if num_channels shouldnt just be the amount of detected preambles
+            }
+        }
+
+        // Updating reading position:
+        startReadingPosition[microphoneId] += HOP_SIZE;
     }
 
-    // TODO move this one:
-    kiss_fft_cfg fft_config_convolve = kiss_fft_alloc(N, 0, nullptr, nullptr);
-    kiss_fft_cfg fft_config_convolve_inv = kiss_fft_alloc(N, 1, nullptr, nullptr);
+    // Performing bit decoding when ready, for microphone 1:
+    int decodingBitsPosition = decodingStore[microphoneId].decodingBitsPosition;
 
-    // 3. Transform both inputs to the frequency domain:
-    kiss_fft_cpx cx_in1[N];
-    kiss_fft_cpx cx_in2[N];
-
-    performFFT(fft_config_convolve, in2_padded, cx_in2, N);
-    performFFT(fft_config_convolve, in1_padded, cx_in1, N);
-
-    // 4. Perform point-wise multiplication
-    kiss_fft_cpx cx_result[N];
-
-    complexMultiplication(cx_in1, cx_in2, N, cx_result);
-
-    // 5. Perform inverse FFT:
-    performFFT(fft_config_convolve_inv, cx_result, cx_result, N, true);
-
-    // 6. Take centered real result:
-    int start = (N - size) / 2;
-    int end = start + size;
-
-    for (int i = 0; i < size; i++)
+    if (decodingBitsPosition > 0 && microphoneId == 0 && decodingBitsPosition + DECODING_BIT_BITS <= numberOfReceivedBits[microphoneId])
     {
-        output[i] = cx_result[start + i].r;
-    }
+        // Creating frame:
+        double frame[DECODING_BIT_BITS];
 
-    free(fft_config_convolve);
-    free(fft_config_convolve_inv);
-}
-
-// TODO! Fix first element error
-/// @brief Perform the hilbert transformation.
-/// Steps from: https://nl.mathworks.com/help/signal/ref/hilbert.html
-/// @param input Input array.
-/// @param output Output array.
-/// @param size Size of the input array.
-void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size)
-{
-    // 1. Perform FFT on input data:
-    kiss_fft_cpx fftInput[size];
-
-    // Perform FFT :
-    performFFT(fft_config, input, fftInput, size);
-
-    // 2. Create vector h, whose elements h(i) have value: 1 for i = 0, (n/2) | 2 for i = 1, 2, … , (n/2)-1 | 0 for i = (n/2)+1, … , n
-    kiss_fft_cpx hilbertKernal[size];
-
-    for (int i = 0; i < size; i++)
-    {
-        if (i == 0 || (i == size / 2 && size % 2 == 0))
+        for (int j = 0; j < DECODING_BIT_BITS; j++)
         {
-            // Keep values the same:
-            hilbertKernal[i].r = fftInput[i].r;
-            hilbertKernal[i].i = fftInput[i].i;
+            frame[j] = decodingBufferConv[microphoneId][(decodingBitsPosition + j) % PREAMBLE_BITS];
         }
-        else if (i > 0 && i < size / 2)
-        {
-            // Double the gain:
-            hilbertKernal[i].r = 2 * fftInput[i].r;
-            hilbertKernal[i].i = 2 * fftInput[i].i;
-        }
-        else
-        {
-            // Zero out elements of upper half:
-            hilbertKernal[i].r = 0;
-            hilbertKernal[i].i = 0;
-        }
-    }
 
-    // 3. Calculate inverse FFT of step 2 result and returns first n elements of the result:
-    performFFT(fft_config_inv, hilbertKernal, output, size, true);
-}
+        // Decode bit and add it to decoded bits list:
+        int bit = decodeBit(frame, DECODING_BIT_BITS);
 
-/// @brief Fills the output array with evenly spaced values between the start and stop value
-/// @param start Lower bound of the series.
-/// @param stop Upper bound of the series.
-/// @param numPoints Number of points in between start and stop value.
-/// @param output Output array, in which the points will be stored.
-/// @param inverse Put the spacing into the output array in reverse order (so stop in in front and start in back)
-void AudioCodec::linespace(const double start, const double stop, const int numPoints, double *output, const bool inverse)
-{
-    // Calculating the progression per step:
-    double step = (stop - start) / (numPoints - 1);
+        decodingResult.decodedBits[decodingResult.decodedBitsCnt] = bit;
+        decodingResult.decodedBitsCnt++;
 
-    // Filling the array:
-    for (int i = 0; i < numPoints; i++)
-    {
-        double val = start + i * step;
+        // Increasing read position:
+        decodingStore[microphoneId].decodingBitsPosition += DECODING_BIT_BITS;
 
-        if (!inverse)
+        // Checking if all bits are received:
+        if (decodingResult.decodedBitsCnt >= DECODING_BITS_COUNT)
         {
-            output[i] = val;
-        }
-        else
-        {
-            output[numPoints - 1 - i] = val;
+            finishDecoding();
         }
     }
 }
 
-/// @brief Create a sine wave representation of an array of frequencies.
-/// @param input Input array containing the frequencies.
-/// @param output Output array containing the sine wave.
-/// @param size Size of the arrays.
-void AudioCodec::createSinWaveFromFreqs(const double *input, double *output, const int size)
+int AudioCodec::containsPreamble(const double *window, const int windowSize)
 {
-    double sum = 0;
+    // 1. Get convolution results:
+    double convolutionData[PREAMBLE_BITS];
+    ConvolutionResult convolutionResults[1] = {{.data = convolutionData,
+                                                .dataLength = PREAMBLE_BITS}};
 
-    for (int i = 0; i < size; i++)
+    Symbol originalPreambleSymbol[1] = {{.symbolData = originalPreambleFlipped,
+                                         .symbolDataLength = PREAMBLE_BITS}};
+
+    getConvolutionResults(window, windowSize, originalPreambleSymbol, 1, convolutionResults, fft_config_conv_pre, fft_config_conv_pre_inv);
+
+    // 2. Calculate the minimum peak threshold
+    double average = calculateAverage(convolutionData, PREAMBLE_BITS);
+    double preamble_min_peak = 2 * average;
+
+    // 3. Find the maximum peak:
+    double max_peak = *max_element(convolutionData, convolutionData + PREAMBLE_BITS);
+
+    // 4. Check if the maximum peak exceeds the threshold:
+    if (max_peak > preamble_min_peak * 4)
     {
-        // 1. Devide frequency by the sampling frequency:
-        double dividing = input[i] / Fs;
-
-        // 2. Cumulativily sum the frequencies
-        sum += dividing;
-
-        // 3. Create sine wave representation
-        output[i] = sin(2 * M_PI * sum);
+        return findMaxIndex(convolutionData, PREAMBLE_BITS);
     }
+
+    return -1;
+}
+
+void AudioCodec::getConvolutionResults(const double *data, const int dataSize, const Symbol *symbols, const int nrOfSymbols, ConvolutionResult *output, kiss_fft_cfg fft_plan, kiss_fft_cfg fft_plan_inv)
+{
+    for (int i = 0; i < nrOfSymbols; i++)
+    {
+        Symbol symbol = symbols[i];
+
+        // 1. Perform fftConvolve the input data and the suspected symbol:
+        double convolveResult[dataSize];
+
+        fftConvolve(data, symbol.symbolData, dataSize, convolveResult);
+
+        // 2. Perform the hilbert transform to get the envelope:
+        kiss_fft_cpx hilbertResult[dataSize];
+
+        hilbert(convolveResult, hilbertResult, dataSize, fft_plan, fft_plan_inv); //These configs are wrong :)
+
+        // 3. Take the absolute value:
+        complexAbsolute(hilbertResult, output[i].data, dataSize);
+    }
+}
+
+int AudioCodec::decodeBit(const double *window, const int windowSize)
+{
+    // 1. Performing convolution with the 0 and 1 chirps:
+    double convolutionData0[DECODING_BIT_BITS];
+    double convolutionData1[DECODING_BIT_BITS];
+
+    ConvolutionResult convolutionResults[2] = {{.data = convolutionData0,
+                                                .dataLength = DECODING_BIT_BITS},
+                                               {.data = convolutionData1,
+                                                .dataLength = DECODING_BIT_BITS}};
+
+    Symbol originalPreambleSymbol[2] = {{.symbolData = bit0Flipped,
+                                         .symbolDataLength = DECODING_BIT_BITS},
+                                        {.symbolData = bit1Flipped,
+                                         .symbolDataLength = DECODING_BIT_BITS}};
+
+    getConvolutionResults(window, windowSize, originalPreambleSymbol, 2, convolutionResults, fft_config_conv_bit, fft_config_conv_bit_inv);
+
+    // 2. Find the maximum values of both convolutions:
+    double max0 = *max_element(convolutionData0, convolutionData0 + DECODING_BIT_BITS);
+    double max1 = *max_element(convolutionData1, convolutionData1 + DECODING_BIT_BITS);
+
+    // 3. Return bit that is most likely:
+    return max0 > max1 ? 0 : 1;
 }

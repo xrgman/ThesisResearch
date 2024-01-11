@@ -407,7 +407,7 @@ void loadParticleFilter()
 
 void encodeMessageForAudio()
 {
-    const char *filename = "encoding.wav";
+    const char *filename = "encoding1.wav";
     int16_t codedAudioData[AUDIO_CODEC_SIZE];
 
     audioCodec.encode(codedAudioData, AUDIO_CODEC_SIZE, ROBOT_ID);
@@ -483,6 +483,40 @@ void decodeMessageForAudio(const char *filename)
     cout << "Done decoding WAV file!\n";
 }
 
+void decodeMessageConvolution(const char *filename)
+{
+    const int frames_per_buffer = 1260;
+
+    FILE *fileRead;
+
+    if (!openWAVFile(filename, &fileRead, true))
+    {
+        cout << "Failed to open WAV file...\n";
+    }
+
+    // Initialize the FFT:
+    initializeFFT(PREAMBLE_BITS, STFT_WINDOW_SIZE);
+
+    // Reading successfull, so decoding it:
+    while (!feof(fileRead))
+    {
+        int16_t audioData[frames_per_buffer];
+        size_t bytesRead = fread(audioData, 2, frames_per_buffer, fileRead);
+
+        // SAMPLE FILE HAS ONLY ONE CHANNEL:
+        for (int i = 0; i < bytesRead; i += 1)
+        {
+            audioCodec.decode_convolution(audioData[i], 0); //i % NUM_CHANNELS
+        }
+    }
+
+    // Closing file:
+    fclose(fileRead);
+
+    cout << "Done decoding WAV file!\n";
+}
+
+
 void decodingLive()
 {
     cout << "Live decoding started!\n";
@@ -552,10 +586,10 @@ int main()
     // loadParticleFilter();
     // encodeMessageForAudio();
 
-    //recordToWavFile("test_rec_devices_270deg_30cm.wav", 5);
-    decodeMessageForAudio("../recordings/recording_180deg.wav");
-
-    // decodingLive();
+    //recordToWavFile("test_rec_conv_270deg_150cm.wav", 7);
+    //decodeMessageForAudio("../recordings/recording_180deg.wav");
+    decodeMessageConvolution("../recordings/convolution/encoding1.wav");
+    // decodingLive(); 
 
     // readAnPlotSpectogram();
 

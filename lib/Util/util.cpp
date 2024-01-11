@@ -1,6 +1,7 @@
 #include "util.h"
 #include <numeric>
 #include <iostream>
+#include <map>
 
 using namespace std;
 
@@ -108,6 +109,18 @@ int findMaxIndex(const double *array, int size)
     }
 
     return idx;
+}
+
+int mostOccuring(const int *array, int size)
+{
+    std::map<int, int> occurenceCounter;
+
+    for (int i = 0; i < size; i++)
+    {
+        occurenceCounter[array[i]]++;
+    }
+
+    return occurenceCounter.begin()->first;
 }
 
 void fillArrayWithZeros(uint8_t *array, const int size)

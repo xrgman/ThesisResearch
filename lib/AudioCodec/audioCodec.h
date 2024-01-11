@@ -12,6 +12,8 @@
 #define PREAMBLE_DURATION 0.2
 #define PREAMBLE_BITS (int)(PREAMBLE_DURATION * SAMPLE_RATE)
 
+#define HOP_SIZE 1260
+
 // From the complex ecoding example, always update all when changing something!:
 #define SAMPLES_PER_SYMBOL 1024 // 2048 // SAMPLES_PER_SYMBOL / NUM_SYMBOLS == SF
 #define SF 7                    // 8
@@ -22,11 +24,15 @@
 #define SYMBOL_BUFFER_SIZE 2048 // 4096 //(SAMPLES_PER_SYMBOL * (SYMBOLS_IN_PREAMBLE - 1))
 #define SYMBOLS_DATA_COUNT 3    // Number of symbols to be decoded
 
-//Microphone array geometry:
-#define MICROPHONE_ANGLES 60.0 //The angle between the microphones
-#define MICROPHONE_DISTANCE 0.0476 //The distance between the microphones in meters
+// Decoding bits for convolution:
+#define DECODING_BIT_BITS 304
+#define DECODING_BITS_COUNT 104
 
-#define SPEED_OF_SOUND 343.0 //Speed of sound, should be based on temperature!
+// Microphone array geometry:
+#define MICROPHONE_ANGLES 60.0     // The angle between the microphones
+#define MICROPHONE_DISTANCE 0.0476 // The distance between the microphones in meters
+
+#define SPEED_OF_SOUND 343.0 // Speed of sound, should be based on temperature!
 
 struct AudioCodecResult
 {
@@ -40,6 +46,10 @@ struct AudioCodecResult
     int preambleDetectionCnt;
     int preambleDetectionPosition[NUM_CHANNELS];
 
+    // Convolution:
+    uint8_t decodedBitsCnt;
+    uint8_t decodedBits[DECODING_BITS_COUNT];
+
     void reset()
     {
         senderId = 0;
@@ -48,6 +58,8 @@ struct AudioCodecResult
 
         decodedSymbolsCnt = 0;
         preambleDetectionCnt = 0;
+
+        decodedBitsCnt = 0;
     }
 };
 
@@ -59,9 +71,16 @@ struct AudioCodecDecoding
 
     // Preamble detection fields:
     int preambleFoundCount;
-    bool preambleFound = false;
+    bool preambleFound;
 
     int symbolDecodingPosition;
+
+    // Decoding using convolution:
+    int processedBitsPosition;
+    bool preambleSeen;
+    vector<int> preamblePositionStorage;
+
+    int decodingBitsPosition;
 
     void reset()
     {
@@ -69,6 +88,12 @@ struct AudioCodecDecoding
         preambleFoundCount = 0;
         preambleFound = false;
         symbolDecodingPosition = 0;
+
+        processedBitsPosition = 0;
+        preambleSeen = false;
+        decodingBitsPosition = 0;
+
+        preamblePositionStorage.clear();
     }
 };
 
@@ -78,8 +103,20 @@ struct AudioCodecFrequencyPair
     double stopFrequency;
 };
 
+struct Symbol
+{
+    double *symbolData;
+    int symbolDataLength;
+};
+
+struct ConvolutionResult
+{
+    double *data;
+    int dataLength;
+};
+
 static uint16_t Preamble_Sequence[3] = {17, 49, 127};
-//static uint16_t Preamble_Sequence[3] = {17, 49, 28};
+// static uint16_t Preamble_Sequence[3] = {17, 49, 28};
 
 class AudioCodec
 {
@@ -95,7 +132,8 @@ public:
 
     void encode(int16_t *output, int outputSize, uint8_t senderId);
 
-    void decode(int16_t bit, uint8_t microphoneId); // Input should be an array? Or we do it bit for bit, thats probably better
+    void decode(int16_t bit, uint8_t microphoneId);
+    void decode_convolution(int16_t bit, uint8_t microphoneId);
 
 private:
     double volume;
@@ -121,6 +159,12 @@ private:
     kiss_fft_cfg fft_config = kiss_fft_alloc(SAMPLES_PER_SYMBOL, 0, nullptr, nullptr);
     kiss_fft_cfg fft_config_inv = kiss_fft_alloc(SAMPLES_PER_SYMBOL, 1, nullptr, nullptr);
     kiss_fft_cfg fft_config_symbols = kiss_fft_alloc(NUM_SYMBOLS, 0, nullptr, nullptr);
+
+    // FFT configurations convolution:
+    kiss_fft_cfg fft_config_conv_pre = kiss_fft_alloc(PREAMBLE_BITS, 0, nullptr, nullptr);
+    kiss_fft_cfg fft_config_conv_pre_inv = kiss_fft_alloc(PREAMBLE_BITS, 1, nullptr, nullptr);
+    kiss_fft_cfg fft_config_conv_bit = kiss_fft_alloc(DECODING_BIT_BITS, 0, nullptr, nullptr);
+    kiss_fft_cfg fft_config_conv_bit_inv = kiss_fft_alloc(DECODING_BIT_BITS, 1, nullptr, nullptr);
 
     // ENCODING:
     void encode_symbol(double *output, int symbol);
@@ -153,6 +197,16 @@ private:
 
     // Storing bits:
     double decodingBuffer[NUM_CHANNELS][SAMPLES_PER_SYMBOL];
+    double decodingBufferConv[NUM_CHANNELS][PREAMBLE_BITS];
+
+    //Convolution:
+    double durationPerBit;
+    int sizePerBit;
+
+    AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS]; //Here the different sub frequencies of the bits 0 and 1 are stored.
+    double originalPreambleFlipped[PREAMBLE_BITS];
+    double bit0Flipped[DECODING_BIT_BITS];
+    double bit1Flipped[DECODING_BIT_BITS];
 
     // Decoding stores:
     AudioCodecDecoding decodingStore[NUM_CHANNELS];
@@ -161,14 +215,20 @@ private:
     AudioCodecResult decodingResult;
 
     bool containsPreamble(int firstSymbol, int secondSymbol, int thirthSymbol);
+    int containsPreamble(const double *window, const int windowSize);
     int decode_symbol(const double *window, const int windowSize);
 
+    void generateConvolutionFields();
+    void getConvolutionResults(const double *data, const int dataSize, const Symbol *symbols, const int nrOfSymbols, ConvolutionResult *output, kiss_fft_cfg fft_plan, kiss_fft_cfg fft_plan_inv);
+    int decodeBit(const double *window, const int windowSize);
+
+    // General decoding functions:
+    void finishDecoding();
     double calculateDOA(const int *arrivalTimes, const int numChannels);
 
     // General functions:
-    void getConvResult(const double *window, int windowSize, const double symbol[], int symbolSize);
     void fftConvolve(const double *in1, const double *in2, const int size, double *output);
-    void hilbert(const double *input, kiss_fft_cpx *output, int size);
+    void hilbert(const double *input, kiss_fft_cpx *output, int size, kiss_fft_cfg fft_plan, kiss_fft_cfg fft_plan_inv);
     void linespace(const double start, const double stop, const int numPoints, double *output, const bool inverse);
     void createSinWaveFromFreqs(const double *input, double *output, const int size);
 };
