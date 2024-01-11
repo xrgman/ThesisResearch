@@ -841,5 +841,5 @@ int AudioCodec::decodeBit(const double *window, const int windowSize)
     double max1 = *max_element(convolutionData1, convolutionData1 + DECODING_BIT_BITS);
 
     // 3. Return bit that is most likely:
-    return max0 > max1 ? 0 : 1;
+    return max0 > max1 ? 0 : 1; 
 }

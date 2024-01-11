@@ -222,11 +222,49 @@ void uint8ToBits(uint8_t value, uint8_t bits[8])
     }
 }
 
+/// @brief Transform an array of 8 bits into 1 byte.
+/// @param bits Input array of bits, representing one byte.
+/// @return The byte represented by the bits.
+uint8_t bitsToUint8(uint8_t bits[8])
+{
+    uint8_t byte = 0;
+
+    for (int i = 0; i < 8; i++)
+    {
+        byte |= (bits[i] << 7-i);
+    }
+
+    return byte;
+}
+
+/// @brief Transform a string into an array of bits.
+/// @param data The string to be transformed.
+/// @param size Number of characters in the string.
+/// @param bits Output array of bits.
 void stringToBits(const char *data, int size, uint8_t *bits)
 {
     for (int j = 0; j < size; j++)
     {
         uint8ToBits(data[j], &bits[j * 8]);
+    }
+}
+
+/// @brief Transform a given array of bits into a string text.
+/// @param bits Input array of bits.
+/// @param nrOfBits Number of bits in the array.
+/// @param output  Output string.
+void bitsToString(const uint8_t *bits, const int nrOfBits, char *output)
+{
+    for (int i = 0; i < (nrOfBits / 8); i++)
+    {
+        uint8_t byte[8];
+
+        for (int j = 0; j < 8; j++)
+        {
+            byte[j] = bits[i * 8 + j];
+        }
+
+        output[i] = bitsToUint8(byte);
     }
 }
 

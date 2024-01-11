@@ -65,6 +65,16 @@ void dataDecodedCallback(AudioCodecResult result)
     }
 
     cout << endl;
+    
+    //For test decode into string:
+    if (result.decodedBitsCnt > 0)
+    {
+        char message[result.decodedBitsCnt / 8];
+
+        bitsToString(result.decodedBits, result.decodedBitsCnt, message);
+
+        cout << "Received message: " << message << endl;
+    }
 
     liveDecoding = false;
 }
@@ -506,7 +516,7 @@ void decodeMessageConvolution(const char *filename)
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
         for (int i = 0; i < bytesRead; i += 1)
         {
-            audioCodec.decode_convolution(audioData[i], 0); //i % NUM_CHANNELS
+            audioCodec.decode_convolution(audioData[i], 0); // i % NUM_CHANNELS
         }
     }
 
@@ -515,7 +525,6 @@ void decodeMessageConvolution(const char *filename)
 
     cout << "Done decoding WAV file!\n";
 }
-
 
 void decodingLive()
 {
@@ -586,10 +595,10 @@ int main()
     // loadParticleFilter();
     // encodeMessageForAudio();
 
-    //recordToWavFile("test_rec_conv_270deg_150cm.wav", 7);
-    //decodeMessageForAudio("../recordings/recording_180deg.wav");
+    // recordToWavFile("test_rec_conv_270deg_150cm.wav", 7);
+    // decodeMessageForAudio("../recordings/recording_180deg.wav");
     decodeMessageConvolution("../recordings/convolution/encoding1.wav");
-    // decodingLive(); 
+    // decodingLive();
 
     // readAnPlotSpectogram();
 
