@@ -877,7 +877,7 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
         return findMaxIndex(convolutionData, PREAMBLE_BITS);
     }
 
-    return -1;
+    return -1; 
 }
 
 /// @brief Get the convolution result from a data frame and a given symbol.
