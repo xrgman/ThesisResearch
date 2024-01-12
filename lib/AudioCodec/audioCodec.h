@@ -12,7 +12,7 @@
 #define PREAMBLE_DURATION 0.2
 #define PREAMBLE_BITS (int)(PREAMBLE_DURATION * SAMPLE_RATE)
 
-#define HOP_SIZE 1260
+#define HOP_SIZE 4410
 
 // From the complex ecoding example, always update all when changing something!:
 #define SAMPLES_PER_SYMBOL 1024 // 2048 // SAMPLES_PER_SYMBOL / NUM_SYMBOLS == SF
@@ -113,15 +113,30 @@ public:
 
     ~AudioCodec()
     {
-        free(fft_config);
-        free(fft_config_inv);
+        // Symbol algorithm:
+        free(fftConfigStoreHilSymbols.fftConfig);
+        free(fftConfigStoreHilSymbols.fftConfigInv);
         free(fft_config_symbols);
+
+        // Convolution algorithm, hilbert:
+        free(fftConfigStoreHilPre.fftConfig);
+        free(fftConfigStoreHilPre.fftConfigInv);
+        free(fftConfigStoreHilBit.fftConfig);
+        free(fftConfigStoreHilBit.fftConfigInv);
+
+        // Convolution algorithm, convolve:
+        free(fftConfigStoreConvPre.fftConfig);
+        free(fftConfigStoreConvPre.fftConfigInv);
+        free(fftConfigStoreConvBit.fftConfig);
+        free(fftConfigStoreConvBit.fftConfigInv);
     }
 
     void encode(int16_t *output, int outputSize, uint8_t senderId);
 
     void decode(int16_t bit, uint8_t microphoneId);
     void decode_convolution(int16_t bit, uint8_t microphoneId);
+
+    int getEncodingSizeHelloWorld();
 
 private:
     double volume;
@@ -143,16 +158,18 @@ private:
     // DownChirp:
     kiss_fft_cpx downChirp_complex[NUM_SYMBOLS];
 
+    // FFT power of 2:
+    int convolvePreambleN;
+    int convolveBitN;
+
     // FFT configurations:
-    kiss_fft_cfg fft_config = kiss_fft_alloc(SAMPLES_PER_SYMBOL, 0, nullptr, nullptr);
-    kiss_fft_cfg fft_config_inv = kiss_fft_alloc(SAMPLES_PER_SYMBOL, 1, nullptr, nullptr);
+    FFTConfigStore fftConfigStoreHilSymbols;
+
     kiss_fft_cfg fft_config_symbols = kiss_fft_alloc(NUM_SYMBOLS, 0, nullptr, nullptr);
 
     // FFT configurations convolution:
-    kiss_fft_cfg fft_config_conv_pre = kiss_fft_alloc(PREAMBLE_BITS, 0, nullptr, nullptr);
-    kiss_fft_cfg fft_config_conv_pre_inv = kiss_fft_alloc(PREAMBLE_BITS, 1, nullptr, nullptr);
-    kiss_fft_cfg fft_config_conv_bit = kiss_fft_alloc(DECODING_BIT_BITS, 0, nullptr, nullptr);
-    kiss_fft_cfg fft_config_conv_bit_inv = kiss_fft_alloc(DECODING_BIT_BITS, 1, nullptr, nullptr);
+    FFTConfigStore fftConfigStoreHilPre, fftConfigStoreHilBit;
+    FFTConfigStore fftConfigStoreConvPre, fftConfigStoreConvBit;
 
     // ENCODING:
     void encode_symbol(double *output, int symbol);
@@ -187,11 +204,11 @@ private:
     double decodingBuffer[NUM_CHANNELS][SAMPLES_PER_SYMBOL];
     double decodingBufferConv[NUM_CHANNELS][PREAMBLE_BITS];
 
-    //Convolution:
+    // Convolution:
     double durationPerBit;
     int sizePerBit;
 
-    AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS]; //Here the different sub frequencies of the bits 0 and 1 are stored.
+    AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS]; // Here the different sub frequencies of the bits 0 and 1 are stored.
     double originalPreambleFlipped[PREAMBLE_BITS];
     double bit0Flipped[DECODING_BIT_BITS];
     double bit1Flipped[DECODING_BIT_BITS];
@@ -207,7 +224,7 @@ private:
     int decode_symbol(const double *window, const int windowSize);
 
     void generateConvolutionFields();
-    void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, kiss_fft_cfg fft_plan, kiss_fft_cfg fft_plan_inv);
+    void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, FFTConfigStore fftConfigStoreConvolve, FFTConfigStore fftConfigStoreHilbert);
     int decodeBit(const double *window, const int windowSize);
 
     // General decoding functions:
@@ -215,8 +232,8 @@ private:
     double calculateDOA(const int *arrivalTimes, const int numChannels);
 
     // General functions:
-    void fftConvolve(const double *in1, const double *in2, const int size, double *output);
-    void hilbert(const double *input, kiss_fft_cpx *output, int size, kiss_fft_cfg fft_plan, kiss_fft_cfg fft_plan_inv);
+    void fftConvolve(const double *in1, const double *in2, const int size, double *output, FFTConfigStore fftConfigStore);
+    void hilbert(const double *input, kiss_fft_cpx *output, int size, FFTConfigStore fftConfigStore);
     void linespace(const double start, const double stop, const int numPoints, double *output, const bool inverse);
     void createSinWaveFromFreqs(const double *input, double *output, const int size);
 };
