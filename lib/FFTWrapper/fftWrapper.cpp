@@ -1,5 +1,8 @@
 #include "fftWrapper.h"
 
+#include <chrono>
+#include <iostream>
+
 // FFT variables
 uint32_t fftSize, stftSize;
 
@@ -331,7 +334,7 @@ void complexAbsolute(const kiss_fft_cpx *input, double *output, int size)
 {
     for (int i = 0; i < size; i++)
     {
-        output[i] = sqrt(pow(input[i].r, 2) + pow(input[i].i, 2));
+        output[i] = sqrt(input[i].r * input[i].r + input[i].i * input[i].i);
     }
 }
 

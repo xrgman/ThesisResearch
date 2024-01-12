@@ -104,9 +104,9 @@ void AudioCodec::generateConvolutionFields()
     reverse(bit0Flipped, bit0Flipped + sizePerBit);
     reverse(bit1Flipped, bit1Flipped + sizePerBit);
 
-    // Calculate next power of 2 for FFT:
-    convolvePreambleN = getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
-    convolveBitN = getNextPowerOf2(DECODING_BIT_BITS * 2 - 1);
+    // Calculate optimal FFT values (foud using python):
+    convolvePreambleN = 18000; //getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
+    convolveBitN = 625;        // getNextPowerOf2(DECODING_BIT_BITS * 2 - 1);
 
     fftConfigStoreConvPre = {
         PREAMBLE_BITS * 2 - 1,
@@ -519,7 +519,8 @@ int AudioCodec::decode_symbol(const double *window, const int windowSize)
 /// @param fft_plan_inv FFT plan inverse (With same size as arrays).
 void AudioCodec::fftConvolve(const double *in1, const double *in2, const int size, double *output, FFTConfigStore fftConfigStore)
 {
-    // auto t1 = chrono::high_resolution_clock::now();
+    auto t1 = chrono::high_resolution_clock::now();
+
     int originalN = size * 2 - 1;
 
     // 1. Add zero padding
@@ -555,10 +556,10 @@ void AudioCodec::fftConvolve(const double *in1, const double *in2, const int siz
         output[i] = cx_result[start + i].r;
     }
 
-    // auto t2 = chrono::high_resolution_clock::now();
-    // auto ms_int = chrono::duration_cast<chrono::milliseconds>(t2 - t1);
+    auto t2 = chrono::high_resolution_clock::now();
+    auto ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-    // cout << "FFT convolve (" << N << ") took: " << ms_int.count() << "ms\n";
+    //cout << "FFT convolve (" << fftConfigStore.N << ") took: " << ms_int.count() << "ns\n";
 }
 
 // TODO make it work for optimal value of N :(
@@ -623,9 +624,9 @@ void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size, FF
     }
 
     auto t2 = chrono::high_resolution_clock::now();
-    auto ms_int = chrono::duration_cast<chrono::milliseconds>(t2 - t1);
+    auto ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-    cout << "Hilbert (" << size << ") took: " << ms_int.count() << "ms\n";
+    //cout << "Hilbert (" << size << ") took: " << ms_int.count() << "ns\n";
 }
 
 /// @brief Fills the output array with evenly spaced values between the start and stop value

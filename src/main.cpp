@@ -60,9 +60,9 @@ void dataDecodedCallback(AudioCodecResult result)
 {
     // Stop timer:
     auto decodingStop = chrono::high_resolution_clock::now();
-    auto ms_int = chrono::duration_cast<chrono::seconds>(decodingStop - decodingStart);
+    auto ms_int = chrono::duration_cast<chrono::milliseconds>(decodingStop - decodingStart);
 
-    cout << "Decoding data took: " << ms_int.count() << " seconds\n";
+    cout << "Decoding data took: " << ms_int.count() << "ms\n";
 
     // For now, printing found symbols:
     cout << "Found symbols: ";
