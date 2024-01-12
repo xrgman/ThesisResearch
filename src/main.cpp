@@ -65,14 +65,16 @@ void dataDecodedCallback(AudioCodecResult result)
     cout << "Decoding data took: " << ms_int.count() << "ms\n";
 
     // For now, printing found symbols:
-    cout << "Found symbols: ";
+    // cout << "Found symbols: ";
 
-    for (int i = 0; i < SYMBOLS_DATA_COUNT; i++)
-    {
-        cout << result.decodedSymbols[i] << ", ";
-    }
+    // for (int i = 0; i < SYMBOLS_DATA_COUNT; i++)
+    // {
+    //     cout << result.decodedSymbols[i] << ", ";
+    // }
 
-    cout << endl;
+    // cout << endl;
+
+    cout << "DOA: " << result.doa << " degrees\n";
 
     // For test decode into string:
     if (result.decodedBitsCnt > 0)
@@ -557,6 +559,47 @@ void decodingLive()
     }
 }
 
+void decodingLiveConvolution()
+{
+    cout << "Live decoding started!\n";
+
+    while (liveDecoding)
+    {
+        // Checking if new data is available:
+        if (!audioHelper.readNextBatch())
+        {
+            usleep(1);
+
+            continue;
+        }
+
+        audioHelper.setNextBatchRead();
+
+        // Determine order of microphones, only executed once:
+        if (!audioHelper.determineMicrophoneOrder())
+        {
+            cout << "Failed to determine microphone order! Stopping program.\n";
+
+            return;
+        }
+
+        // Looping over all microphones:
+        for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
+        {
+            uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
+            int16_t *channelData = audioHelper.audioData[channelIdx];
+
+            // Looping over all frames in the buffer:
+            for (int i = 0; i < FRAMES_PER_BUFFER; i++)
+            {
+                audioCodec.decode_convolution(channelData[i], channel);
+            }
+        }
+
+        audioHelper.signalBatchProcessed();
+    }
+}
+
 int main()
 {
     // Catching sigint event:
@@ -572,25 +615,24 @@ int main()
     audioHelper.clearBuffers();
 
     // Opening audio streams:
-    // if (!audioHelper.initializeAndOpen())
-    // {
-    //     cout << "Initializing audio helper has failed!\n";
+    if (!audioHelper.initializeAndOpen())
+    {
+        cout << "Initializing audio helper has failed!\n";
 
-    //     return 0;
-    // }
+        return 0;
+    }
 
     // openAndPlayWavFile();
     // graphSineWave5FFT();
     // graphInputStream();
     // loadParticleFilter();
-    encodeMessageForAudio("../recordings/convolution/encoding_test_short_1.wav");
+    encodeMessageForAudio("../recordings/convolution/encoding1.wav");
 
-    // recordToWavFile("test_rec_conv_270deg_150cm.wav", 7);
-    // decodeMessageForAudio("../recordings/recording_180deg.wav");
-    decodeMessageConvolution("../recordings/convolution/encoding_test_short_1.wav");
+    // recordToWavFile("los_90deg_300cm.wav", 7);
+// decodeMessageForAudio("../recordings/recording_180deg.wav");
+    decodeMessageConvolution("../recordings/convolution/encoding1.wav");
+    //decodingLiveConvolution();
     // decodingLive();
-
-    // readAnPlotSpectogram();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();

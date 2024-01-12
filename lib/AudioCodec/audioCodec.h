@@ -9,7 +9,7 @@
 
 #define CHIRP_AMPLITUDE 1.0 // Was 0.5
 
-#define PREAMBLE_DURATION 0.2
+#define PREAMBLE_DURATION 0.1857596372 //Make sure the number of bits is 8192
 #define PREAMBLE_BITS (int)(PREAMBLE_DURATION * SAMPLE_RATE)
 
 #define HOP_SIZE 4410

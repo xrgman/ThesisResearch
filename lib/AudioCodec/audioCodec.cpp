@@ -105,7 +105,7 @@ void AudioCodec::generateConvolutionFields()
     reverse(bit1Flipped, bit1Flipped + sizePerBit);
 
     // Calculate optimal FFT values (foud using python):
-    convolvePreambleN = 18000; //getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
+    convolvePreambleN = 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
     convolveBitN = 625;        // getNextPowerOf2(DECODING_BIT_BITS * 2 - 1);
 
     fftConfigStoreConvPre = {
@@ -559,9 +559,11 @@ void AudioCodec::fftConvolve(const double *in1, const double *in2, const int siz
     auto t2 = chrono::high_resolution_clock::now();
     auto ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-    //cout << "FFT convolve (" << fftConfigStore.N << ") took: " << ms_int.count() << "ns\n";
+    // cout << "FFT convolve (" << fftConfigStore.N << ") took: " << ms_int.count() << "ns\n";
 }
 
+
+// Transgform is size dependent!
 // TODO make it work for optimal value of N :(
 // TODO! Fix first element error
 /// @brief Perform the hilbert transformation.
@@ -574,59 +576,73 @@ void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size, FF
     auto t1 = chrono::high_resolution_clock::now();
 
     // 1. Perform padding:
-    double input_padded[fftConfigStore.N];
+    // double input_padded[fftConfigStore.N];
 
-    for (int i = 0; i < fftConfigStore.N; i++)
-    {
-        input_padded[i] = i < size ? input[i] : 0;
-    }
+    // for (int i = 0; i < fftConfigStore.N; i++)
+    // {
+    //     input_padded[i] = i < size ? input[i] : 0;
+    // }
 
     // 1. Perform FFT on input data:
     kiss_fft_cpx fftInput[fftConfigStore.N];
 
     // Perform FFT :
-    performFFT(fftConfigStore.fftConfig, input_padded, fftInput, fftConfigStore.N);
+    performFFT(fftConfigStore.fftConfig, input, fftInput, fftConfigStore.N);
 
     // 2. Create vector h, whose elements h(i) have value: 1 for i = 0, (n/2) | 2 for i = 1, 2, … , (n/2)-1 | 0 for i = (n/2)+1, … , n
-    kiss_fft_cpx hilbertKernal[fftConfigStore.N];
+    // for (int i = 1; i < (double)fftConfigStore.N / 2; i++)
+    // {
+    //     fftInput[i].r *= 2;
+    //     fftInput[i].i *= 2;
+    // }
+
+    // for (int i = fftConfigStore.N / 2 + 1; i < fftConfigStore.N; i++)
+    // {
+    //     fftInput[i].r = 0;
+    //     fftInput[i].i = 0;
+    // }
+
+    int halfSize = fftConfigStore.N / 2;
+    bool evenSize = size % 2 == 0;
 
     for (int i = 0; i < fftConfigStore.N; i++)
     {
-        if (i == 0 || (i == fftConfigStore.N / 2)) //  && size % 2 == 0
+        if (i == 0 || (i == halfSize && evenSize)) //  && size % 2 == 0
         {
             // Keep values the same:
-            hilbertKernal[i].r = fftInput[i].r;
-            hilbertKernal[i].i = fftInput[i].i;
+            fftInput[i].r = fftInput[i].r;
+            fftInput[i].i = fftInput[i].i;
         }
-        else if (i > 0 && i < fftConfigStore.N / 2)
+        else if (i > 0 && (i < halfSize || (!evenSize && i == halfSize)))
         {
             // Double the gain:
-            hilbertKernal[i].r = 2 * fftInput[i].r;
-            hilbertKernal[i].i = 2 * fftInput[i].i;
+            fftInput[i].r = 2 * fftInput[i].r;
+            fftInput[i].i = 2 * fftInput[i].i;
         }
         else
         {
             // Zero out elements of upper half:
-            hilbertKernal[i].r = 0;
-            hilbertKernal[i].i = 0;
+            fftInput[i].r = 0;
+            fftInput[i].i = 0;
         }
     }
 
     // 3. Calculate inverse FFT of step 2 result and returns first n elements of the result:
-    kiss_fft_cpx fftReverseResult[fftConfigStore.N];
+    //kiss_fft_cpx fftReverseResult[fftConfigStore.N];
 
-    performFFT(fftConfigStore.fftConfigInv, hilbertKernal, fftReverseResult, fftConfigStore.N, true);
+    performFFT(fftConfigStore.fftConfigInv, fftInput, output, fftConfigStore.N, true);
 
     // 5. only return right part:
-    for (int i = 0; i < size; i++)
-    {
-        output[i] = fftReverseResult[i];
-    }
+    // for (int i = 0; i < size; i++)
+    // {
+    //     output[i] = fftReverseResult[i];
+    // }
 
     auto t2 = chrono::high_resolution_clock::now();
     auto ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-    //cout << "Hilbert (" << size << ") took: " << ms_int.count() << "ns\n";
+    //cout << "" << ms_int.count() << "\n";
+    cout << "Hilbert (" << size << ") took: " << ms_int.count() << "ns\n";
 }
 
 /// @brief Fills the output array with evenly spaced values between the start and stop value
@@ -750,19 +766,20 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 
 void AudioCodec::decode_convolution(int16_t bit, uint8_t microphoneId)
 {
-    // double test[5] = {10, 20, 30, 40, 50};
-    // kiss_fft_cpx out[5];
-    // int N = 8;
+    // int siz = 9;
+    // double test[siz] = {10, 20, 30, 40, 50, 60, 70, 80, 90};
+    // kiss_fft_cpx out[siz];
+    // int N = siz;
 
     // kiss_fft_cfg fftConfTemp = kiss_fft_alloc(N, 0, nullptr, nullptr);
     // kiss_fft_cfg fftConfTempInv = kiss_fft_alloc(N, 1, nullptr, nullptr);
 
-    // FFTConfigStore configStore = {5,
+    // FFTConfigStore configStore = {siz,
     //                               N,
     //                               fftConfTemp,
     //                               fftConfTempInv};
 
-    // hilbert(test, out, 5, configStore);
+    // hilbert(test, out, siz, configStore);
 
     // free(fftConfTemp);
     // free(fftConfTempInv);
@@ -806,6 +823,15 @@ void AudioCodec::decode_convolution(int16_t bit, uint8_t microphoneId)
         else if (decodingStore[microphoneId].preambleSeen)
         {
             decodingStore[microphoneId].preambleSeen = false;
+
+            // cout << "Options: (" << (int)microphoneId << ")";
+
+            // for (int j = 0; j < decodingStore[microphoneId].preamblePositionStorage.size(); j++)
+            // {
+            //     cout << decodingStore[microphoneId].preamblePositionStorage.at(j) << ", ";
+            // }
+
+            // cout << endl;
 
             // Determining real peak:
             int realPreamblePosition = mostOccuring(decodingStore[microphoneId].preamblePositionStorage.data(), decodingStore[microphoneId].preamblePositionStorage.size());
@@ -878,7 +904,7 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
         return findMaxIndex(convolutionData, PREAMBLE_BITS);
     }
 
-    return -1; 
+    return -1;
 }
 
 /// @brief Get the convolution result from a data frame and a given symbol.
@@ -899,7 +925,7 @@ void AudioCodec::getConvolutionResults(const double *data, const double *symbolD
     // 2. Perform the hilbert transform to get the envelope:
     kiss_fft_cpx hilbertResult[size];
 
-    hilbert(convolveResult, hilbertResult, size, fftConfigStoreHilbert); 
+    hilbert(convolveResult, hilbertResult, size, fftConfigStoreHilbert);
 
     // 3. Take the absolute value:
     complexAbsolute(hilbertResult, output, size);
