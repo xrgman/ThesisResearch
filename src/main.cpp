@@ -58,7 +58,7 @@ void sigIntHandler(int signum)
 
 void dataDecodedCallback(AudioCodecResult result)
 {
-    //Stop timer:
+    // Stop timer:
     auto decodingStop = chrono::high_resolution_clock::now();
     auto ms_int = chrono::duration_cast<chrono::seconds>(decodingStop - decodingStart);
 
@@ -73,8 +73,8 @@ void dataDecodedCallback(AudioCodecResult result)
     }
 
     cout << endl;
-    
-    //For test decode into string:
+
+    // For test decode into string:
     if (result.decodedBitsCnt > 0)
     {
         char message[result.decodedBitsCnt / 8];
@@ -425,43 +425,20 @@ void loadParticleFilter()
     mapRenderer.stop();
 }
 
-void encodeMessageForAudio()
+void encodeMessageForAudio(const char *filename)
 {
-    const char *filename = "encoding1.wav";
-    int16_t codedAudioData[AUDIO_CODEC_SIZE];
+    // Create array and fill it with zeros:
+    int size = audioCodec.getEncodingSizeHelloWorld();
 
-    audioCodec.encode(codedAudioData, AUDIO_CODEC_SIZE, ROBOT_ID);
+    int16_t codedAudioData[size];
+
+    fillArrayWithZeros(codedAudioData, size);
+
+    // Encode the message:
+    audioCodec.encode(codedAudioData, size, ROBOT_ID);
 
     // Write data to file:
-    writeWavFile(filename, codedAudioData, AUDIO_CODEC_SIZE, SAMPLE_RATE, 16, 1);
-
-    int bytesRead = 0;
-
-    // while (bytesRead < AUDIO_CODEC_SIZE)
-    // {
-    //     // Waiting for batch to be written:
-    //     if (!audioHelper.writeNextBatch())
-    //     {
-    //         usleep(1);
-
-    //         continue;
-    //     }
-
-    //     //Determing number of bytes left to send:
-    //     uint16_t bytesToWrite = bytesRead + bytesRead < AUDIO_CODEC_SIZE ? FRAMES_PER_BUFFER : AUDIO_CODEC_SIZE - bytesRead;
-
-    //     // Writing to helper:
-    //     if (!audioHelper.writeBytes(codedAudioData + bytesRead, bytesToWrite))
-    //     {
-    //         // cout << "Something went"
-
-    //         break;
-    //     }
-
-    //     bytesRead += FRAMES_PER_BUFFER;
-    // }
-
-    int b = 10;
+    writeWavFile(filename, codedAudioData, size, SAMPLE_RATE, 16, 1);
 
     // STEP 1: Use audioCoded.Encode to create the message to be sent -> Check if this does not generate an array thats way too big.....
     // Step 2: During the loop, send X bytes to audioHelper every iteration.
@@ -505,7 +482,7 @@ void decodeMessageForAudio(const char *filename)
 
 void decodeMessageConvolution(const char *filename)
 {
-    const int frames_per_buffer = 1260;
+    const int frames_per_buffer = 4410;
 
     FILE *fileRead;
 
@@ -517,7 +494,7 @@ void decodeMessageConvolution(const char *filename)
     // Initialize the FFT:
     initializeFFT(PREAMBLE_BITS, STFT_WINDOW_SIZE);
 
-    //Start timer:
+    // Start timer:
     decodingStart = chrono::high_resolution_clock::now();
 
     // Reading successfull, so decoding it:
@@ -606,11 +583,11 @@ int main()
     // graphSineWave5FFT();
     // graphInputStream();
     // loadParticleFilter();
-    // encodeMessageForAudio();
+    encodeMessageForAudio("../recordings/convolution/encoding_test_short_1.wav");
 
     // recordToWavFile("test_rec_conv_270deg_150cm.wav", 7);
     // decodeMessageForAudio("../recordings/recording_180deg.wav");
-    decodeMessageConvolution("../recordings/convolution/encoding1.wav");
+    decodeMessageConvolution("../recordings/convolution/encoding_test_short_1.wav");
     // decodingLive();
 
     // readAnPlotSpectogram();

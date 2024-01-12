@@ -231,7 +231,7 @@ uint8_t bitsToUint8(uint8_t bits[8])
 
     for (int i = 0; i < 8; i++)
     {
-        byte |= (bits[i] << 7-i);
+        byte |= (bits[i] << 7 - i);
     }
 
     return byte;
@@ -266,6 +266,14 @@ void bitsToString(const uint8_t *bits, const int nrOfBits, char *output)
 
         output[i] = bitsToUint8(byte);
     }
+}
+
+/// @brief Given a specific value, find the next power of 2.
+/// @param value Current value.
+/// @return Next power of 2, seen from value.
+int getNextPowerOf2(int value)
+{
+    return pow(2, ceil(log2(value)));
 }
 
 // double positiveModulo(const double val, const double mod)

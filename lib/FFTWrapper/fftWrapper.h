@@ -10,6 +10,20 @@
 
 using namespace std;
 
+struct FFTConfigStore
+{
+    int originalSize;
+    int N; // efficient size;
+
+    kiss_fft_cfg fftConfig; //Config for the normal FFT, with size N.
+    kiss_fft_cfg fftConfigInv; //Config for the inverse FFT, with size N.
+
+    bool useFastFFTLen()
+    {
+        return N != originalSize;
+    }
+};
+
 void initializeFFT(uint32_t size, uint32_t stft_size);
 
 // FFT using real data:

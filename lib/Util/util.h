@@ -34,6 +34,10 @@ uint8_t bitsToUint8(uint8_t bits[8]);
 void stringToBits(const char *data, int size, uint8_t *bits);
 void bitsToString(const uint8_t *bits, const int nrOfBits, char *output);
 
+int getNextPowerOf2(int value);
+
+
+
 // double positiveModulo(const double val, const double mod);
 
 bool openFile(const char *filename, FILE **file, const char *mode);
