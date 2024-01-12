@@ -70,7 +70,7 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
 
 void AudioCodec::generateConvolutionFields()
 {
-    //Calculate duration per bit:
+    // Calculate duration per bit:
     durationPerBit = getMinSymbolTime(NUMBER_OF_SUB_CHIRPS, REQUIRED_NUMBER_OF_CYCLES, frequencyPair);
 
     // Calculate the size per bit:
@@ -773,13 +773,8 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
 {
     // 1. Get convolution results:
     double convolutionData[PREAMBLE_BITS];
-    ConvolutionResult convolutionResults[1] = {{.data = convolutionData,
-                                                .dataLength = PREAMBLE_BITS}};
 
-    Symbol originalPreambleSymbol[1] = {{.symbolData = originalPreambleFlipped,
-                                         .symbolDataLength = PREAMBLE_BITS}};
-
-    getConvolutionResults(window, windowSize, originalPreambleSymbol, 1, convolutionResults, fft_config_conv_pre, fft_config_conv_pre_inv);
+    getConvolutionResults(window, originalPreambleFlipped, PREAMBLE_BITS, convolutionData, fft_config_conv_pre, fft_config_conv_pre_inv);
 
     // 2. Calculate the minimum peak threshold
     double average = calculateAverage(convolutionData, PREAMBLE_BITS);
@@ -797,49 +792,47 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
     return -1;
 }
 
-void AudioCodec::getConvolutionResults(const double *data, const int dataSize, const Symbol *symbols, const int nrOfSymbols, ConvolutionResult *output, kiss_fft_cfg fft_plan, kiss_fft_cfg fft_plan_inv)
+/// @brief Get the convolution result from a data frame and a given symbol.
+/// Both data and symbolData should be the same size.
+/// @param data Data array.
+/// @param symbolData Symbol array.
+/// @param size Size of both arrays.
+/// @param output Output convolution result.
+/// @param fft_plan FFT plan (with same size as arrays).
+/// @param fft_plan_inv FFT plan inverse (With same size as arrays).
+void AudioCodec::getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, kiss_fft_cfg fft_plan, kiss_fft_cfg fft_plan_inv)
 {
-    for (int i = 0; i < nrOfSymbols; i++)
-    {
-        Symbol symbol = symbols[i];
+    // 1. Perform fftConvolve the input data and the suspected symbol:
+    double convolveResult[size];
 
-        // 1. Perform fftConvolve the input data and the suspected symbol:
-        double convolveResult[dataSize];
+    fftConvolve(data, symbolData, size, convolveResult);
 
-        fftConvolve(data, symbol.symbolData, dataSize, convolveResult);
+    // 2. Perform the hilbert transform to get the envelope:
+    kiss_fft_cpx hilbertResult[size];
 
-        // 2. Perform the hilbert transform to get the envelope:
-        kiss_fft_cpx hilbertResult[dataSize];
+    hilbert(convolveResult, hilbertResult, size, fft_plan, fft_plan_inv); // These configs are wrong :)
 
-        hilbert(convolveResult, hilbertResult, dataSize, fft_plan, fft_plan_inv); //These configs are wrong :)
-
-        // 3. Take the absolute value:
-        complexAbsolute(hilbertResult, output[i].data, dataSize);
-    }
+    // 3. Take the absolute value:
+    complexAbsolute(hilbertResult, output, size);
 }
 
+/// @brief Decode a single bit in the data stream, based on the maximum convolution result.
+/// @param window Window containing the bit.
+/// @param windowSize Size of the window.
+/// @return The bit, either 0 or 1.
 int AudioCodec::decodeBit(const double *window, const int windowSize)
 {
     // 1. Performing convolution with the 0 and 1 chirps:
     double convolutionData0[DECODING_BIT_BITS];
     double convolutionData1[DECODING_BIT_BITS];
 
-    ConvolutionResult convolutionResults[2] = {{.data = convolutionData0,
-                                                .dataLength = DECODING_BIT_BITS},
-                                               {.data = convolutionData1,
-                                                .dataLength = DECODING_BIT_BITS}};
-
-    Symbol originalPreambleSymbol[2] = {{.symbolData = bit0Flipped,
-                                         .symbolDataLength = DECODING_BIT_BITS},
-                                        {.symbolData = bit1Flipped,
-                                         .symbolDataLength = DECODING_BIT_BITS}};
-
-    getConvolutionResults(window, windowSize, originalPreambleSymbol, 2, convolutionResults, fft_config_conv_bit, fft_config_conv_bit_inv);
+    getConvolutionResults(window, bit0Flipped, DECODING_BIT_BITS, convolutionData0, fft_config_conv_bit, fft_config_conv_bit_inv);
+    getConvolutionResults(window, bit1Flipped, DECODING_BIT_BITS, convolutionData1, fft_config_conv_bit, fft_config_conv_bit_inv);
 
     // 2. Find the maximum values of both convolutions:
     double max0 = *max_element(convolutionData0, convolutionData0 + DECODING_BIT_BITS);
     double max1 = *max_element(convolutionData1, convolutionData1 + DECODING_BIT_BITS);
 
     // 3. Return bit that is most likely:
-    return max0 > max1 ? 0 : 1; 
+    return max0 > max1 ? 0 : 1;
 }

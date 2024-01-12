@@ -103,18 +103,6 @@ struct AudioCodecFrequencyPair
     double stopFrequency;
 };
 
-struct Symbol
-{
-    double *symbolData;
-    int symbolDataLength;
-};
-
-struct ConvolutionResult
-{
-    double *data;
-    int dataLength;
-};
-
 static uint16_t Preamble_Sequence[3] = {17, 49, 127};
 // static uint16_t Preamble_Sequence[3] = {17, 49, 28};
 
@@ -219,7 +207,7 @@ private:
     int decode_symbol(const double *window, const int windowSize);
 
     void generateConvolutionFields();
-    void getConvolutionResults(const double *data, const int dataSize, const Symbol *symbols, const int nrOfSymbols, ConvolutionResult *output, kiss_fft_cfg fft_plan, kiss_fft_cfg fft_plan_inv);
+    void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, kiss_fft_cfg fft_plan, kiss_fft_cfg fft_plan_inv);
     int decodeBit(const double *window, const int windowSize);
 
     // General decoding functions:

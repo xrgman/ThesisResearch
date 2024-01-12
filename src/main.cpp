@@ -5,6 +5,7 @@
 #include <SDL2/SDL.h>
 #include <cmath>
 #include <armadillo>
+#include <chrono>
 
 #include "main.h"
 #include "wavHelper.h"
@@ -34,6 +35,7 @@ MapRenderer mapRenderer;
 
 AudioCodec audioCodec(dataDecodedCallback, SAMPLES_PER_SYMBOL, SF, BW);
 
+chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool liveDecoding = true;
 
 void sigIntHandler(int signum)
@@ -56,6 +58,12 @@ void sigIntHandler(int signum)
 
 void dataDecodedCallback(AudioCodecResult result)
 {
+    //Stop timer:
+    auto decodingStop = chrono::high_resolution_clock::now();
+    auto ms_int = chrono::duration_cast<chrono::seconds>(decodingStop - decodingStart);
+
+    cout << "Decoding data took: " << ms_int.count() << " seconds\n";
+
     // For now, printing found symbols:
     cout << "Found symbols: ";
 
@@ -77,6 +85,8 @@ void dataDecodedCallback(AudioCodecResult result)
     }
 
     liveDecoding = false;
+
+    decodingStart = chrono::high_resolution_clock::now();
 }
 
 /// @brief Around 40cm is travel distance of one wheel rotation
@@ -506,6 +516,9 @@ void decodeMessageConvolution(const char *filename)
 
     // Initialize the FFT:
     initializeFFT(PREAMBLE_BITS, STFT_WINDOW_SIZE);
+
+    //Start timer:
+    decodingStart = chrono::high_resolution_clock::now();
 
     // Reading successfull, so decoding it:
     while (!feof(fileRead))
