@@ -6,8 +6,8 @@
 // FFT variables
 uint32_t fftSize, stftSize;
 
-vector<kiss_fft_cpx> fftInput, stftInput;
-kiss_fft_cfg fftPlan, stftPlan;
+vector<kiss_fft_cpx> fftInput;
+kiss_fft_cfg fftPlan;
 
 void initializeFFT(uint32_t fft_size, uint32_t stft_size)
 {
@@ -15,10 +15,8 @@ void initializeFFT(uint32_t fft_size, uint32_t stft_size)
     stftSize = stft_size;
 
     fftInput.resize(fftSize);
-    stftInput.resize(stftSize);
 
     fftPlan = kiss_fft_alloc(fftSize, 0, nullptr, nullptr);
-    stftPlan = kiss_fft_alloc(stftSize, 0, nullptr, nullptr);
 }
 
 // Per channel
@@ -35,7 +33,7 @@ void performFFT(int16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t s
     for (int i = 0; i < size; i++)
     {
         // fftInput[i].r = (double)inputData[i] / (UINT16_MAX - 0)* 2.0 - 1.0; //(uint16_t_MAX - UINT16_t_MIN)
-        fftInput[i].r = (double)inputData[i] / (double)INT16_MAX;
+        fftInput[i].r = (float)inputData[i] / (float)INT16_MAX;
         fftInput[i].i = 0.0;
     }
 
@@ -100,94 +98,94 @@ void performFFT(kiss_fft_cfg fftConfig, const kiss_fft_cpx *inputData, kiss_fft_
     }
 }
 
-void applySTFT(const double *inputData, int inputDataSize, vector<std::vector<double>> &output, int windowSize, int overlap)
-{
-    int hopSize = windowSize - overlap;
-    int magnitudeSize = windowSize / 2 + 1;
+// void applySTFT(const double *inputData, int inputDataSize, vector<std::vector<double>> &output, int windowSize, int overlap)
+// {
+//     int hopSize = windowSize - overlap;
+//     int magnitudeSize = windowSize / 2 + 1;
 
-    stftInput.resize(windowSize);
-    output.resize(inputDataSize / hopSize + 1);
+//     stftInput.resize(windowSize);
+//     output.resize(inputDataSize / hopSize + 1);
 
-    std::vector<kiss_fft_cpx> spectrum(magnitudeSize); // We only need half of the data, fft characteristic
+//     std::vector<kiss_fft_cpx> spectrum(magnitudeSize); // We only need half of the data, fft characteristic
 
-    int magnitudesIdx = 0;
+//     int magnitudesIdx = 0;
 
-    for (int i = 0; i + windowSize < inputDataSize; i += hopSize)
-    {
-        output[magnitudesIdx].resize(magnitudeSize);
+//     for (int i = 0; i + windowSize < inputDataSize; i += hopSize)
+//     {
+//         output[magnitudesIdx].resize(magnitudeSize);
 
-        // Filling array for fft:
-        for (int j = 0; j < windowSize; j++)
-        {
-            stftInput[j].r = inputData[i + j];
-            stftInput[j].i = 0.0;
-        }
+//         // Filling array for fft:
+//         for (int j = 0; j < windowSize; j++)
+//         {
+//             stftInput[j].r = inputData[i + j];
+//             stftInput[j].i = 0.0;
+//         }
 
-        // Apply FFT
-        kiss_fft(stftPlan, stftInput.data(), spectrum.data());
+//         // Apply FFT
+//         kiss_fft(stftPlan, stftInput.data(), spectrum.data());
 
-        // Convert complex values to magnitude
-        for (int j = 0; j < magnitudeSize; j++)
-        {
-            double mag = sqrt(spectrum[j].r * spectrum[j].r + spectrum[j].i * spectrum[j].i);
+//         // Convert complex values to magnitude
+//         for (int j = 0; j < magnitudeSize; j++)
+//         {
+//             double mag = sqrt(spectrum[j].r * spectrum[j].r + spectrum[j].i * spectrum[j].i);
 
-            output[magnitudesIdx][j] = mag;
-        }
+//             output[magnitudesIdx][j] = mag;
+//         }
 
-        if (magnitudesIdx == 65)
-        {
-            int t = 10;
-        }
+//         if (magnitudesIdx == 65)
+//         {
+//             int t = 10;
+//         }
 
-        magnitudesIdx++;
-    }
+//         magnitudesIdx++;
+//     }
 
-    int test = 10;
-}
+//     int test = 10;
+// }
 
-void performSTFT(const double *inputData, int inputDataSize, int windowSize, int overlap, vector<std::vector<double>> &outputData)
-{
-    // Creating plan:
-    stftPlan = kiss_fft_alloc(windowSize, 0, nullptr, nullptr);
+// void performSTFT(const double *inputData, int inputDataSize, int windowSize, int overlap, vector<std::vector<double>> &outputData)
+// {
+//     // Creating plan:
+//     stftPlan = kiss_fft_alloc(windowSize, 0, nullptr, nullptr);
 
-    // Calculating hop size:
-    int hopSize = windowSize - overlap;
+//     // Calculating hop size:
+//     int hopSize = windowSize - overlap;
 
-    // Calculate outputSize:
-    int outputSize = windowSize / 2;
+//     // Calculate outputSize:
+//     int outputSize = windowSize / 2;
 
-    // Applying sizing:
-    vector<kiss_fft_cpx> sftOutput(windowSize);
-    vector<double> magnitudes(outputSize);
+//     // Applying sizing:
+//     vector<kiss_fft_cpx> sftOutput(windowSize);
+//     vector<double> magnitudes(outputSize);
 
-    for (int i = 0; i + windowSize < inputDataSize; i += hopSize)
-    {
-        magnitudes.clear();
+//     for (int i = 0; i + windowSize < inputDataSize; i += hopSize)
+//     {
+//         magnitudes.clear();
 
-        // Filling array for fft:
-        for (int j = 0; j < windowSize; j++)
-        {
-            stftInput[j].r = inputData[i + j];
-            stftInput[j].i = 0.0;
-        }
+//         // Filling array for fft:
+//         for (int j = 0; j < windowSize; j++)
+//         {
+//             stftInput[j].r = inputData[i + j];
+//             stftInput[j].i = 0.0;
+//         }
 
-        // Apply FFT
-        kiss_fft(stftPlan, stftInput.data(), sftOutput.data());
+//         // Apply FFT
+//         kiss_fft(stftPlan, stftInput.data(), sftOutput.data());
 
-        // Convert complex values to magnitude
-        for (int j = 0; j < outputSize; j++)
-        {
-            double mag = sqrt(sftOutput[j].r * sftOutput[j].r + sftOutput[j].i * sftOutput[j].i);
+//         // Convert complex values to magnitude
+//         for (int j = 0; j < outputSize; j++)
+//         {
+//             double mag = sqrt(sftOutput[j].r * sftOutput[j].r + sftOutput[j].i * sftOutput[j].i);
 
-            magnitudes.push_back(mag);
-        }
+//             magnitudes.push_back(mag);
+//         }
 
-        outputData.push_back(magnitudes);
-    }
+//         outputData.push_back(magnitudes);
+//     }
 
-    // Freeing plan:
-    kiss_fft_free(stftPlan);
-}
+//     // Freeing plan:
+//     kiss_fft_free(stftPlan);
+// }
 
 void performFFTConvolve(const double *inputData, int inputDataSize, const double *symbolData, int symbolSize, vector<double> &outputData)
 {

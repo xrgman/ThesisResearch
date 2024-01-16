@@ -26,6 +26,35 @@ double calculateAverage(const double *data, uint16_t size)
     return sum / size;
 }
 
+double calculateDeviationAverage(const int16_t *data, const int size, const double average)
+{
+    double sumDeviations = 0.0;
+
+    for (int i = 0; i < size; i++)
+    {
+        sumDeviations += abs(data[i] - average);
+    }
+
+    return sumDeviations / size;
+}
+
+/// @brief Calculate the average deviation from a given average.
+/// @param data 
+/// @param size 
+/// @param average 
+/// @return 
+double calculateDeviationAverage(const double *data, const int size, const double average)
+{
+    double sumDeviations = 0.0;
+
+    for (int i = 0; i < size; i++)
+    {
+        sumDeviations += abs(data[i] - average);
+    }
+
+    return sumDeviations / size;
+}
+
 /// @brief Check if a collection contains a negative value.
 /// @param data Data to be checked on negative values.
 /// @param size Size of the data set.

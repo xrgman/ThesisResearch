@@ -33,7 +33,7 @@ vector<Gnuplot> gnuPlots(NUM_CHANNELS);
 ParticleFilter particleFilter;
 MapRenderer mapRenderer;
 
-AudioCodec audioCodec(dataDecodedCallback, SAMPLES_PER_SYMBOL, SF, BW);
+AudioCodec audioCodec(dataDecodedCallback);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool liveDecoding = true;
@@ -131,7 +131,7 @@ void processKeyBoard()
 void openAndPlayWavFile()
 {
     // Reading WAV file:
-    const std::string wavFilePath = "../src/song2.wav";
+    const std::string wavFilePath = "../src/PinkPanther60.wav";
     FILE *fileRead;
 
     if (!openWAVFile(wavFilePath.c_str(), &fileRead, true))
@@ -508,7 +508,7 @@ void decodeMessageConvolution(const char *filename)
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
         for (int i = 0; i < bytesRead; i += 1)
         {
-            audioCodec.decode_convolution(audioData[i], 0); // i % NUM_CHANNELS
+            audioCodec.decode(audioData[i], 0); // i % NUM_CHANNELS
         }
     }
 
@@ -583,8 +583,9 @@ void decodingLiveConvolution()
             return;
         }
 
-        // Looping over all microphones:
-        for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
+        // It works for one microphone, more it becomes too slow :(
+        //  Looping over all microphones:
+        for (uint8_t channel = 0; channel < 2; channel++)
         {
             uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
             int16_t *channelData = audioHelper.audioData[channelIdx];
@@ -592,7 +593,7 @@ void decodingLiveConvolution()
             // Looping over all frames in the buffer:
             for (int i = 0; i < FRAMES_PER_BUFFER; i++)
             {
-                audioCodec.decode_convolution(channelData[i], channel);
+                audioCodec.decode(channelData[i], channel);
             }
         }
 
@@ -622,17 +623,19 @@ int main()
         return 0;
     }
 
-    // openAndPlayWavFile();
+    //openAndPlayWavFile();
     // graphSineWave5FFT();
     // graphInputStream();
     // loadParticleFilter();
-    encodeMessageForAudio("../recordings/convolution/encoding1.wav");
+    //encodeMessageForAudio("../recordings/convolution/encoding1.wav");
 
-    // recordToWavFile("los_90deg_300cm.wav", 7);
-// decodeMessageForAudio("../recordings/recording_180deg.wav");
-    decodeMessageConvolution("../recordings/convolution/encoding1.wav");
+    recordToWavFile("TestOpname.wav", 5);
+
+    openAndPlayWavFile();
+    // decodeMessageForAudio("../recordings/recording_180deg.wav");
+    //decodeMessageConvolution("../recordings/convolution/encoding1.wav");
     //decodingLiveConvolution();
-    // decodingLive();
+    //  decodingLive();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();

@@ -13,12 +13,13 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
     this->sampleRate = sampleRate;
     this->bitsPerSample = bitsPerSample;
     this->numChannels = numChannels;
+
+    this->inputStreamsReceived = 0;
 }
 
 int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
     // We want to put data into the outputbuffer as soon as this one is called.
-    int16_t *inputData = (int16_t *)inputData;
     int16_t *outputData = (int16_t *)outputBuffer;
 
     // Copying over data:
@@ -32,7 +33,7 @@ int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffe
     }
 
     // // Signaling write available:
-    bufferIdx = (bufferIdx + 1 % NUM_BUFFERS);
+    bufferIdx = (bufferIdx + 1) % NUM_BUFFERS;
     writeNext = true;
 
     return paContinue;
@@ -44,13 +45,8 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 {
     // We want to put data into the outputbuffer as soon as this one is called.
     int16_t *inputData = (int16_t *)inputData; // Not uint16_t but int16
-    int16_t *outputData = (int16_t *)outputBuffer;
 
     bool isBatchProcessed = batchProcessed;
-
-    // if(!isBatchProcessed) {
-    //     cout << "BAtch was not processed completely yet!\n";
-    // }
 
     // Grabbing read data:
     for (int i = 0; i < framesPerBuffer; i++)
@@ -63,6 +59,10 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 
     inputDataAvailable = true;
     batchProcessed = false;
+
+    // if(bufferIdx == 1) {
+    //     cout << "Still reading data\n";
+    // }
 
     return paContinue;
 }
@@ -108,34 +108,12 @@ bool AudioHelper::initializeAndOpen()
     // Prepare callback data:
     writeNext = true;
 
-    // Configure and open output stream:
-    PaStreamParameters outputParameters;
-    outputParameters.device = Pa_GetDefaultOutputDevice();
-    outputParameters.channelCount = 1;
-    outputParameters.sampleFormat = getSampleFormat(bitsPerSample);
-    outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
-    outputParameters.hostApiSpecificStreamInfo = nullptr;
-
-    err = Pa_OpenStream(&outputStream, NULL, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paClipOff, &outputCallback, this);
-
-    if (!checkForPaError(err, "output stream opening"))
-    {
-        return false;
-    }
-
-    err = Pa_StartStream(outputStream);
-
-    if (!checkForPaError(err, "output stream start"))
-    {
-        return false;
-    }
-
     // Configure and open input stream:
     PaStreamParameters inputParameters;
-    inputParameters.device = deviceIdx; // Pa_GetDefaultInputDevice(); //
+    inputParameters.device = Pa_GetDefaultInputDevice(); // deviceIdx; // Pa_GetDefaultInputDevice(); //
     inputParameters.channelCount = numChannels;
     inputParameters.sampleFormat = getSampleFormat(bitsPerSample);
-    inputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowInputLatency;
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
     inputParameters.hostApiSpecificStreamInfo = nullptr;
 
     err = Pa_OpenStream(&inputStream, &inputParameters, NULL, sampleRate, FRAMES_PER_BUFFER, paClipOff, &inputCallback, this);
@@ -148,6 +126,30 @@ bool AudioHelper::initializeAndOpen()
     err = Pa_StartStream(inputStream);
 
     if (!checkForPaError(err, "input stream start"))
+    {
+        return false;
+    }
+
+    Pa_Sleep(1000);
+
+    // Configure and open output stream:
+    PaStreamParameters outputParameters;
+    outputParameters.device = Pa_GetDefaultOutputDevice();
+    outputParameters.channelCount = 1;
+    outputParameters.sampleFormat = getSampleFormat(bitsPerSample);
+    outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
+    outputParameters.hostApiSpecificStreamInfo = nullptr;
+
+    err = Pa_OpenStream(&outputStream, NULL, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paNoFlag, &outputCallback, this);
+
+    if (!checkForPaError(err, "output stream opening"))
+    {
+        return false;
+    }
+
+    err = Pa_StartStream(outputStream);
+
+    if (!checkForPaError(err, "output stream start"))
     {
         return false;
     }
@@ -182,23 +184,8 @@ bool AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
 
 bool AudioHelper::stopAndClose(bool stopOnError)
 {
-    // Stop and close input stream:
-    PaError err = Pa_StopStream(outputStream);
-
-    if (stopOnError && !checkForPaError(err, "output stream stop", false))
-    {
-        return false;
-    }
-
-    err = Pa_CloseStream(outputStream);
-
-    if (stopOnError && !checkForPaError(err, "output stream close", false))
-    {
-        return false;
-    }
-
     // Stop and close output stream:
-    err = Pa_StopStream(inputStream);
+    PaError err = Pa_StopStream(inputStream);
 
     if (stopOnError && !checkForPaError(err, "input stream stop", false))
     {
@@ -208,6 +195,21 @@ bool AudioHelper::stopAndClose(bool stopOnError)
     err = Pa_CloseStream(inputStream);
 
     if (stopOnError && !checkForPaError(err, "input stream close", false))
+    {
+        return false;
+    }
+
+    // Stop and close input stream:
+    err = Pa_StopStream(outputStream);
+
+    if (stopOnError && !checkForPaError(err, "output stream stop", false))
+    {
+        return false;
+    }
+
+    err = Pa_CloseStream(outputStream);
+
+    if (stopOnError && !checkForPaError(err, "output stream close", false))
     {
         return false;
     }
@@ -316,50 +318,35 @@ bool AudioHelper::determineMicrophoneOrder()
     }
 
     double averages[numChannels];
-    int8_t lowestAverageIdxs[2];
-    uint8_t iteration = 0;
-    bool found = false;
+    double deviations[numChannels];
 
-    // 0. Calulate the average of each channel:
     for (int channel = 0; channel < numChannels; channel++)
     {
         int16_t *channelData = audioData[channel];
 
+        // 1. Calulate the average of each channel:
         averages[channel] = calculateAverage(channelData, FRAMES_PER_BUFFER);
+
+        // 2. Calulate the average deviation of each channel:
+        deviations[channel] = calculateDeviationAverage(channelData, FRAMES_PER_BUFFER, averages[channel]);
     }
 
-    while (!found)
-    {
-        iteration++;
+    // 3. Finding the two with lowest deviations:
+    uint8_t lowestIdxs[2];
 
-        // 1. Find the lowest average value its index:
-        lowestAverageIdxs[0] = min_element(averages, averages + numChannels) - averages;
+    lowestIdxs[0] = min_element(deviations, deviations + numChannels) - deviations;
 
-        // 2. Set second index to the one before the first, as that channel is always in front:
-        lowestAverageIdxs[1] = ((lowestAverageIdxs[0] - 1) % numChannels + numChannels) % numChannels;
+    deviations[lowestIdxs[0]] = INT16_MAX;
 
-        // 3. Check if the second channel does not contain empty values, just to verify:
-        if (hasNegativeValues(audioData[lowestAverageIdxs[1]], FRAMES_PER_BUFFER, 5))
-        {
-            averages[lowestAverageIdxs[0]] = INT16_MAX;
+    lowestIdxs[1] = min_element(deviations, deviations + numChannels) - deviations;
 
-            if (iteration == numChannels)
-            {
-                return false;
-            }
-
-            continue;
-        }
-
-        found = true;
-    }
-
-    sort(lowestAverageIdxs, lowestAverageIdxs + 2);
+    // 4. Sorting and configuring correct microphone order:
+    sort(lowestIdxs, lowestIdxs + 2);
 
     // Swapping for edge case:
-    if (lowestAverageIdxs[0] == 0 && lowestAverageIdxs[1] == 7)
+    if (lowestIdxs[0] == 0 && lowestIdxs[1] == 7)
     {
-        lowestAverageIdxs[1] = 0;
+        lowestIdxs[1] = 0;
     }
 
     cout << "Microphone order: ";
@@ -367,7 +354,7 @@ bool AudioHelper::determineMicrophoneOrder()
     // Resotring order:
     for (int i = 0; i < numChannels - 2; i++)
     {
-        microphonesOrdered[i] = (lowestAverageIdxs[1] + 1 + i) % (numChannels);
+        microphonesOrdered[i] = (lowestIdxs[1] + 1 + i) % (numChannels);
 
         cout << unsigned(microphonesOrdered[i]) << ", ";
     }

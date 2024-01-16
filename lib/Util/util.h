@@ -7,6 +7,9 @@ double calculateAverage(const uint16_t *data, uint16_t size);
 double calculateAverage(const int16_t *data, uint16_t size);
 double calculateAverage(const double *data, uint16_t size);
 
+double calculateDeviationAverage(const int16_t *data, const int size, const double average);
+double calculateDeviationAverage(const double *data, const int size, const double average);
+
 bool hasNegativeValue(const int16_t *data, uint16_t size);
 bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold);
 

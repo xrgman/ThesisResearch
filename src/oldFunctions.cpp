@@ -108,3 +108,78 @@ void graphSineWave5()
         // }
 
         // cout << "\nNumber of negatives in front collection: " << n << endl;
+
+/*bool AudioHelper::determineMicrophoneOrder()
+{
+    //New way of determining mic order:
+    return determineMicrophoneOrder22K();
+
+    // Skipping if task is already executed once:
+    if (microphonesAreOrdered)
+    {
+        return true;
+    }
+
+    double averages[numChannels];
+    int8_t lowestAverageIdxs[2];
+    uint8_t iteration = 0;
+    bool found = false;
+
+    // 0. Calulate the average of each channel:
+    for (int channel = 0; channel < numChannels; channel++)
+    {
+        int16_t *channelData = audioData[channel];
+
+        averages[channel] = calculateAverage(channelData, FRAMES_PER_BUFFER);
+    }
+
+    while (!found)
+    {
+        iteration++;
+
+        // 1. Find the lowest average value its index:
+        lowestAverageIdxs[0] = min_element(averages, averages + numChannels) - averages;
+
+        // 2. Set second index to the one before the first, as that channel is always in front:
+        lowestAverageIdxs[1] = ((lowestAverageIdxs[0] - 1) % numChannels + numChannels) % numChannels;
+
+        // 3. Check if the second channel does not contain empty values, just to verify:
+        if (hasNegativeValues(audioData[lowestAverageIdxs[1]], FRAMES_PER_BUFFER, 10))
+        {
+            averages[lowestAverageIdxs[0]] = INT16_MAX;
+
+            if (iteration == numChannels)
+            {
+                return false;
+            }
+
+            continue;
+        }
+
+        found = true;
+    }
+
+    sort(lowestAverageIdxs, lowestAverageIdxs + 2);
+
+    // Swapping for edge case:
+    if (lowestAverageIdxs[0] == 0 && lowestAverageIdxs[1] == 7)
+    {
+        lowestAverageIdxs[1] = 0;
+    }
+
+    cout << "Microphone order: ";
+
+    // Resotring order:
+    for (int i = 0; i < numChannels - 2; i++)
+    {
+        microphonesOrdered[i] = (lowestAverageIdxs[1] + 1 + i) % (numChannels);
+
+        cout << unsigned(microphonesOrdered[i]) << ", ";
+    }
+
+    cout << endl;
+
+    microphonesAreOrdered = true;
+
+    return true;
+}*/
