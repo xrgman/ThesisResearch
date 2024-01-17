@@ -15,6 +15,7 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
     this->numChannels = numChannels;
 
     this->inputStreamsReceived = 0;
+    this->batchProcessed = true;
 }
 
 int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
@@ -48,6 +49,11 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 
     bool isBatchProcessed = batchProcessed;
 
+    if (!isBatchProcessed && microphonesAreOrdered)
+    {
+        cout << "Batch was not yet processed!\n";
+    }
+
     // Grabbing read data:
     for (int i = 0; i < framesPerBuffer; i++)
     {
@@ -59,10 +65,6 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 
     inputDataAvailable = true;
     batchProcessed = false;
-
-    // if(bufferIdx == 1) {
-    //     cout << "Still reading data\n";
-    // }
 
     return paContinue;
 }

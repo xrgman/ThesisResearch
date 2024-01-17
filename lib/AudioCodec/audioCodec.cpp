@@ -59,7 +59,7 @@ void AudioCodec::generateConvolutionFields()
     reverse(bit1Flipped, bit1Flipped + SYMBOL_BITS);
 
     // Calculate optimal FFT values (foud using python):
-    convolvePreambleN = 8192;  // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
+    convolvePreambleN = 16384; // 8192;  // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
     convolveBitN = 640;        // 625;        // getNextPowerOf2(DECODING_BIT_BITS * 2 - 1);
 
     fftConfigStoreConvPre = {
@@ -541,7 +541,7 @@ void AudioCodec::fftConvolve(const double *in1, const double *in2, const int siz
     auto t2 = chrono::high_resolution_clock::now();
     auto ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-    cout << "FFT convolve (" << fftConfigStore.N << ") took: " << ms_int.count() << "ns\n";
+    //cout << "FFT convolve (" << fftConfigStore.N << ") took: " << ms_int.count() << "ns\n";
 }
 
 

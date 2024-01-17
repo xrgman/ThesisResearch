@@ -9,13 +9,14 @@
 
 #define CHIRP_AMPLITUDE 1.0 // Was 0.5
 
-#define PREAMBLE_DURATION 0.092879818//0.1857596372 //Make sure the number of bits is 8192
+#define PREAMBLE_DURATION 0.1857596372//0.092879818//0.1857596372 //Make sure the number of bits is 8192
 static const int PREAMBLE_BITS = round(PREAMBLE_DURATION * SAMPLE_RATE);
 
-#define SYMBOL_DURATION 0.0072562358
+//#define SYMBOL_DURATION 0.0072562358 //For 44.1Khz
+#define SYMBOL_DURATION 0.0145124716 //For 22.05Khz
 static const int SYMBOL_BITS = round(SYMBOL_DURATION * SAMPLE_RATE);
 
-#define HOP_SIZE 4096//8192 
+#define HOP_SIZE 4096//8192 +
 
 // Decoding bits for convolution:
 #define DECODING_BITS_COUNT 104
@@ -53,8 +54,6 @@ struct AudioCodecResult
 
 struct AudioCodecDecoding
 {
-    int symbolDecodingPosition;
-
     // Decoding using convolution:
     int processedBitsPosition;
     bool preambleSeen;
@@ -64,9 +63,7 @@ struct AudioCodecDecoding
 
     void reset()
     {
-        symbolDecodingPosition = 0;
-
-        processedBitsPosition = 0;
+        //processedBitsPosition = 0;
         preambleSeen = false;
         decodingBitsPosition = 0;
 

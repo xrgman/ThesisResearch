@@ -6,6 +6,8 @@
 #include <cmath>
 #include <armadillo>
 #include <chrono>
+#include <string>
+#include <poll.h>
 
 #include "main.h"
 #include "wavHelper.h"
@@ -204,6 +206,8 @@ void recordToWavFile(const char *filename, const int seconds)
                 dataToWrite.push_back(channelData[sample]);
             }
         }
+
+        audioHelper.signalBatchProcessed();
 
         iteration++;
     }
@@ -512,6 +516,9 @@ void decodeMessageConvolution(const char *filename)
         }
     }
 
+    // Clear the end-of-file indicator
+    clearerr(fileRead);
+
     // Closing file:
     fclose(fileRead);
 
@@ -585,7 +592,7 @@ void decodingLiveConvolution()
 
         // It works for one microphone, more it becomes too slow :(
         //  Looping over all microphones:
-        for (uint8_t channel = 0; channel < 2; channel++)
+        for (uint8_t channel = 0; channel < 4; channel++)
         {
             uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
             int16_t *channelData = audioHelper.audioData[channelIdx];
@@ -598,6 +605,87 @@ void decodingLiveConvolution()
         }
 
         audioHelper.signalBatchProcessed();
+    }
+}
+
+void handleKeyboardInput()
+{
+    bool keepProcessing = true;
+    string input;
+
+    struct pollfd fd;
+    fd.fd = STDIN_FILENO;
+    fd.events = POLLIN;
+
+    while (keepProcessing)
+    {
+        int ready = poll(&fd, 1, 0);
+
+        if (ready > 0)
+        {
+            // Reading the newly inputted line by the user:
+            getline(cin, input);
+
+            // Splitting readed input into words:
+            istringstream iss(input);
+            vector<string> words;
+
+            while (iss >> input)
+            {
+                words.push_back(input);
+            }
+
+            // Quit command:
+            if (words[0] == "q" || words[0] == "Q")
+            {
+                keepProcessing = false;
+
+                continue;
+            }
+
+            // Record command:
+            if (words[0] == "r" || words[0] == "R")
+            {
+                const char *filename = words[1].c_str();
+                int duration = stoi(words[2]);
+
+                cout << "Starting recording to file " << filename << " for " << duration << " seconds\n";
+
+                recordToWavFile(filename, duration);
+
+                continue;
+            }
+
+            // Encode message:
+            if (words[0] == "e" || words[0] == "E")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Starting encoding to file " << filename << endl;
+
+                encodeMessageForAudio(filename);
+
+                continue;
+            }
+
+            // Decode message:
+            if (words[0] == "d" || words[0] == "D")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Starting decoding of file " << filename << endl;
+
+                decodeMessageConvolution(filename);
+
+                continue;
+            }
+        }
+
+        // Marking batch as processed, to overcome spamming the console:
+        if (audioHelper.readNextBatch())
+        {
+            audioHelper.signalBatchProcessed();
+        }
     }
 }
 
@@ -623,19 +711,37 @@ int main()
         return 0;
     }
 
-    //openAndPlayWavFile();
-    // graphSineWave5FFT();
-    // graphInputStream();
-    // loadParticleFilter();
-    //encodeMessageForAudio("../recordings/convolution/encoding1.wav");
+    // Determining microphone order when first batch is received:
+    while (!audioHelper.readNextBatch())
+    {
+        usleep(1);
+    }
 
-    recordToWavFile("TestOpname.wav", 5);
+    audioHelper.setNextBatchRead();
 
-    openAndPlayWavFile();
+    // Determine order of microphones, only executed once:
+    if (!audioHelper.determineMicrophoneOrder())
+    {
+        cout << "Failed to determine microphone order! Stopping program.\n";
+
+        return 0;
+    }
+
+    audioHelper.signalBatchProcessed();
+
+    handleKeyboardInput();
+
+    // openAndPlayWavFile();
+    //  graphSineWave5FFT();
+    //  graphInputStream();
+    //  loadParticleFilter();
+    // encodeMessageForAudio("../recordings/convolution/encoding1.wav");
+
+    // recordToWavFile("TestOpname.wav", 5);
+
     // decodeMessageForAudio("../recordings/recording_180deg.wav");
-    //decodeMessageConvolution("../recordings/convolution/encoding1.wav");
-    //decodingLiveConvolution();
-    //  decodingLive();
+    // decodeMessageConvolution("../recordings/convolution/encoding1.wav");
+    // decodingLiveConvolution();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();
