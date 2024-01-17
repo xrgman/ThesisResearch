@@ -33,13 +33,6 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
     fillArrayWithZeros(startReadingPosition, NUM_CHANNELS);
 }
 
-/// @brief Get the size in bits of the hello world encoding.
-/// @return Size.
-int AudioCodec::getEncodingSizeHelloWorld()
-{
-    return PREAMBLE_BITS + (SYMBOL_BITS * DECODING_BITS_COUNT) + 10;
-}
-
 void AudioCodec::generateConvolutionFields()
 {
     // Calculate duration per bit:
@@ -59,8 +52,8 @@ void AudioCodec::generateConvolutionFields()
     reverse(bit1Flipped, bit1Flipped + SYMBOL_BITS);
 
     // Calculate optimal FFT values (foud using python):
-    convolvePreambleN = 16384; // 8192;  // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
-    convolveBitN = 640;        // 625;        // getNextPowerOf2(DECODING_BIT_BITS * 2 - 1);
+    int convolvePreambleN = 8192; // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
+    int convolveBitN = 640;       // 625;        // getNextPowerOf2(DECODING_BIT_BITS * 2 - 1);
 
     fftConfigStoreConvPre = {
         PREAMBLE_BITS * 2 - 1,
@@ -75,8 +68,8 @@ void AudioCodec::generateConvolutionFields()
         kiss_fft_alloc(convolveBitN, 1, nullptr, nullptr)};
 
     // Creating FFT config stores for the hilbert transform:
-    int hilbertPreambleN = getNextPowerOf2(PREAMBLE_BITS);
-    int hilbertBitsN = getNextPowerOf2(SYMBOL_BITS);
+    // int hilbertPreambleN = getNextPowerOf2(PREAMBLE_BITS);
+    // int hilbertBitsN = getNextPowerOf2(SYMBOL_BITS);
 
     fftConfigStoreHilPre = {
         PREAMBLE_BITS,
@@ -95,37 +88,61 @@ void AudioCodec::generateConvolutionFields()
 //******** Encoding *******************************
 //*************************************************
 
-void AudioCodec::encode(int16_t *output, int outputSize, uint8_t senderId) // Output is a array containing the bytes to be sent?
+/// @brief Get the number of bits that are encoded.
+/// @return Number of bits in encoded message.
+int AudioCodec::getNumberOfBits()
 {
-    double outputBuffer[outputSize];
-    // Fetching the list with symbols to be used for this robot (TODO, base it on the sender id):
+    // Robot ID + Message ID + Data + CRC
+    return 8 + 8 + 64 + 8;
+}
 
-    // Initialize output array with zeros:
-    fillArrayWithZeros(outputBuffer, outputSize);
+/// @brief Get the size in bits of the hello world encoding.
+/// @return Size.
+int AudioCodec::getEncodingSize()
+{
+    return PREAMBLE_BITS + (getNumberOfBits() * SYMBOL_BITS);
+}
 
-    // Encode preamble to the front of the message
-    encodePreamble(outputBuffer, false);
-    int preambleOffset = SAMPLE_RATE * PREAMBLE_DURATION;
+void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType)
+{
+    const uint16_t dataLength = getNumberOfBits();
+    const int preambleLength = PREAMBLE_BITS;
+    const int outputLength = preambleLength + (dataLength * SYMBOL_BITS);
+
+    // 1. Creating data array, containing all data to be send:
+    uint8_t data[dataLength];
 
     // Encode sender id:
-    // uint8_t senderIdBits[8];
-    // uint8ToBits(senderId, senderIdBits);
+    uint8ToBits(senderId, &data[0]);
 
-    // Test with hello world as data:
-    const char *text = "Hello, World!";
-    const int size = 13;
-    uint8_t dataBits[13 * 8];
+    // Encode message type id:
+    uint8ToBits(messageType, &data[8]);
 
-    // Almost the same, but still different because python code does it in reverse
-    stringToBits(text, size, dataBits);
+    // Encoding data:
+    if (messageType == ENCODING_TEST)
+    {
+        const char *testData = "Banaan!!";
+        stringToBits(testData, 8, &data[16]);
+    }
 
-    bitsToChirp(&outputBuffer[preambleOffset], dataBits, 104, symbols, NUMBER_OF_SUB_CHIRPS);
+    // Calculate and add CRC:
+    uint8_t crc = calculateCRC(data, dataLength - 8);
+    uint8ToBits(crc, &data[dataLength - 8]);
 
-    // Calculate CRC:
-    // TODO
+    // 2. Prepare the output buffer:
+    double outputBuffer[outputLength];
 
-    // Convert outputBuffer to int16:
-    for (int i = 0; i < outputSize; i++)
+    // Initialize output array with zeros:
+    fillArrayWithZeros(outputBuffer, outputLength);
+
+    // 3. Encode preamble to the front of the message
+    encodePreamble(outputBuffer, false);
+
+    // 4. Encode the data:
+    bitsToChirp(&outputBuffer[preambleLength], data, dataLength, symbols, NUMBER_OF_SUB_CHIRPS);
+
+    // 5. Convert outputBuffer to int16:
+    for (int i = 0; i < outputLength; i++)
     {
         output[i] = doubleToInt16(outputBuffer[i]);
     }
@@ -205,7 +222,7 @@ void AudioCodec::bitsToChirp(double *output, uint8_t *bits, int numberOfBits, Au
 /// @param duration Duration of the chirp.
 void AudioCodec::generateChirp(double *output, AudioCodecFrequencyPair frequencies, double duration)
 {
-    int size = SAMPLE_RATE * duration;
+    int size = round(SAMPLE_RATE * duration);
 
     for (int i = 0; i < size; i++)
     {
@@ -291,6 +308,24 @@ double AudioCodec::getMinSymbolTime(int numberOfSubChirps, int requiredNumberOfC
     double subChirpMax = frequencies.startFrequency + ((frequencies.stopFrequency - frequencies.startFrequency) / numberOfSubChirps);
 
     return ((2 * requiredNumberOfCycles) / (frequencies.startFrequency + subChirpMax)) * numberOfSubChirps;
+}
+
+/// @brief Calculate the XOR checksum.
+/// @param data Array of data to calculate checksum over;
+/// @param size Size of the array.
+/// @return Checksum of the data.
+uint8_t AudioCodec::calculateCRC(const uint8_t *data, const int size)
+{
+    uint8_t checkSum = 0;
+
+    for (int i = 0; i < size; i += 8)
+    {
+        uint8_t byte = bitsToUint8(&data[i]);
+
+        checkSum ^= byte;
+    }
+
+    return checkSum;
 }
 
 //*************************************************
@@ -410,9 +445,9 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         decodingStore[microphoneId].decodingBitsPosition += SYMBOL_BITS;
 
         // Checking if all bits are received:
-        if (decodingResult.decodedBitsCnt >= DECODING_BITS_COUNT)
+        if (decodingResult.decodedBitsCnt >= getNumberOfBits())
         {
-            finishDecoding();
+            completeDecoding();
         }
     }
 }
@@ -485,6 +520,43 @@ int AudioCodec::decodeBit(const double *window, const int windowSize)
     return max0 > max1 ? 0 : 1;
 }
 
+void AudioCodec::completeDecoding()
+{
+    // Decoding CRC and checking if message was received successfully:
+    uint8_t crcInMessage = bitsToUint8(&decodingResult.decodedBits[getNumberOfBits() - 8]);
+    uint8_t crcCalculated = calculateCRC(decodingResult.decodedBits, getNumberOfBits() - 8);
+
+    if (crcInMessage != crcCalculated)
+    {
+        cout << "CRC mismatch, dropping message!\n";
+
+        return;
+    }
+
+    // Decoding robot ID of sender:
+    decodingResult.senderId = bitsToUint8(&decodingResult.decodedBits[0]);
+
+    // Decoding message Type:
+    decodingResult.messageType = (AudioCodedMessageType)bitsToUint8(&decodingResult.decodedBits[8]);
+
+    // Putting data in the correct array:
+    for (int i = 0; i < DECODING_DATA_BITS; i++)
+    {
+        decodingResult.decodedData[i] = decodingResult.decodedBits[16 + i];
+    }
+
+    // Return data to callback:
+    data_decoded_callback(decodingResult);
+
+    // Resetting all fields:
+    decodingResult.reset();
+
+    for (uint8_t i = 0; i < NUM_CHANNELS; i++)
+    {
+        decodingStore[i].reset();
+    }
+}
+
 //*************************************************
 //******** General ********************************
 //*************************************************
@@ -539,11 +611,12 @@ void AudioCodec::fftConvolve(const double *in1, const double *in2, const int siz
     }
 
     auto t2 = chrono::high_resolution_clock::now();
-    auto ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+    chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-    //cout << "FFT convolve (" << fftConfigStore.N << ") took: " << ms_int.count() << "ns\n";
+    int tes = ms_int.count();
+
+    // cout << "FFT convolve (" << fftConfigStore.N << ") took: " << ms_int.count() << "ns\n";
 }
-
 
 // Transgform is size dependent!
 // TODO make it work for optimal value of N :(
@@ -555,7 +628,7 @@ void AudioCodec::fftConvolve(const double *in1, const double *in2, const int siz
 /// @param size Size of the input array.
 void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size, FFTConfigStore fftConfigStore)
 {
-    //auto t1 = chrono::high_resolution_clock::now();
+    // auto t1 = chrono::high_resolution_clock::now();
 
     // 1. Perform FFT on input data:
     kiss_fft_cpx fftInput[size];
@@ -604,12 +677,11 @@ void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size, FF
     // 3. Calculate inverse FFT of step 2 result and returns first n elements of the result:
     performFFT(fftConfigStore.fftConfigInv, fftInput, output, size, true);
 
-
     // auto t2 = chrono::high_resolution_clock::now();
     // auto ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-    //cout << "" << ms_int.count() << "\n";
-    //cout << "Hilbert (" << size << ") took: " << ms_int.count() << "ns\n";
+    // cout << "" << ms_int.count() << "\n";
+    // cout << "Hilbert (" << size << ") took: " << ms_int.count() << "ns\n";
 }
 
 /// @brief Fills the output array with evenly spaced values between the start and stop value
@@ -664,21 +736,6 @@ void AudioCodec::createSinWaveFromFreqs(const double *input, double *output, con
 //******** General decoding functions *************
 //*************************************************
 
-/// @brief Function that is called as soon as all data is received, resets the decoding parameters.
-void AudioCodec::finishDecoding()
-{
-    // Return data to callback:
-    data_decoded_callback(decodingResult);
-
-    // Resetting all fields:
-    decodingResult.reset();
-
-    for (uint8_t i = 0; i < NUM_CHANNELS; i++)
-    {
-        decodingStore[i].reset();
-    }
-}
-
 /// @brief Calulate the DOA of the sound signal based on the different arrival times of the preamble at each microphone.
 /// @param arrivalTimes The arrival times of the signal.
 /// @param numChannels Number of channels used.
@@ -726,3 +783,4 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 
     return round((360 - angle_mean) * 1000.0) / 1000.0;
 }
+

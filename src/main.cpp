@@ -60,32 +60,27 @@ void sigIntHandler(int signum)
 
 void dataDecodedCallback(AudioCodecResult result)
 {
-    // Stop timer:
+    // Stoping timer and showing processing time:
     auto decodingStop = chrono::high_resolution_clock::now();
     auto ms_int = chrono::duration_cast<chrono::milliseconds>(decodingStop - decodingStart);
 
     cout << "Decoding data took: " << ms_int.count() << "ms\n";
 
-    // For now, printing found symbols:
-    // cout << "Found symbols: ";
-
-    // for (int i = 0; i < SYMBOLS_DATA_COUNT; i++)
-    // {
-    //     cout << result.decodedSymbols[i] << ", ";
-    // }
-
-    // cout << endl;
-
+    // Showing direction of arrival:
     cout << "DOA: " << result.doa << " degrees\n";
 
-    // For test decode into string:
-    if (result.decodedBitsCnt > 0)
+    // Handling data:
+    if (result.messageType == ENCODING_TEST)
     {
-        char message[result.decodedBitsCnt / 8];
+        char receivcedData[DECODING_DATA_BITS];
 
-        bitsToString(result.decodedBits, result.decodedBitsCnt, message);
+        bitsToString(result.decodedData, DECODING_DATA_BITS, receivcedData);
 
-        cout << "Received message: " << message << endl;
+        cout << "Received: " << receivcedData << endl;
+    }
+    else
+    {
+        cout << "Received message type not yet implemented!";
     }
 
     liveDecoding = false;
@@ -434,17 +429,19 @@ void loadParticleFilter()
 void encodeMessageForAudio(const char *filename)
 {
     // Create array and fill it with zeros:
-    int size = audioCodec.getEncodingSizeHelloWorld();
+    int size = audioCodec.getEncodingSize();
 
     int16_t codedAudioData[size];
 
     fillArrayWithZeros(codedAudioData, size);
 
     // Encode the message:
-    audioCodec.encode(codedAudioData, size, ROBOT_ID);
+    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
 
     // Write data to file:
     writeWavFile(filename, codedAudioData, size, SAMPLE_RATE, 16, 1);
+
+    cout << "Successfully encoded message into file: " << filename << endl;
 
     // STEP 1: Use audioCoded.Encode to create the message to be sent -> Check if this does not generate an array thats way too big.....
     // Step 2: During the loop, send X bytes to audioHelper every iteration.

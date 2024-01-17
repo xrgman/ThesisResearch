@@ -2,6 +2,9 @@
 #define UTIL_H
 
 #include "main.h"
+#include <chrono>
+
+using namespace std;
 
 double calculateAverage(const uint16_t *data, uint16_t size);
 double calculateAverage(const int16_t *data, uint16_t size);
@@ -32,7 +35,10 @@ int16_t doubleToInt16(double value);
 double int16ToDouble(int16_t value);
 
 void uint8ToBits(uint8_t value, uint8_t bits[8]);
-uint8_t bitsToUint8(uint8_t bits[8]);
+uint8_t bitsToUint8(const uint8_t bits[8]);
+
+void nanosecondsToBits(chrono::nanoseconds nanoseconds, uint8_t bits[64]);
+chrono::nanoseconds bitsToNanoseconds(uint8_t bits[64]);
 
 void stringToBits(const char *data, int size, uint8_t *bits);
 void bitsToString(const uint8_t *bits, const int nrOfBits, char *output);

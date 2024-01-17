@@ -3,7 +3,7 @@
 #include <iostream>
 #include <map>
 
-using namespace std;
+
 
 double calculateAverage(const uint16_t *data, uint16_t size)
 {
@@ -39,10 +39,10 @@ double calculateDeviationAverage(const int16_t *data, const int size, const doub
 }
 
 /// @brief Calculate the average deviation from a given average.
-/// @param data 
-/// @param size 
-/// @param average 
-/// @return 
+/// @param data
+/// @param size
+/// @param average
+/// @return
 double calculateDeviationAverage(const double *data, const int size, const double average)
 {
     double sumDeviations = 0.0;
@@ -243,6 +243,9 @@ double int16ToDouble(int16_t value)
     return static_cast<double>(value) / INT16_MAX;
 }
 
+/// @brief Transform an uint8_t value into an array of 8 bits.
+/// @param value Value to be transformed into bits.
+/// @param bits Bit representation of the value.
 void uint8ToBits(uint8_t value, uint8_t bits[8])
 {
     for (uint8_t i = 0; i < 8; i++)
@@ -254,16 +257,47 @@ void uint8ToBits(uint8_t value, uint8_t bits[8])
 /// @brief Transform an array of 8 bits into 1 byte.
 /// @param bits Input array of bits, representing one byte.
 /// @return The byte represented by the bits.
-uint8_t bitsToUint8(uint8_t bits[8])
+uint8_t bitsToUint8(const uint8_t bits[8])
 {
     uint8_t byte = 0;
 
-    for (int i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
     {
         byte |= (bits[i] << 7 - i);
     }
 
     return byte;
+}
+
+/// @brief Transform an chrono nanoseconds object into an array of 64 bits.
+/// @param nanoseconds Nanoseconds to be transformed into bits.
+/// @param bits Bit representation of the nanoseconds.
+void nanosecondsToBits(chrono::nanoseconds nanoseconds, uint8_t bits[64])
+{
+    auto count = nanoseconds.count();
+
+    for (uint8_t i = 0; i < 64; i++)
+    {
+        bits[63 - i] = (count & (1LL << i)) != 0;
+    }
+}
+
+/// @brief Transform an array of 64 bits into an nanaoseconds object.
+/// @param bits Bits representing the nanoseonds.
+/// @return Nanoseconds.
+chrono::nanoseconds bitsToNanoseconds(uint8_t bits[64])
+{
+    chrono::nanoseconds nanoseconds(0);
+
+    for (uint8_t i = 0; i < 64; i++)
+    {
+        if (bits[63 - i])
+        {
+            nanoseconds += chrono::nanoseconds(1LL << i);
+        }
+    }
+
+    return nanoseconds;
 }
 
 /// @brief Transform a string into an array of bits.

@@ -91,23 +91,23 @@ void graphSineWave5()
     gp.send1d(data);
 }
 
- // cout << "Checking audiodata at index " << unsigned(lowestAverageIdxs[1]) << ", Data origial (" << unsigned(lowestAverageIdxs[0]) << ", average: " << unsigned(averages[lowestAverageIdxs[0]]) << "): ";
+// cout << "Checking audiodata at index " << unsigned(lowestAverageIdxs[1]) << ", Data origial (" << unsigned(lowestAverageIdxs[0]) << ", average: " << unsigned(averages[lowestAverageIdxs[0]]) << "): ";
 
-        // int n = 0;
+// int n = 0;
 
-        // for (int i = 0; i < FRAMES_PER_BUFFER; i++)
-        // {
-        //     if (i < 20)
-        //     {
-        //         cout << audioData[lowestAverageIdxs[0]][i] << ", ";
-        //     }
+// for (int i = 0; i < FRAMES_PER_BUFFER; i++)
+// {
+//     if (i < 20)
+//     {
+//         cout << audioData[lowestAverageIdxs[0]][i] << ", ";
+//     }
 
-        //     if(audioData[lowestAverageIdxs[1]][i] < 0) {
-        //         n++;
-        //     }
-        // }
+//     if(audioData[lowestAverageIdxs[1]][i] < 0) {
+//         n++;
+//     }
+// }
 
-        // cout << "\nNumber of negatives in front collection: " << n << endl;
+// cout << "\nNumber of negatives in front collection: " << n << endl;
 
 /*bool AudioHelper::determineMicrophoneOrder()
 {
@@ -183,3 +183,11 @@ void graphSineWave5()
 
     return true;
 }*/
+
+// // Test with hello world as data:
+// const char *text = "Hello, World!";
+// const int size = 13;
+// uint8_t dataBits[13 * 8];
+
+// // Almost the same, but still different because python code does it in reverse
+// stringToBits(text, size, dataBits);
