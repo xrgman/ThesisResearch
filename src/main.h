@@ -16,7 +16,7 @@ T positive_modulo(T val, T mod) {
 #define NUM_CHANNELS_RAW 8
 #define NUM_CHANNELS 6
 
-#define FRAMES_PER_BUFFER 2205 //1024
+#define FRAMES_PER_BUFFER 2304 //1024
 
 #define DIAMETER_WHEEL 12 //12CM
 

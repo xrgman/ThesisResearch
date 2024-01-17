@@ -27,10 +27,14 @@ int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffe
     if (bufferIdx == 0)
     {
         copy(buffer1, buffer1 + FRAMES_PER_BUFFER, outputData);
+
+        fillArrayWithZeros(buffer1, FRAMES_PER_BUFFER);
     }
     else
     {
         copy(buffer2, buffer2 + FRAMES_PER_BUFFER, outputData);
+
+        fillArrayWithZeros(buffer2, FRAMES_PER_BUFFER);
     }
 
     // // Signaling write available:
@@ -171,15 +175,6 @@ bool AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
     {
         copy(audioData, audioData + nrOfBytes, buffer2);
     }
-
-    // err = Pa_WriteStream(stream, buffer, nrOfBytes); // Send few bytes at a time
-
-    // if (err != paNoError)
-    // {
-    //     cerr << "PortAudio write failed: " << Pa_GetErrorText(err) << '\n';
-
-    //     return false;
-    // }
 
     return true;
 }

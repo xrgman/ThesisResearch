@@ -102,7 +102,7 @@ WavHeader createWavHeader(uint32_t sampleRate, uint16_t bitsPerSample, uint16_t 
 bool openWAVFile(const char *filename, FILE **fileRead, bool printHeader)
 {
     // Opening file and checking if it was successfull:
-    if (!openFile(filename, fileRead, "r"))
+    if (!openFile(filename, fileRead, "rb"))
     {
         return false;
     }
@@ -129,7 +129,7 @@ bool openWAVFile(const char *filename, FILE **fileRead, bool printHeader)
 void writeWavFile(const char *filename, const int16_t* data, int size, uint32_t sampleRate, uint16_t bitsPerSample, uint16_t numChannels)
 {
     // Opening file:
-    FILE *file = fopen(filename, "w");
+    FILE *file = fopen(filename, "wb");
 
     if (!file)
     {

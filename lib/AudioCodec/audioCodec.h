@@ -1,8 +1,11 @@
 #ifndef AUDIOCODEC_H
 #define AUDIOCODEC_H
 
+#include <chrono>
+
 #include "main.h"
 #include "fftWrapper.h"
+
 
 #define AUDIO_CODEC_SIZE 44100
 #define NUMBER_OF_SUB_CHIRPS 8
@@ -113,6 +116,7 @@ public:
 
     int getEncodingSize();
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType);
+    void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, chrono::nanoseconds processingTime);
 
     void decode(int16_t bit, uint8_t microphoneId);
 
@@ -127,6 +131,7 @@ private:
 
     // ENCODING:
     int getNumberOfBits();
+    void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits);
     void encodePreamble(double *output, bool flipped);
 
     void bitToChirp(double *output, uint8_t bit, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration);

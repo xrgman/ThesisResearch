@@ -37,6 +37,8 @@ double int16ToDouble(int16_t value);
 void uint8ToBits(uint8_t value, uint8_t bits[8]);
 uint8_t bitsToUint8(const uint8_t bits[8]);
 
+void uint8CollectionToBits(uint8_t *array, const int size, uint8_t *bits);
+
 void nanosecondsToBits(chrono::nanoseconds nanoseconds, uint8_t bits[64]);
 chrono::nanoseconds bitsToNanoseconds(uint8_t bits[64]);
 

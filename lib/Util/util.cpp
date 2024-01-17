@@ -3,8 +3,6 @@
 #include <iostream>
 #include <map>
 
-
-
 double calculateAverage(const uint16_t *data, uint16_t size)
 {
     double sum = accumulate(data, data + size, 0.0);
@@ -267,6 +265,18 @@ uint8_t bitsToUint8(const uint8_t bits[8])
     }
 
     return byte;
+}
+
+/// @brief Transform a whole collection of uint8_t values into an array of bits.
+/// @param array 
+/// @param size 
+/// @param bits 
+void uint8CollectionToBits(uint8_t *array, const int size, uint8_t *bits)
+{
+    for (int j = 0; j < size; j++)
+    {
+        uint8ToBits(array[j], &bits[j * 8]);
+    }
 }
 
 /// @brief Transform an chrono nanoseconds object into an array of 64 bits.

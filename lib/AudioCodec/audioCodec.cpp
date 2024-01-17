@@ -3,7 +3,6 @@
 
 #include <cmath>
 #include <iostream>
-#include <chrono>
 
 #include "gnuplot-iostream.h"
 
@@ -105,6 +104,44 @@ int AudioCodec::getEncodingSize()
 
 void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType)
 {
+    uint8_t dataBits[64];
+
+    if (messageType == ENCODING_TEST)
+    {
+        const char *testData = "Banaan!!";
+        stringToBits(testData, 8, dataBits);
+    }
+    else if (messageType == LOCALIZATION1 || messageType == LOCALIZATION2)
+    {
+        uint8_t dummyData[8] = {0};
+
+        uint8CollectionToBits(dummyData, 8, dataBits);
+    }
+
+    encode(output, senderId, messageType, dataBits);
+}
+
+// TODO add check for message type!
+void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, chrono::nanoseconds processingTime)
+{
+    uint8_t dataBits[64];
+
+    if (messageType != LOCALIZATION3)
+    {
+        cout << "Wrong message type for this kind of data stopping encoding!\n";
+
+        return;
+    }
+
+    // Transforming the processing time into bits:
+    nanosecondsToBits(processingTime, dataBits);
+
+    // Performing encoding as normal:
+    encode(output, senderId, messageType, dataBits);
+}
+
+void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits)
+{
     const uint16_t dataLength = getNumberOfBits();
     const int preambleLength = PREAMBLE_BITS;
     const int outputLength = preambleLength + (dataLength * SYMBOL_BITS);
@@ -119,10 +156,9 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     uint8ToBits(messageType, &data[8]);
 
     // Encoding data:
-    if (messageType == ENCODING_TEST)
+    for (int i = 0; i < 64; i++)
     {
-        const char *testData = "Banaan!!";
-        stringToBits(testData, 8, &data[16]);
+        data[16 + i] = dataBits[i];
     }
 
     // Calculate and add CRC:
@@ -783,4 +819,3 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 
     return round((360 - angle_mean) * 1000.0) / 1000.0;
 }
-

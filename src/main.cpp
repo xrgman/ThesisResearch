@@ -72,11 +72,17 @@ void dataDecodedCallback(AudioCodecResult result)
     // Handling data:
     if (result.messageType == ENCODING_TEST)
     {
-        char receivcedData[DECODING_DATA_BITS];
+        char receivcedData[DECODING_DATA_BITS / 8];
 
         bitsToString(result.decodedData, DECODING_DATA_BITS, receivcedData);
 
         cout << "Received: " << receivcedData << endl;
+    }
+    else if (result.messageType == LOCALIZATION3)
+    {
+        chrono::nanoseconds processingTime = bitsToNanoseconds(result.decodedData);
+
+        cout << "Processing time was: " << processingTime.count() << "ns\n";
     }
     else
     {
@@ -125,13 +131,12 @@ void processKeyBoard()
     }
 }
 
-void openAndPlayWavFile()
+void openAndPlayWavFile(const char *filename)
 {
     // Reading WAV file:
-    const std::string wavFilePath = "../src/PinkPanther60.wav";
     FILE *fileRead;
 
-    if (!openWAVFile(wavFilePath.c_str(), &fileRead, true))
+    if (!openWAVFile(filename, &fileRead, true))
     {
         cout << "Failed to open WAV file...\n";
     }
@@ -605,6 +610,81 @@ void decodingLiveConvolution()
     }
 }
 
+/// @brief Send 3 messages, which can be used to calculate the distance between robots.
+void sendDistanceMessage()
+{
+    int size = audioCodec.getEncodingSize();
+
+    int16_t codedAudioData[size];
+
+    // Encode the first message:
+    audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION1);
+
+    // Send the first message:
+    for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
+    {
+        // Waiting for batch to be written:
+        while (!audioHelper.writeNextBatch())
+        {
+            usleep(1);
+        }
+
+        if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
+        {
+            cout << "Something went wrong when trying to send encoded message.\n";
+
+            return;
+        }
+    }
+
+    auto processingTimeStart = chrono::high_resolution_clock::now();
+
+    // Encode the second message:
+    audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION2);
+
+    // Send the second message:
+    for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
+    {
+        // Waiting for batch to be written:
+        while (!audioHelper.writeNextBatch())
+        {
+            usleep(1);
+        }
+
+        if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
+        {
+            cout << "Something went wrong when trying to send encoded message.\n";
+
+            return;
+        }
+    }
+
+    auto processingTimeStop = chrono::high_resolution_clock::now();
+    chrono::nanoseconds processingTime = chrono::duration_cast<chrono::nanoseconds>(processingTimeStop - processingTimeStart);
+
+    // Encode the thirth message:
+    audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION3, processingTime);
+
+    // Send the thirth message:
+    for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
+    {
+        // Waiting for batch to be written:
+        while (!audioHelper.writeNextBatch())
+        {
+            usleep(1);
+        }
+
+        if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
+        {
+            cout << "Something went wrong when trying to send encoded message.\n";
+
+            return;
+        }
+    }
+
+    cout << "Successfully send out the three localization chirps.\n";
+}
+
 void handleKeyboardInput()
 {
     bool keepProcessing = true;
@@ -653,6 +733,18 @@ void handleKeyboardInput()
                 continue;
             }
 
+            // Play wav file:
+            if (words[0] == "p" || words[0] == "P")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Start playing file " << filename << "\n";
+
+                openAndPlayWavFile(filename);
+
+                continue;
+            }
+
             // Encode message:
             if (words[0] == "e" || words[0] == "E")
             {
@@ -673,6 +765,16 @@ void handleKeyboardInput()
                 cout << "Starting decoding of file " << filename << endl;
 
                 decodeMessageConvolution(filename);
+
+                continue;
+            }
+
+            // Sending three messages needed for distance determination.
+            if (words[0] == "se")
+            {
+                cout << "Sending distance calculation messages.\n";
+
+                sendDistanceMessage();
 
                 continue;
             }
