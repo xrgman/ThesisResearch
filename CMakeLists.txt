@@ -35,9 +35,6 @@ include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS})
 find_package(Boost COMPONENTS iostreams REQUIRED)
 find_package(Threads REQUIRED)
 
-# Find Armadillo package
-find_package(Armadillo REQUIRED PATHS /usr/lib/arm-linux-gnueabihf/libarmadillo.so)
-
 #Creating executable
 add_executable( demo src/main.cpp )  
 
