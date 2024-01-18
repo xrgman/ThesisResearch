@@ -26,3 +26,4 @@
 sudo apt-get install libsdl2-dev
 sudo apt-get install libsdl2-ttf-dev
 sudo apt-get install libboost-all-dev
+sudo apt-get install libgnuplot-iostream-dev

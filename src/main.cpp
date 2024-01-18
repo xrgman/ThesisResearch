@@ -4,7 +4,6 @@
 #include <thread>
 #include <SDL2/SDL.h>
 #include <cmath>
-#include <chrono>
 #include <string>
 #include <poll.h>
 
@@ -137,6 +136,8 @@ void openAndPlayWavFile(const char *filename)
     if (!openWAVFile(filename, &fileRead, true))
     {
         cout << "Failed to open WAV file...\n";
+
+        return;
     }
 
     // Reading successfull, so playing it:
