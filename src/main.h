@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <cmath>
 
+#define PRINT_CODED_BITS
+
 template <typename T>
 
 T positive_modulo(T val, T mod) {

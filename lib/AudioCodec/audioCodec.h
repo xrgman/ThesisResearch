@@ -186,7 +186,7 @@ private:
     void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, FFTConfigStore fftConfigStoreConvolve, FFTConfigStore fftConfigStoreHilbert);
     int decodeBit(const double *window, const int windowSize);
 
-    void completeDecoding();
+    void completeDecoding(const int startIndex, const int numberOfBits);
 
     // General decoding functions:
     double calculateDOA(const int *arrivalTimes, const int numChannels);

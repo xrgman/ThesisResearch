@@ -91,8 +91,8 @@ void AudioCodec::generateConvolutionFields()
 /// @return Number of bits in encoded message.
 int AudioCodec::getNumberOfBits()
 {
-    // Robot ID + Message ID + Data + CRC
-    return 8 + 8 + 64 + 8;
+    //PADDING + Robot ID + Message ID + Data + CRC
+    return 8 + 8 + 8 + 64 + 8;
 }
 
 /// @brief Get the size in bits of the hello world encoding.
@@ -149,21 +149,36 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     // 1. Creating data array, containing all data to be send:
     uint8_t data[dataLength];
 
+    // Encode padding (1's):
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        data[i] = 1;
+    }
+
     // Encode sender id:
-    uint8ToBits(senderId, &data[0]);
+    uint8ToBits(senderId, &data[8]);
 
     // Encode message type id:
-    uint8ToBits(messageType, &data[8]);
+    uint8ToBits(messageType, &data[16]);
 
     // Encoding data:
     for (int i = 0; i < 64; i++)
     {
-        data[16 + i] = dataBits[i];
+        data[24 + i] = dataBits[i];
     }
 
-    // Calculate and add CRC:
-    uint8_t crc = calculateCRC(data, dataLength - 8);
+    // Calculate and add CRC (excluding padding):
+    uint8_t crc = calculateCRC(&data[8], dataLength - 8 - 8);
     uint8ToBits(crc, &data[dataLength - 8]);
+
+#ifdef PRINT_CODED_BITS
+    for (int i = 0; i < dataLength; i++)
+    {
+        cout << unsigned(data[i]) << " ";
+    }
+
+    cout << endl;
+#endif
 
     // 2. Prepare the output buffer:
     double outputBuffer[outputLength];
@@ -483,7 +498,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         // Checking if all bits are received:
         if (decodingResult.decodedBitsCnt >= getNumberOfBits())
         {
-            completeDecoding();
+            completeDecoding(8, getNumberOfBits() - 8);
         }
     }
 }
@@ -548,6 +563,9 @@ int AudioCodec::decodeBit(const double *window, const int windowSize)
     getConvolutionResults(window, bit0Flipped, SYMBOL_BITS, convolutionData0, fftConfigStoreConvBit, fftConfigStoreHilBit);
     getConvolutionResults(window, bit1Flipped, SYMBOL_BITS, convolutionData1, fftConfigStoreConvBit, fftConfigStoreHilBit);
 
+    double avg0 = calculateAverage(convolutionData0, SYMBOL_BITS);
+    double avg1 = calculateAverage(convolutionData1, SYMBOL_BITS);
+
     // 2. Find the maximum values of both convolutions:
     double max0 = *max_element(convolutionData0, convolutionData0 + SYMBOL_BITS);
     double max1 = *max_element(convolutionData1, convolutionData1 + SYMBOL_BITS);
@@ -556,33 +574,42 @@ int AudioCodec::decodeBit(const double *window, const int windowSize)
     return max0 > max1 ? 0 : 1;
 }
 
-void AudioCodec::completeDecoding()
+void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits)
 {
+#ifdef PRINT_CODED_BITS
+    for (int i = 0; i < getNumberOfBits(); i++)
+    {
+        cout << unsigned(decodingResult.decodedBits[i]) << " ";
+    }
+
+    cout << endl;
+#endif
+
     // Decoding CRC and checking if message was received successfully:
     uint8_t crcInMessage = bitsToUint8(&decodingResult.decodedBits[getNumberOfBits() - 8]);
-    uint8_t crcCalculated = calculateCRC(decodingResult.decodedBits, getNumberOfBits() - 8);
+    uint8_t crcCalculated = calculateCRC(&decodingResult.decodedBits[startIndex], numberOfBits - 8);
 
-    if (crcInMessage != crcCalculated)
+    if (crcInMessage == crcCalculated)
     {
-        cout << "CRC mismatch, dropping message!\n";
+        // Decoding robot ID of sender:
+        decodingResult.senderId = bitsToUint8(&decodingResult.decodedBits[startIndex]);
 
-        return;
+        // Decoding message Type:
+        decodingResult.messageType = (AudioCodedMessageType)bitsToUint8(&decodingResult.decodedBits[startIndex + 8]);
+
+        // Putting data in the correct array:
+        for (int i = 0; i < DECODING_DATA_BITS; i++)
+        {
+            decodingResult.decodedData[i] = decodingResult.decodedBits[startIndex + 16 + i];
+        }
+
+        // Return data to callback:
+        data_decoded_callback(decodingResult);
     }
-
-    // Decoding robot ID of sender:
-    decodingResult.senderId = bitsToUint8(&decodingResult.decodedBits[0]);
-
-    // Decoding message Type:
-    decodingResult.messageType = (AudioCodedMessageType)bitsToUint8(&decodingResult.decodedBits[8]);
-
-    // Putting data in the correct array:
-    for (int i = 0; i < DECODING_DATA_BITS; i++)
+    else
     {
-        decodingResult.decodedData[i] = decodingResult.decodedBits[16 + i];
+        cout << "CRC mismatch, dropping message!\n\n";
     }
-
-    // Return data to callback:
-    data_decoded_callback(decodingResult);
 
     // Resetting all fields:
     decodingResult.reset();

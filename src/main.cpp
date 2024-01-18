@@ -75,6 +75,14 @@ void dataDecodedCallback(AudioCodecResult result)
 
         cout << "Received: " << receivcedData << endl;
     }
+    else if (result.messageType == LOCALIZATION1)
+    {
+        cout << "Received localization 1 message\n";
+    }
+    else if (result.messageType == LOCALIZATION2)
+    {
+        cout << "Received localization 2 message\n";
+    }
     else if (result.messageType == LOCALIZATION3)
     {
         chrono::nanoseconds processingTime = bitsToNanoseconds(result.decodedData);
@@ -89,6 +97,8 @@ void dataDecodedCallback(AudioCodecResult result)
     liveDecoding = false;
 
     decodingStart = chrono::high_resolution_clock::now();
+
+    cout << endl;
 }
 
 /// @brief Around 40cm is travel distance of one wheel rotation
@@ -440,7 +450,7 @@ void encodeMessageForAudio(const char *filename)
     fillArrayWithZeros(codedAudioData, size);
 
     // Encode the message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
+    audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION2);
 
     // Write data to file:
     writeWavFile(filename, codedAudioData, size, SAMPLE_RATE, 16, 1);
@@ -513,7 +523,7 @@ void decodeMessageConvolution(const char *filename)
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
         for (int i = 0; i < bytesRead; i += 1)
         {
-            audioCodec.decode(audioData[i], 0); // i % NUM_CHANNELS
+            audioCodec.decode(audioData[i], i % NUM_CHANNELS); // i % NUM_CHANNELS
         }
     }
 
@@ -826,8 +836,10 @@ int main()
     }
 
     audioHelper.signalBatchProcessed();
+    
 
-    handleKeyboardInput();
+   handleKeyboardInput();
+   //decodeMessageConvolution("../recordings/convolution/los/30cm_90deg.wav");
 
     // openAndPlayWavFile();
     //  graphSineWave5FFT();
@@ -837,9 +849,9 @@ int main()
 
     // recordToWavFile("TestOpname.wav", 5);
 
-    // decodeMessageForAudio("../recordings/recording_180deg.wav");
-    // decodeMessageConvolution("../recordings/convolution/encoding1.wav");
-    // decodingLiveConvolution();
+    // decodeMessageForAudio("../recordings/los/50cm_90deg.wav");
+    // decodeMessageConvolution("../recordings/convolution/los/50cm_90deg_v2.wav");
+    // // decodingLiveConvolution();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();
