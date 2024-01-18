@@ -632,19 +632,22 @@ void sendDistanceMessage()
     // Send the first message:
     for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
     {
-        // Waiting for batch to be written:
-        while (!audioHelper.writeNextBatch())
-        {
-            usleep(1);
-        }
-
         if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
         {
             cout << "Something went wrong when trying to send encoded message.\n";
 
             return;
         }
+
+        // Waiting for batch to be written:
+        while (!audioHelper.writeNextBatch())
+        {
+            usleep(1);
+        }
     }
+
+    while(!audioHelper.allDataWritten())
+        ;
 
     auto processingTimeStart = chrono::high_resolution_clock::now();
 
@@ -654,19 +657,22 @@ void sendDistanceMessage()
     // Send the second message:
     for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
     {
-        // Waiting for batch to be written:
-        while (!audioHelper.writeNextBatch())
-        {
-            usleep(1);
-        }
-
         if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
         {
             cout << "Something went wrong when trying to send encoded message.\n";
 
             return;
         }
+
+        // Waiting for batch to be written:
+        while (!audioHelper.writeNextBatch())
+        {
+            usleep(1);
+        }
     }
+
+    while(!audioHelper.allDataWritten())
+        ;
 
     auto processingTimeStop = chrono::high_resolution_clock::now();
     chrono::nanoseconds processingTime = chrono::duration_cast<chrono::nanoseconds>(processingTimeStop - processingTimeStart);
@@ -677,17 +683,17 @@ void sendDistanceMessage()
     // Send the thirth message:
     for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
     {
-        // Waiting for batch to be written:
-        while (!audioHelper.writeNextBatch())
-        {
-            usleep(1);
-        }
-
         if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
         {
             cout << "Something went wrong when trying to send encoded message.\n";
 
             return;
+        }
+
+        // Waiting for batch to be written:
+        while (!audioHelper.writeNextBatch())
+        {
+            usleep(1);
         }
     }
 
@@ -836,10 +842,9 @@ int main()
     }
 
     audioHelper.signalBatchProcessed();
-    
 
-   handleKeyboardInput();
-   //decodeMessageConvolution("../recordings/convolution/los/30cm_90deg.wav");
+    handleKeyboardInput();
+    // decodeMessageConvolution("../recordings/convolution/los/30cm_90deg.wav");
 
     // openAndPlayWavFile();
     //  graphSineWave5FFT();

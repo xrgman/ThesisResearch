@@ -24,6 +24,7 @@ public:
     bool writeNextBatch();
     bool readNextBatch();
     void setNextBatchRead();
+    bool allDataWritten();
 
     void signalBatchProcessed();
 
@@ -46,6 +47,8 @@ private:
     int16_t buffer1[FRAMES_PER_BUFFER];
     int16_t buffer2[FRAMES_PER_BUFFER];
     uint8_t bufferIdx;
+    uint8_t emptyBuffers;
+
     bool writeNext;
     bool inputDataAvailable;
     bool batchProcessed;

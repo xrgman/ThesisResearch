@@ -16,6 +16,7 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
 
     this->inputStreamsReceived = 0;
     this->batchProcessed = true;
+    this->emptyBuffers = NUM_BUFFERS;
 }
 
 int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
@@ -37,9 +38,14 @@ int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffe
         fillArrayWithZeros(buffer2, FRAMES_PER_BUFFER);
     }
 
-    // // Signaling write available:
+    // Signaling write available:
     bufferIdx = (bufferIdx + 1) % NUM_BUFFERS;
     writeNext = true;
+
+    if (emptyBuffers <= NUM_BUFFERS)
+    {
+        emptyBuffers++;
+    }
 
     return paContinue;
 }
@@ -55,7 +61,7 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 
     if (!isBatchProcessed && microphonesAreOrdered)
     {
-        //cout << "Batch was not yet processed!\n";
+        // cout << "Batch was not yet processed!\n";
     }
 
     // Grabbing read data:
@@ -166,6 +172,8 @@ bool AudioHelper::initializeAndOpen()
 bool AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
 {
     writeNext = false;
+
+    emptyBuffers -= allDataWritten() ? 2 : 1;
 
     if (bufferIdx == 0)
     {
@@ -299,6 +307,13 @@ void AudioHelper::setNextBatchRead()
 void AudioHelper::signalBatchProcessed()
 {
     batchProcessed = true;
+}
+
+/// @brief Simple method that tells you if all written data has been send to the audio device, based on the number of empty buffers.
+/// @return Whether or not both output buffers are empty.
+bool AudioHelper::allDataWritten()
+{
+    return emptyBuffers == NUM_BUFFERS + 1;
 }
 
 //*************************************************
