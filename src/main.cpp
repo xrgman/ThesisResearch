@@ -4,7 +4,6 @@
 #include <thread>
 #include <SDL2/SDL.h>
 #include <cmath>
-#include <armadillo>
 #include <chrono>
 #include <string>
 #include <poll.h>
@@ -21,7 +20,6 @@
 #include "gnuplot-iostream.h"
 
 using namespace std;
-using namespace arma;
 
 #define nrOfChannelsToPlot 2 // NUM_CHANNELS
 #define FREQ
