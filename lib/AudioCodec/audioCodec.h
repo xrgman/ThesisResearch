@@ -27,7 +27,10 @@ static const int SYMBOL_BITS = round(SYMBOL_DURATION * SAMPLE_RATE);
 
 // Microphone array geometry:
 #define MICROPHONE_ANGLES 60.0     // The angle between the microphones
-#define MICROPHONE_DISTANCE 0.0476 // The distance between the microphones in meters
+#define MICROPHONE_DISTANCE 0.0465 // The distance between the microphones in meters
+
+//Distance parameters:
+#define DISTANCE_SAMPLES 3
 
 #define SPEED_OF_SOUND 343.0 // Speed of sound, should be based on temperature!
 
@@ -177,6 +180,8 @@ private:
     // Decoding results:
     AudioCodecResult decodingResult;
 
+    //Distance:
+    chrono::system_clock::time_point distanceMessagesTimings[DISTANCE_SAMPLES];
 
     bool containsPreamble(int firstSymbol, int secondSymbol, int thirthSymbol);
     int containsPreamble(const double *window, const int windowSize);
@@ -186,10 +191,12 @@ private:
     void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, FFTConfigStore fftConfigStoreConvolve, FFTConfigStore fftConfigStoreHilbert);
     int decodeBit(const double *window, const int windowSize);
 
-    void completeDecoding(const int startIndex, const int numberOfBits);
+    void completeDecoding(const int startIndex, const int numberOfBits, chrono::system_clock::time_point decodingEndTime);
+    void performDistanceTracking(chrono::system_clock::time_point decodingEndTime);
 
     // General decoding functions:
     double calculateDOA(const int *arrivalTimes, const int numChannels);
+    double calculateDistance(const int *arrivalTimes, const int size);
 
     // General functions:
     void fftConvolve(const double *in1, const double *in2, const int size, double *output, FFTConfigStore fftConfigStore);

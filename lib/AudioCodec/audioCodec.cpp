@@ -91,7 +91,7 @@ void AudioCodec::generateConvolutionFields()
 /// @return Number of bits in encoded message.
 int AudioCodec::getNumberOfBits()
 {
-    //PADDING + Robot ID + Message ID + Data + CRC
+    // PADDING + Robot ID + Message ID + Data + CRC
     return 8 + 8 + 8 + 64 + 8;
 }
 
@@ -183,7 +183,7 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     // 2. Prepare the output buffer:
     double outputBuffer[outputLength];
 
-    // Initialize output array with zeros:
+    // Initialize output array with zeros (not necessary I think):
     fillArrayWithZeros(outputBuffer, outputLength);
 
     // 3. Encode preamble to the front of the message
@@ -443,15 +443,6 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         {
             decodingStore[microphoneId].preambleSeen = false;
 
-            // cout << "Options: (" << (int)microphoneId << ")";
-
-            // for (int j = 0; j < decodingStore[microphoneId].preamblePositionStorage.size(); j++)
-            // {
-            //     cout << decodingStore[microphoneId].preamblePositionStorage.at(j) << ", ";
-            // }
-
-            // cout << endl;
-
             // Determining real peak:
             int realPreamblePosition = mostOccuring(decodingStore[microphoneId].preamblePositionStorage.data(), decodingStore[microphoneId].preamblePositionStorage.size());
 
@@ -466,6 +457,8 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
             {
                 // Calculate the direction of arrival (DOA):
                 decodingResult.doa = calculateDOA(decodingResult.preambleDetectionPosition, NUM_CHANNELS); // TODO: check if num_channels shouldnt just be the amount of detected preambles
+
+                cout << "Found DOA: " << decodingResult.doa << endl;
             }
         }
 
@@ -498,7 +491,10 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         // Checking if all bits are received:
         if (decodingResult.decodedBitsCnt >= getNumberOfBits())
         {
-            completeDecoding(8, getNumberOfBits() - 8);
+            // Save decoding time:
+            chrono::time_point decodingDoneTime = chrono::high_resolution_clock::now();
+
+            completeDecoding(8, getNumberOfBits() - 8, decodingDoneTime);
         }
     }
 }
@@ -574,7 +570,7 @@ int AudioCodec::decodeBit(const double *window, const int windowSize)
     return max0 > max1 ? 0 : 1;
 }
 
-void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits)
+void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits, chrono::system_clock::time_point decodingEndTime)
 {
 #ifdef PRINT_CODED_BITS
     for (int i = 0; i < getNumberOfBits(); i++)
@@ -603,8 +599,14 @@ void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits)
             decodingResult.decodedData[i] = decodingResult.decodedBits[startIndex + 16 + i];
         }
 
+        // Handle distance calculation:
+        performDistanceTracking(decodingEndTime);
+
         // Return data to callback:
-        data_decoded_callback(decodingResult);
+        if (decodingResult.messageType == ENCODING_TEST || decodingResult.messageType == LOCALIZATION3)
+        {
+            data_decoded_callback(decodingResult);
+        }
     }
     else
     {
@@ -617,6 +619,37 @@ void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits)
     for (uint8_t i = 0; i < NUM_CHANNELS; i++)
     {
         decodingStore[i].reset();
+    }
+}
+
+void AudioCodec::performDistanceTracking(chrono::system_clock::time_point decodingEndTime)
+{
+    // First two messages are used to keep track of the timing:
+    if (decodingResult.messageType == LOCALIZATION1)
+    {
+        distanceMessagesTimings[0] = decodingEndTime;
+    }
+    else if (decodingResult.messageType == LOCALIZATION2)
+    {
+        distanceMessagesTimings[1] = decodingEndTime;
+    }
+    // Last message includes processing time and is used to calculate the actual distance:
+    else if (decodingResult.messageType == LOCALIZATION3)
+    {
+        distanceMessagesTimings[2] = decodingEndTime;
+
+        // Extract the processing time of transmitter:
+        chrono::nanoseconds processingTime = bitsToNanoseconds(decodingResult.decodedData);
+
+        // Calulating time between
+        chrono::nanoseconds timeBetweenM1andM2 = chrono::duration_cast<chrono::nanoseconds>(distanceMessagesTimings[1] - distanceMessagesTimings[0]);
+
+        // Substracting processesing time:
+        processingTime -= timeBetweenM1andM2;
+
+        double distance = timeBetweenM1andM2.count() * SPEED_OF_SOUND;
+
+        int ttttt = 10;
     }
 }
 
@@ -805,12 +838,18 @@ void AudioCodec::createSinWaveFromFreqs(const double *input, double *output, con
 /// @return The DOA of the signal, rounded to 3 decimal places.
 double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 {
-    // 1. Calculate the TDOA between all microphones:
-    double tdoa[numChannels];
+    // 1. Calculate the TDOA between all consecutive and opposite microphones:
+    double tdoa[numChannels * 2];
 
     for (int i = 0; i < numChannels; i++)
     {
+        double test = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]);
+
+        // TDOA with consecutive microphone:
         tdoa[i] = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]) / SAMPLE_RATE;
+
+        // TDOA with opposite microphone:
+        tdoa[numChannels + i] = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 3), numChannels)]) / SAMPLE_RATE;
     }
 
     // 2. Calculate the angles between the arrivals at the microphones:
@@ -823,7 +862,7 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 
         int index = positive_modulo((i - 1), numChannels);
 
-        if (tdoa[index] >= 0)
+        if (tdoa[numChannels + index] >= 0)
         {
             anglePair = 180 - anglePair;
         }
@@ -845,4 +884,8 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
     double angle_mean = positive_modulo(arg(sumRadians) * (180 / M_PI), 360.0);
 
     return round((360 - angle_mean) * 1000.0) / 1000.0;
+}
+
+double AudioCodec::calculateDistance(const int *arrivalTimes, const int size)
+{
 }

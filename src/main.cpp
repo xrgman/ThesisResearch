@@ -506,6 +506,8 @@ void decodeMessageConvolution(const char *filename)
     if (!openWAVFile(filename, &fileRead, true))
     {
         cout << "Failed to open WAV file...\n";
+
+        return;
     }
 
     // Initialize the FFT:
@@ -844,7 +846,7 @@ int main()
     audioHelper.signalBatchProcessed();
 
     handleKeyboardInput();
-    // decodeMessageConvolution("../recordings/convolution/los/30cm_90deg.wav");
+    //decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
 
     // openAndPlayWavFile();
     //  graphSineWave5FFT();
