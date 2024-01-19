@@ -625,6 +625,8 @@ void decodingLiveConvolution()
 void sendDistanceMessage()
 {
     int size = audioCodec.getEncodingSize();
+    double interval_in_seconds = 1.0;
+    bool keepWaiting = true;
 
     int16_t codedAudioData[size];
 
@@ -648,15 +650,26 @@ void sendDistanceMessage()
         }
     }
 
-    while(!audioHelper.allDataWritten())
+    while (!audioHelper.allDataWritten())
         ;
 
-    auto processingTimeStart = chrono::high_resolution_clock::now();
+    auto messageSendTime = chrono::high_resolution_clock::now();
 
-    // Encode the second message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION2);
+    // Send next message exactly interval time later:
+    while (keepWaiting)
+    {
+        auto currentTime = chrono::high_resolution_clock::now();
 
-    // Send the second message:
+        chrono::milliseconds processingTime = chrono::duration_cast<chrono::milliseconds>(currentTime - messageSendTime);
+
+        if (processingTime.count() >= interval_in_seconds * 1000)
+        {
+            cout << "Processing time: " << processingTime.count() << "ms\n";
+            keepWaiting = false;
+        }
+    }
+
+    // Send the second message (same data as first one):
     for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
     {
         if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
@@ -673,21 +686,38 @@ void sendDistanceMessage()
         }
     }
 
-    while(!audioHelper.allDataWritten())
+    while (!audioHelper.allDataWritten())
         ;
 
-    auto processingTimeStop = chrono::high_resolution_clock::now();
-    chrono::nanoseconds processingTime = chrono::duration_cast<chrono::nanoseconds>(processingTimeStop - processingTimeStart);
+    keepWaiting = true;
+    messageSendTime = chrono::high_resolution_clock::now();
 
-    // Encode the thirth message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION3, processingTime);
+    // Send next message exactly interval time later:
+    while (keepWaiting)
+    {
+        auto currentTime = chrono::high_resolution_clock::now();
+
+        chrono::milliseconds processingTime = chrono::duration_cast<chrono::milliseconds>(currentTime - messageSendTime);
+
+        if (processingTime.count() >= interval_in_seconds * 1000)
+        {
+            // cout << "Processing time: " << processingTime.count() << "ms\n";
+            keepWaiting = false;
+        }
+    }
+
+    // auto processingTimeStop = chrono::high_resolution_clock::now();
+    // chrono::nanoseconds processingTime = chrono::duration_cast<chrono::nanoseconds>(processingTimeStop - messageSendTime);
+
+    // // Encode the thirth message:
+    // audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION3, processingTime);
 
     // Send the thirth message:
     for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
     {
         if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
         {
-            cout << "Something went wrong when trying to send encoded message.\n";
+            // cout << "Something went wrong when trying to send encoded message.\n";
 
             return;
         }
@@ -846,7 +876,7 @@ int main()
     audioHelper.signalBatchProcessed();
 
     handleKeyboardInput();
-    //decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
+    // decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
 
     // openAndPlayWavFile();
     //  graphSineWave5FFT();

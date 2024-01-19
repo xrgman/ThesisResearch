@@ -886,6 +886,19 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
     return round((360 - angle_mean) * 1000.0) / 1000.0;
 }
 
+
 double AudioCodec::calculateDistance(const int *arrivalTimes, const int size)
 {
+    //Use TOF to calculate relative distance:
+    //Relative distance = C * one way TOF / 2
+
+   ///Distance = c * ToF
+   //Send multiple at known intervals and take the average distance 
+   //It is oke to set the interval to be known, then we dont need to send any information in the message itself.
+   //I think we can assume processing times, but the only problem is that that only holds on an actual microcontroller or FGPA, not a Pi since multiple other processes are running in the background which screws things up :()
+
+
+
+    //Distance = c * TDOA / 2 (just comething I found)
 }
+
