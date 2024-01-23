@@ -625,7 +625,7 @@ void decodingLiveConvolution()
 void sendDistanceMessage()
 {
     int size = audioCodec.getEncodingSize();
-    double interval_in_seconds = 1.0;
+    
     bool keepWaiting = true;
 
     int16_t codedAudioData[size];
@@ -662,7 +662,7 @@ void sendDistanceMessage()
 
         chrono::milliseconds processingTime = chrono::duration_cast<chrono::milliseconds>(currentTime - messageSendTime);
 
-        if (processingTime.count() >= interval_in_seconds * 1000)
+        if (processingTime.count() >= LOCALIZATION_INTERVAL_SECONDS * 1000)
         {
             cout << "Processing time: " << processingTime.count() << "ms\n";
             keepWaiting = false;
@@ -699,7 +699,7 @@ void sendDistanceMessage()
 
         chrono::milliseconds processingTime = chrono::duration_cast<chrono::milliseconds>(currentTime - messageSendTime);
 
-        if (processingTime.count() >= interval_in_seconds * 1000)
+        if (processingTime.count() >= LOCALIZATION_INTERVAL_SECONDS * 1000)
         {
             // cout << "Processing time: " << processingTime.count() << "ms\n";
             keepWaiting = false;

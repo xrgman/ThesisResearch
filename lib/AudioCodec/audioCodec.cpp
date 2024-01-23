@@ -24,6 +24,8 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
     for (uint8_t i; i < NUM_CHANNELS; i++)
     {
         decodingStore[i].reset();
+
+        localiztionStore[i].reset();
     }
 
     generateConvolutionFields();
@@ -100,6 +102,13 @@ int AudioCodec::getNumberOfBits()
 int AudioCodec::getEncodingSize()
 {
     return PREAMBLE_BITS + (getNumberOfBits() * SYMBOL_BITS);
+}
+
+/// @brief Get the duration of an encoded message in seconds.
+/// @return Duration message in seconds.
+double AudioCodec::getEncodingDuration()
+{
+    return (double)getEncodingSize() / SAMPLE_RATE;
 }
 
 void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType)
@@ -407,7 +416,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
     double value = int16ToDouble(bit);
 
     // Saving value in corresponding buffer:
-    decodingBuffer[microphoneId][numberOfReceivedBits[microphoneId] % PREAMBLE_BITS] = value;
+    decodingBuffer[microphoneId][numberOfReceivedBits[microphoneId] % DECODING_BUFFER_SIZE] = value;
 
     // Keeping track of the number of received bits:
     numberOfReceivedBits[microphoneId]++;
@@ -426,7 +435,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
         for (int j = 0; j < PREAMBLE_BITS; j++)
         {
-            frame[j] = decodingBuffer[microphoneId][(readingPosition + j) % PREAMBLE_BITS];
+            frame[j] = decodingBuffer[microphoneId][(readingPosition + j) % DECODING_BUFFER_SIZE];
         }
 
         // Checking if frame contains the preamble:
@@ -476,7 +485,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
         for (int j = 0; j < SYMBOL_BITS; j++)
         {
-            frame[j] = decodingBuffer[microphoneId][(decodingBitsPosition + j) % PREAMBLE_BITS];
+            frame[j] = decodingBuffer[microphoneId][(decodingBitsPosition + j) % DECODING_BUFFER_SIZE];
         }
 
         // Decode bit and add it to decoded bits list:
@@ -624,33 +633,65 @@ void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits, 
 
 void AudioCodec::performDistanceTracking(chrono::system_clock::time_point decodingEndTime)
 {
-    // First two messages are used to keep track of the timing:
     if (decodingResult.messageType == LOCALIZATION1)
     {
-        distanceMessagesTimings[0] = decodingEndTime;
+        for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
+        {
+            localiztionStore[channel].distanceMessagesTimings[localiztionStore[channel].distanceSamplesAcquired] = decodingResult.preambleDetectionPosition[channel];
+            localiztionStore[channel].distanceSamplesAcquired++;
+
+            if (localiztionStore[channel].distanceSamplesAcquired >= DISTANCE_SAMPLES)
+            {
+                // Keep track of 6 distances
+                localiztionStore[0].distance = calculateDistance(localiztionStore[0].distanceMessagesTimings, DISTANCE_SAMPLES);
+
+
+
+                // // Resetting:
+                // localiztionStore[0].reset();
+            }
+        }
+
+        // // Perform localization:
+        // if (localiztionStore[0].distanceSamplesAcquired >= DISTANCE_SAMPLES)
+        // {
+        //     // Keep track of 6 distances
+        //     localiztionStore[0].distance = calculateDistance(localiztionStore[0].distanceMessagesTimings, DISTANCE_SAMPLES);
+
+        //     // Resetting:
+        //     localiztionStore[0].reset();
+
+        //     int bananananana = 10;
+        // }
     }
-    else if (decodingResult.messageType == LOCALIZATION2)
-    {
-        distanceMessagesTimings[1] = decodingEndTime;
-    }
-    // Last message includes processing time and is used to calculate the actual distance:
-    else if (decodingResult.messageType == LOCALIZATION3)
-    {
-        distanceMessagesTimings[2] = decodingEndTime;
 
-        // Extract the processing time of transmitter:
-        chrono::nanoseconds processingTime = bitsToNanoseconds(decodingResult.decodedData);
+    // First two messages are used to keep track of the timing:
+    // if (decodingResult.messageType == LOCALIZATION1)
+    // {
+    //     distanceMessagesTimings[0] = decodingEndTime;
+    // }
+    // else if (decodingResult.messageType == LOCALIZATION2)
+    // {
+    //     distanceMessagesTimings[1] = decodingEndTime;
+    // }
+    // // Last message includes processing time and is used to calculate the actual distance:
+    // else if (decodingResult.messageType == LOCALIZATION3)
+    // {
+    //     distanceMessagesTimings[2] = decodingEndTime;
 
-        // Calulating time between
-        chrono::nanoseconds timeBetweenM1andM2 = chrono::duration_cast<chrono::nanoseconds>(distanceMessagesTimings[1] - distanceMessagesTimings[0]);
+    //     // Extract the processing time of transmitter:
+    //     chrono::nanoseconds processingTime = bitsToNanoseconds(decodingResult.decodedData);
 
-        // Substracting processesing time:
-        processingTime -= timeBetweenM1andM2;
+    //     // Calulating time between
+    //     chrono::nanoseconds timeBetweenM1andM2 = chrono::duration_cast<chrono::nanoseconds>(distanceMessagesTimings[1] - distanceMessagesTimings[0]);
 
-        double distance = timeBetweenM1andM2.count() * SPEED_OF_SOUND;
+    //     // Substracting processesing time:
+    //     processingTime -= timeBetweenM1andM2;
 
-        int ttttt = 10;
-    }
+    //     double distance = timeBetweenM1andM2.count() * SPEED_OF_SOUND;
+
+    //     int ttttt = 10;
+    // }
 }
 
 //*************************************************
@@ -886,19 +927,29 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
     return round((360 - angle_mean) * 1000.0) / 1000.0;
 }
 
-
 double AudioCodec::calculateDistance(const int *arrivalTimes, const int size)
 {
-    //Use TOF to calculate relative distance:
-    //Relative distance = C * one way TOF / 2
+    // Calculating time differences:
+    double t2t1 = ((double)arrivalTimes[1] - (double)arrivalTimes[0]) / SAMPLE_RATE;
+    double t3t2 = ((double)arrivalTimes[2] - (double)arrivalTimes[1]) / SAMPLE_RATE;
 
-   ///Distance = c * ToF
-   //Send multiple at known intervals and take the average distance 
-   //It is oke to set the interval to be known, then we dont need to send any information in the message itself.
-   //I think we can assume processing times, but the only problem is that that only holds on an actual microcontroller or FGPA, not a Pi since multiple other processes are running in the background which screws things up :()
+    // Encoded message duration:
+    double encodedMessageDuration = getEncodingDuration();
 
+    // Calculate actual time differences:
+    t2t1 -= (encodedMessageDuration + LOCALIZATION_INTERVAL_SECONDS);
+    t3t2 -= (encodedMessageDuration + LOCALIZATION_INTERVAL_SECONDS);
 
+    double distancet2t1 = SPEED_OF_SOUND * t2t1 / 2;
+    double distancet3t2 = SPEED_OF_SOUND * t2t1 / 2;
 
-    //Distance = c * TDOA / 2 (just comething I found)
+    // Use TOF to calculate relative distance:
+    // Relative distance = C * one way TOF / 2
+
+    /// Distance = c * ToF
+    // Send multiple at known intervals and take the average distance
+    // It is oke to set the interval to be known, then we dont need to send any information in the message itself.
+    // I think we can assume processing times, but the only problem is that that only holds on an actual microcontroller or FGPA, not a Pi since multiple other processes are running in the background which screws things up :()
+
+    // Distance = c * TDOA / 2 (just comething I found)
 }
-

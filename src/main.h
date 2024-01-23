@@ -24,4 +24,6 @@ T positive_modulo(T val, T mod) {
 
 #define ROBOT_ID 1
 
+#define LOCALIZATION_INTERVAL_SECONDS 1.0
+
 #endif
