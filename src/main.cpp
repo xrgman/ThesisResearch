@@ -179,6 +179,42 @@ void openAndPlayWavFile(const char *filename)
     cout << "Done playing WAV file!\n";
 }
 
+void playSingleMessage()
+{
+    // Create array and fill it with zeros:
+    int size = audioCodec.getEncodingSize();
+    int16_t codedAudioData[size];
+
+    // Encode the message:
+    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
+
+    int bytesWritten = 0;
+
+    // Reading successfull, so playing it:
+    while (bytesWritten < size)
+    {
+        // Waiting for batch to be written:
+        if (!audioHelper.writeNextBatch())
+        {
+            usleep(1);
+
+            continue;
+        }
+
+        // Writing to helper:
+        if (!audioHelper.writeBytes(&codedAudioData[bytesWritten], FRAMES_PER_BUFFER))
+        {
+            // cout << "Something went"
+
+            break;
+        }
+
+        bytesWritten += FRAMES_PER_BUFFER;
+    }
+
+    cout << "Done playing message.\n";
+}
+
 void recordToWavFile(const char *filename, const int seconds)
 {
     vector<int16_t> dataToWrite;
@@ -224,7 +260,7 @@ void recordToWavFile(const char *filename, const int seconds)
     // Write data to file:
     writeWavFile(filename, dataToWrite.data(), dataToWrite.size(), SAMPLE_RATE, 16, NUM_CHANNELS);
 
-    cout << "Successfully written " << seconds << " sconds to wav file '" << filename << "'\n";
+    cout << "Successfully written " << seconds << " seconds to wav file '" << filename << "'\n";
 }
 
 void graphSineWave5FFT()
@@ -625,7 +661,7 @@ void decodingLiveConvolution()
 void sendDistanceMessage()
 {
     int size = audioCodec.getEncodingSize();
-    
+
     bool keepWaiting = true;
 
     int16_t codedAudioData[size];
@@ -732,6 +768,76 @@ void sendDistanceMessage()
     cout << "Successfully send out the three localization chirps.\n";
 }
 
+/// @brief Send out an encoded message, while simultaniously recording data to a WAV file.
+/// @param filename Filename of the WAV file.
+void sendMessageAndRecord(const char *filename)
+{
+    // Creating message encoded:
+    int size = audioCodec.getEncodingSize();
+    int16_t codedAudioData[size];
+
+    // Encode the message:
+    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
+
+    // Creating vector for recording:
+    vector<int16_t> dataRead;
+    int iteration = 0;
+    int seconds = 10;
+
+    int dataWriteIteration = 0;
+    int dataWritePosition = 0;
+
+    while ((iteration * FRAMES_PER_BUFFER) < (SAMPLE_RATE * seconds))
+    {
+        // Checking if new data is available:
+        if (audioHelper.readNextBatch())
+        {
+            audioHelper.setNextBatchRead();
+
+            // Preparing data to be written:
+            for (int sample = 0; sample < FRAMES_PER_BUFFER; sample++)
+            {
+                for (int channel = 0; channel < NUM_CHANNELS; channel++)
+                {
+                    uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
+                    int16_t *channelData = audioHelper.audioData[channelIdx];
+
+                    dataRead.push_back(channelData[sample]);
+                }
+            }
+
+            audioHelper.signalBatchProcessed();
+
+            iteration++;
+        }
+
+        // Playing data:
+        if (audioHelper.writeNextBatch() && dataWriteIteration < 1)
+        {
+            // Writing to helper:
+            if (!audioHelper.writeBytes(&codedAudioData[dataWritePosition], FRAMES_PER_BUFFER))
+            {
+                // cout << "Something went"
+
+                break;
+            }
+
+            dataWritePosition += FRAMES_PER_BUFFER;
+
+            if (dataWritePosition >= size)
+            {
+                dataWriteIteration++;
+                dataWritePosition = 0;
+            }
+        }
+    }
+
+    // Write data to file:
+    writeWavFile(filename, dataRead.data(), dataRead.size(), SAMPLE_RATE, 16, NUM_CHANNELS);
+
+    cout << "Successfully send message and written recording to wav file '" << filename << "'\n";
+}
+
 void handleKeyboardInput()
 {
     bool keepProcessing = true;
@@ -822,6 +928,28 @@ void handleKeyboardInput()
                 cout << "Sending distance calculation messages.\n";
 
                 sendDistanceMessage();
+
+                continue;
+            }
+
+            // Sending messages and recording to wav file simultanious.
+            if (words[0] == "sr")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Start recording own message to file " << filename << ".\n";
+
+                sendMessageAndRecord(filename);
+
+                continue;
+            }
+
+            // Send a signal message:
+            if (words[0] == "s" || words[0] == "S")
+            {
+                cout << "Sending one signal message.";
+
+                playSingleMessage();
 
                 continue;
             }
