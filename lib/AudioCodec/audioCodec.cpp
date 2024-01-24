@@ -522,6 +522,12 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
     // 3. Find the maximum peak:
     double max_peak = *max_element(convolutionData, convolutionData + PREAMBLE_BITS);
 
+    // 3.5 Check if peak is not from own send message:
+    if (max_peak > PREAMBLE_CONVOLUTION_CUTOFF)
+    {
+        return -1;
+    }
+
     // 4. Check if the maximum peak exceeds the threshold:
     if (max_peak > preamble_min_peak * 4)
     {
@@ -644,8 +650,6 @@ void AudioCodec::performDistanceTracking(chrono::system_clock::time_point decodi
             {
                 // Keep track of 6 distances
                 localiztionStore[0].distance = calculateDistance(localiztionStore[0].distanceMessagesTimings, DISTANCE_SAMPLES);
-
-
 
                 // // Resetting:
                 // localiztionStore[0].reset();

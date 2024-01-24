@@ -11,6 +11,7 @@
 
 #define CHIRP_AMPLITUDE 1.0 // Was 0.5
 
+#define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source
 #define PREAMBLE_DURATION 0.1857596372 // 0.092879818//0.1857596372 //Make sure the number of bits is 8192
 static const int PREAMBLE_BITS = round(PREAMBLE_DURATION * SAMPLE_RATE);
 

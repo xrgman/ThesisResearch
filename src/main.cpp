@@ -782,7 +782,7 @@ void sendMessageAndRecord(const char *filename)
     // Creating vector for recording:
     vector<int16_t> dataRead;
     int iteration = 0;
-    int seconds = 10;
+    int seconds = 13;
 
     int dataWriteIteration = 0;
     int dataWritePosition = 0;
@@ -812,7 +812,7 @@ void sendMessageAndRecord(const char *filename)
         }
 
         // Playing data:
-        if (audioHelper.writeNextBatch() && dataWriteIteration < 1)
+        if (audioHelper.writeNextBatch() && dataWriteIteration < 2)
         {
             // Writing to helper:
             if (!audioHelper.writeBytes(&codedAudioData[dataWritePosition], FRAMES_PER_BUFFER))
