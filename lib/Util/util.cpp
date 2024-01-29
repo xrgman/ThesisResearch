@@ -5,6 +5,14 @@
 #include <cstdlib>
 #include <map>
 
+//*************************************************
+//******** Collection helpers *********************
+//*************************************************
+
+/// @brief Calculate the average value of an uin16_t collection.
+/// @param data Data to calculate average over.
+/// @param size Size of the data array.
+/// @return The average of all elements in the data array.
 double calculateAverage(const uint16_t *data, uint16_t size)
 {
     double sum = accumulate(data, data + size, 0.0);
@@ -12,6 +20,10 @@ double calculateAverage(const uint16_t *data, uint16_t size)
     return sum / size;
 }
 
+/// @brief Calculate the average value of an in16_t collection.
+/// @param data Data to calculate average over.
+/// @param size Size of the data array.
+/// @return The average of all elements in the data array.
 double calculateAverage(const int16_t *data, uint16_t size)
 {
     double sum = accumulate(data, data + size, 0.0);
@@ -19,6 +31,10 @@ double calculateAverage(const int16_t *data, uint16_t size)
     return sum / size;
 }
 
+/// @brief Calculate the average value of an double collection.
+/// @param data Data to calculate average over.
+/// @param size Size of the data array.
+/// @return The average of all elements in the data array.
 double calculateAverage(const double *data, uint16_t size)
 {
     double sum = accumulate(data, data + size, 0.0);
@@ -26,6 +42,11 @@ double calculateAverage(const double *data, uint16_t size)
     return sum / size;
 }
 
+/// @brief Calculate the average deviation from a given average.
+/// @param data Data to calculate average deviation over.
+/// @param size Size of the data array.
+/// @param average Average of the collection.
+/// @return The average deviation.
 double calculateDeviationAverage(const int16_t *data, const int size, const double average)
 {
     double sumDeviations = 0.0;
@@ -39,10 +60,10 @@ double calculateDeviationAverage(const int16_t *data, const int size, const doub
 }
 
 /// @brief Calculate the average deviation from a given average.
-/// @param data
-/// @param size
-/// @param average
-/// @return
+/// @param data Data to calculate average deviation over.
+/// @param size Size of the data array.
+/// @param average Average of the collection.
+/// @return The average deviation.
 double calculateDeviationAverage(const double *data, const int size, const double average)
 {
     double sumDeviations = 0.0;
@@ -72,6 +93,11 @@ bool hasNegativeValue(const int16_t *data, uint16_t size)
     return false;
 }
 
+/// @brief Check if a collection contains threshold amount of negative values.
+/// @param data Data to be checked on negative values.
+/// @param size Size of the data set.
+/// @param threshold Number of negative values that are allowed to be in the collection.
+/// @return Whether or not the data set contains threshold amount of negative values.
 bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold)
 {
     uint16_t nrOfNegatives = 0;
@@ -140,6 +166,10 @@ int findMaxIndex(const double *array, int size)
     return idx;
 }
 
+/// @brief Find the most occuring element in an array.
+/// @param array Array of elements.
+/// @param size Size of the array.
+/// @return The most occuring element in the array.
 int mostOccuring(const int *array, int size)
 {
     std::map<int, int> occurenceCounter;
@@ -150,44 +180,6 @@ int mostOccuring(const int *array, int size)
     }
 
     return occurenceCounter.begin()->first;
-}
-
-void fillArrayWithZeros(uint8_t *array, const int size)
-{
-    for (int i = 0; i < size; i++)
-    {
-        array[i] = 0;
-    }
-}
-
-/// @brief Fill the given array with 0's, to initialize it.
-/// @param array Array to fill with zeros.
-/// @param size Size of the array.
-void fillArrayWithZeros(int16_t *array, const int size)
-{
-    for (int i = 0; i < size; i++)
-    {
-        array[i] = 0;
-    }
-}
-
-void fillArrayWithZeros(int *array, const int size)
-{
-    for (int i = 0; i < size; i++)
-    {
-        array[i] = 0;
-    }
-}
-
-/// @brief Fill the given array with 0's, to initialize it.
-/// @param array Array to fill with zeros.
-/// @param size Size of the array.
-void fillArrayWithZeros(double *array, const int size)
-{
-    for (int i = 0; i < size; i++)
-    {
-        array[i] = 0.0;
-    }
 }
 
 /// @brief Divide all elements in an array by a specific value.
@@ -217,11 +209,59 @@ void cumsum(double *array, const int size)
     }
 }
 
+//*************************************************
+//******** Collection fillers *********************
+//*************************************************
+
+/// @brief Fill the given array with 0's, to initialize it.
+/// @param array Array to fill with zeros.
+/// @param size Size of the array.
+void fillArrayWithZeros(uint8_t *array, const int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = 0;
+    }
+}
+
+/// @brief Fill the given array with 0's, to initialize it.
+/// @param array Array to fill with zeros.
+/// @param size Size of the array.
+void fillArrayWithZeros(int16_t *array, const int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = 0;
+    }
+}
+
+/// @brief Fill the given array with 0's, to initialize it.
+/// @param array Array to fill with zeros.
+/// @param size Size of the array.
+void fillArrayWithZeros(int *array, const int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = 0;
+    }
+}
+
+/// @brief Fill the given array with 0's, to initialize it.
+/// @param array Array to fill with zeros.
+/// @param size Size of the array.
+void fillArrayWithZeros(double *array, const int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = 0.0;
+    }
+}
+
 /// @brief Set values between start and stop index in an array.
-/// @param array
-/// @param startIdx
-/// @param stopIdx
-/// @param value
+/// @param array Array to set values of.
+/// @param startIdx Start index of first element in array to change.
+/// @param stopIdx Stop index of elements to change.
+/// @param value Value to set elements between range to.
 void setValues(uint8_t *array, const int startIdx, const int stopIdx, const uint8_t value)
 {
     for (int i = startIdx; i < stopIdx; i++)
@@ -229,6 +269,10 @@ void setValues(uint8_t *array, const int startIdx, const int stopIdx, const uint
         array[i] = value;
     }
 }
+
+//*************************************************
+//******** Type changers  *************************
+//*************************************************
 
 /// @brief Convert a double value into a int16_t.
 /// @param value Value to convert.
@@ -238,10 +282,25 @@ int16_t doubleToInt16(double value)
     return static_cast<int16_t>(value * INT16_MAX);
 }
 
+/// @brief Transform an int16_t value into a double value between -1.0 and 1.0.
+/// @param value Value to transform.
+/// @return Double value.
 double int16ToDouble(int16_t value)
 {
     return static_cast<double>(value) / INT16_MAX;
 }
+
+/// @brief Given a specific value, find the next power of 2.
+/// @param value Current value.
+/// @return Next power of 2, seen from value.
+int getNextPowerOf2(int value)
+{
+    return pow(2, ceil(log2(value)));
+}
+
+//*************************************************
+//******** Bits helpers ***************************
+//*************************************************
 
 /// @brief Transform an uint8_t value into an array of 8 bits.
 /// @param value Value to be transformed into bits.
@@ -270,9 +329,9 @@ uint8_t bitsToUint8(const uint8_t bits[8])
 }
 
 /// @brief Transform a whole collection of uint8_t values into an array of bits.
-/// @param array
-/// @param size
-/// @param bits
+/// @param array Array of uint8_t value to transform into bits.
+/// @param size Size of the array.
+/// @param bits Array to store the bits in, should have size = size * 8.
 void uint8CollectionToBits(uint8_t *array, const int size, uint8_t *bits)
 {
     for (int j = 0; j < size; j++)
@@ -343,14 +402,15 @@ void bitsToString(const uint8_t *bits, const int nrOfBits, char *output)
     }
 }
 
-/// @brief Given a specific value, find the next power of 2.
-/// @param value Current value.
-/// @return Next power of 2, seen from value.
-int getNextPowerOf2(int value)
-{
-    return pow(2, ceil(log2(value)));
-}
+//*************************************************
+//******** File helpers ***************************
+//*************************************************
 
+/// @brief Open a file with a specific name.
+/// @param filename Name of the file.
+/// @param file Object to open the file into.
+/// @param mode Mode to open the file in.
+/// @return Whether opening the file was a success.
 bool openFile(const char *filename, FILE **file, const char *mode)
 {
     *file = fopen(filename, mode);
@@ -358,6 +418,9 @@ bool openFile(const char *filename, FILE **file, const char *mode)
     return *file != NULL;
 }
 
+/// @brief Get the size in bytes of a file.
+/// @param file File to get the size from.
+/// @return The file size in bytes.
 long getFileSize(FILE *file)
 {
     fseek(file, 0, SEEK_END);
@@ -423,6 +486,10 @@ int readDistanceFromFileName(const char *filename)
 
     return -1;
 }
+
+//*************************************************
+//******** Coordinate helpers *********************
+//*************************************************
 
 /// @brief Determine the orientation of an ordererd triplet of points in the plane. Can be either: counterclockwise, clockwise, or collinear.
 /// @param p1X X coordinate of the first point.
