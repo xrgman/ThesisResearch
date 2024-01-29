@@ -2,6 +2,16 @@
 
 #include <iostream>
 
+/// @brief Constructor.
+MapRenderer::MapRenderer()
+{
+    this->initialized = false;
+}
+
+/// @brief Initialize the maprenderer.
+/// @param mapData Data containing all information about the map.
+/// @param scale Scale to draw the map on.
+/// @return Whether initialization was a success.
 bool MapRenderer::initialize(MapData *mapData, uint8_t scale)
 {
     this->mapData = mapData;
@@ -80,9 +90,16 @@ bool MapRenderer::initialize(MapData *mapData, uint8_t scale)
         KEYS[i] = false;
     }
 
+    this->initialized = true;
+
     return true;
 }
 
+/// @brief Update the particle positions on the rendered map.
+/// @param particles Array containing all the particles and their x,y coordinates.
+/// @param nrOfParticles Number of particles in the array.
+/// @param selectedCellIdx Selected cell, this cell will get the color blue.
+/// @return Whether the updating should keep running or the map has been closed.
 bool MapRenderer::updateMap(const Particle particles[], const int nrOfParticles, const int selectedCellIdx)
 {
     // Processing events:
@@ -134,6 +151,8 @@ bool MapRenderer::updateMap(const Particle particles[], const int nrOfParticles,
 /// @brief Cleanup function.
 void MapRenderer::stop()
 {
+    this->initialized = false;
+
     TTF_CloseFont(font);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -141,6 +160,18 @@ void MapRenderer::stop()
     SDL_Quit();
 }
 
+/// @brief Check whether the map render has been initialized.
+/// @return Whether or not the map rendered is initialized
+bool MapRenderer::isInitialized()
+{
+    return this->initialized;
+}
+
+/// @brief Private functions that renders all walls, cells, and doors.
+/// @param renderer The renderer.
+/// @param font Font to use when showing cell names.
+/// @param scale Scale of the map.
+/// @param selectedCellIdx Selected cell that gets the filled color.
 void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scale, const int selectedCellIdx)
 {
     // Set line color
@@ -208,6 +239,10 @@ void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scal
     }
 }
 
+/// @brief Private function that renders all the particles on the map.
+/// @param renderer The renderer.
+/// @param particles Collection containing all particles.
+/// @param nrOfParticles Number of particles in the collection.
 void MapRenderer::renderParticles(SDL_Renderer *renderer, const Particle particles[], const int nrOfParticles)
 {
     // Set color to red
@@ -224,6 +259,12 @@ void MapRenderer::renderParticles(SDL_Renderer *renderer, const Particle particl
     }
 }
 
+/// @brief Private function that writes text in the center of a rectangle.
+/// @param renderer The renderer.
+/// @param font Font of the text.
+/// @param textColor Color of the text.
+/// @param text Text to be written in the center of the rectangle.
+/// @param rectangle Rectangle the text is writtin into.
 void MapRenderer::writeTextCenterRect(SDL_Renderer *renderer, TTF_Font *font, SDL_Color textColor, const char *text, SDL_Rect rectangle)
 {
     SDL_Surface *surface = TTF_RenderText_Solid(font, text, textColor);

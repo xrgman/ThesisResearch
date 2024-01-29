@@ -467,7 +467,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 // Calculate the direction of arrival (DOA):
                 decodingResult.doa = calculateDOA(decodingResult.preambleDetectionPosition, NUM_CHANNELS); // TODO: check if num_channels shouldnt just be the amount of detected preambles
 
-                cout << "Found DOA: " << decodingResult.doa << endl;
+                //cout << "Found DOA: " << decodingResult.doa << endl;
             }
         }
 
@@ -618,7 +618,7 @@ void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits, 
         performDistanceTracking(decodingEndTime);
 
         // Return data to callback:
-        if (decodingResult.messageType == ENCODING_TEST || decodingResult.messageType == LOCALIZATION3)
+        if (decodingResult.messageType == ENCODING_TEST || decodingResult.messageType == LOCALIZATION1)
         {
             data_decoded_callback(decodingResult);
         }

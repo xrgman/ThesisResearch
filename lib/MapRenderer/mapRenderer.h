@@ -19,9 +19,12 @@
 class MapRenderer
 {
 public:
+    MapRenderer();
     bool initialize(MapData *mapData, uint8_t scale);
     bool updateMap(const Particle particles[], const int nrOfParticles, const int selectedCellIdx);
     void stop();
+
+    bool isInitialized();
 
     bool KEYS[322];
     bool newKeyPressed = false;
@@ -29,6 +32,8 @@ public:
 private: 
     MapData *mapData;
     uint8_t scale;
+
+    bool initialized;
 
     SDL_Window *window;
     SDL_Renderer *renderer;
