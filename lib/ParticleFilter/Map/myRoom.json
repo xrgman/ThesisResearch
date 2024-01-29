@@ -1,6 +1,6 @@
 {
     "map_name": "My room",
-    "number_of_cells": 8,
+    "number_of_cells": 9,
     "number_of_walls": 19, 
     "number_of_doors": 2,
     "cells": [
@@ -55,6 +55,13 @@
         },
         {
             "id": 8,
+            "startX": 123,
+            "startY": 307, 
+            "stopX": 224, 
+            "stopY": 390
+        },
+        {
+            "id": 9,
             "startX": 9,
             "startY": 189,
             "stopX": 224,

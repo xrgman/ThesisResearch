@@ -37,7 +37,7 @@ chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool liveDecoding = true;
 
 // Distance to be used as long as we can't calculate it from the actual received message:
-bool processDecodedDataToPf = false;
+bool processDecodedDataToPf = true; //TODO: set to false
 double currentProcessingDistance = 0;
 
 /// @brief This function is called when the program is suddenly terminated (ctrl + c)
@@ -84,7 +84,7 @@ void dataDecodedCallback(AudioCodecResult result)
             cout << "Received message from robot " << result.senderId << " at " << distance << "cm and " << doa << " degrees\n";
 
             //Passing message information to the particle filter.
-            particleFilter.processMessage(distance, doa);
+            particleFilter.processMessage(distance, doa, 0);
         }
     }
     else if (result.messageType == LOCALIZATION2)

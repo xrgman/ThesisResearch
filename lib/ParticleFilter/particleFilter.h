@@ -26,7 +26,7 @@ public:
 
     void initializeParticlesUniformly();
 
-    void processMessage(double distance, double angle);
+    void processMessage(double distance, double angle, double robotAngle);
     void processMovement(double distance, int angle);
 
     MapData* getMapData();
@@ -45,7 +45,7 @@ private:
     std::normal_distribution<double> normal_distribution;
 
     void calculateMovementAlongAxis(double distance, int angle, double &movementX, double &movementY);
-    void calculateGaussianNoise(int &noise, double distance);
+    void calculateGaussianNoise(int &noise, double threshold);
     bool isCoordinateAllowed(int xCoordinate, int yCoordinate, int& cellIdx);
     bool didParticleTravelThroughWall(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate);
 
