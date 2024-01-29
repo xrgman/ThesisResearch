@@ -1,6 +1,8 @@
 #include "util.h"
 #include <numeric>
 #include <iostream>
+#include <cstring>
+#include <cstdlib>
 #include <map>
 
 double calculateAverage(const uint16_t *data, uint16_t size)
@@ -268,9 +270,9 @@ uint8_t bitsToUint8(const uint8_t bits[8])
 }
 
 /// @brief Transform a whole collection of uint8_t values into an array of bits.
-/// @param array 
-/// @param size 
-/// @param bits 
+/// @param array
+/// @param size
+/// @param bits
 void uint8CollectionToBits(uint8_t *array, const int size, uint8_t *bits)
 {
     for (int j = 0; j < size; j++)
@@ -349,11 +351,6 @@ int getNextPowerOf2(int value)
     return pow(2, ceil(log2(value)));
 }
 
-// double positiveModulo(const double val, const double mod)
-// {
-//     return (val % mod + mod) % mod;
-// }
-
 bool openFile(const char *filename, FILE **file, const char *mode)
 {
     *file = fopen(filename, mode);
@@ -370,6 +367,9 @@ long getFileSize(FILE *file)
     return fileSize;
 }
 
+/// @brief Read all contents from a .txt file into a string.
+/// @param file File to read from.
+/// @return Contents in text format.
 char *readFileText(FILE *file)
 {
     // Grab the size of the file:
@@ -384,6 +384,44 @@ char *readFileText(FILE *file)
     fclose(file);
 
     return buffer;
+}
+
+/// @brief Substract distance of recorded sound from the name of the file.
+/// @param filename Name of the file.
+/// @return Distance to other robot in cm.
+int readDistanceFromFileName(const char *filename)
+{
+    // 1. Making a copy of the file:
+    char *fileNameCopy = strdup(filename);
+
+    // 2. Splitting the string:
+    char *splittedFileName = strtok(fileNameCopy, "_");
+
+    while (splittedFileName != NULL)
+    {
+        // 3. Looking for the correct part, containing the distance information:
+        char *distanceStr = strstr(splittedFileName, "cm");
+
+        if (distanceStr != NULL)
+        {
+            // 4. Stripping the 'cm' part:
+            memmove(distanceStr, distanceStr + 2, strlen(distanceStr + 2) + 1);
+
+            // 5. Returning it as a number:
+            int distance = atoi(splittedFileName);
+
+            free(fileNameCopy);
+
+            return distance;
+        }
+
+        splittedFileName = strtok(NULL, "_");
+    }
+
+    // Not found:
+    free(fileNameCopy);
+
+    return -1;
 }
 
 /// @brief Determine the orientation of an ordererd triplet of points in the plane. Can be either: counterclockwise, clockwise, or collinear.

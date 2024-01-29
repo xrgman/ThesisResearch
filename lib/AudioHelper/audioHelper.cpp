@@ -341,6 +341,8 @@ bool AudioHelper::determineMicrophoneOrder()
 
         // 2. Calulate the average deviation of each channel:
         deviations[channel] = calculateDeviationAverage(channelData, FRAMES_PER_BUFFER, averages[channel]);
+
+        //cout << deviations[channel] << ", ";
     }
 
     // 3. Finding the two with lowest deviations:

@@ -37,6 +37,9 @@ AudioCodec audioCodec(dataDecodedCallback);
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool liveDecoding = true;
 
+// Distance to be used as long as we can't calculate it from the actual received message:
+int currentProcessingDistance = 0;
+
 void sigIntHandler(int signum)
 {
     // Stopping audio streams:
@@ -500,39 +503,6 @@ void encodeMessageForAudio(const char *filename)
     // Walk over a window (LENGTH == PREAMBLE) and if preamble is found start gathering X bytes and then send it through the codec I guess
 }
 
-void decodeMessageForAudio(const char *filename)
-{
-    const int frames_per_buffer = 1536;
-
-    FILE *fileRead;
-
-    if (!openWAVFile(filename, &fileRead, true))
-    {
-        cout << "Failed to open WAV file...\n";
-    }
-
-    // Initialize the FFT:
-    initializeFFT(PREAMBLE_BITS, STFT_WINDOW_SIZE);
-
-    // Reading successfull, so decoding it:
-    while (!feof(fileRead))
-    {
-        int16_t audioData[frames_per_buffer];
-        size_t bytesRead = fread(audioData, 2, frames_per_buffer, fileRead);
-
-        // SAMPLE FILE HAS ONLY ONE CHANNEL:
-        for (int i = 0; i < bytesRead; i += 1)
-        {
-            audioCodec.decode(audioData[i], i % NUM_CHANNELS);
-        }
-    }
-
-    // Closing file:
-    fclose(fileRead);
-
-    cout << "Done decoding WAV file!\n";
-}
-
 void decodeMessageConvolution(const char *filename)
 {
     const int frames_per_buffer = 4410;
@@ -572,47 +542,6 @@ void decodeMessageConvolution(const char *filename)
     fclose(fileRead);
 
     cout << "Done decoding WAV file!\n";
-}
-
-void decodingLive()
-{
-    cout << "Live decoding started!\n";
-
-    while (liveDecoding)
-    {
-        // Checking if new data is available:
-        if (!audioHelper.readNextBatch())
-        {
-            usleep(1);
-
-            continue;
-        }
-
-        audioHelper.setNextBatchRead();
-
-        // Determine order of microphones, only executed once:
-        if (!audioHelper.determineMicrophoneOrder())
-        {
-            cout << "Failed to determine microphone order! Stopping program.\n";
-
-            return;
-        }
-
-        // Looping over all frames in the buffer:
-        for (int i = 0; i < FRAMES_PER_BUFFER; i++)
-        {
-            // Looping over all microphones:
-            for (uint8_t channel = 0; channel < 1; channel++)
-            {
-                uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
-                int16_t *channelData = audioHelper.audioData[channelIdx];
-
-                audioCodec.decode(channelData[i], channel);
-            }
-        }
-
-        audioHelper.signalBatchProcessed();
-    }
 }
 
 void decodingLiveConvolution()
@@ -838,6 +767,59 @@ void sendMessageAndRecord(const char *filename)
     cout << "Successfully send message and written recording to wav file '" << filename << "'\n";
 }
 
+/// @brief Process a file, without performing distance calculation. Instead distance is substracted from the file name.
+/// @param filename Filename of the WAV file.
+void processFileWoDistance(const char *filename)
+{
+    const int frames_per_buffer = 4410;
+
+    FILE *fileRead;
+
+    if (!openWAVFile(filename, &fileRead, true))
+    {
+        cout << "Failed to open WAV file...\n";
+
+        return;
+    }
+
+    // Substracting distance from file name
+    currentProcessingDistance = readDistanceFromFileName(filename);
+
+    if (currentProcessingDistance <= 0)
+    {
+        cout << "Failed to retreive distance information from file name...\n";
+
+        return;
+    }
+
+    // Initialize the FFT:
+    initializeFFT(PREAMBLE_BITS, STFT_WINDOW_SIZE);
+
+    // Start timer:
+    decodingStart = chrono::high_resolution_clock::now();
+
+    // Reading successfull, so decoding it:
+    while (!feof(fileRead))
+    {
+        int16_t audioData[frames_per_buffer];
+        size_t bytesRead = fread(audioData, 2, frames_per_buffer, fileRead);
+
+        // SAMPLE FILE HAS ONLY ONE CHANNEL:
+        for (int i = 0; i < bytesRead; i += 1)
+        {
+            audioCodec.decode(audioData[i], i % NUM_CHANNELS);
+        }
+    }
+
+    // Clear the end-of-file indicator
+    clearerr(fileRead);
+
+    // Closing file:
+    fclose(fileRead);
+
+    cout << "Done processing WAV file!\n";
+}
+
 void handleKeyboardInput()
 {
     bool keepProcessing = true;
@@ -950,6 +932,29 @@ void handleKeyboardInput()
                 cout << "Sending one signal message.";
 
                 playSingleMessage();
+
+                continue;
+            }
+
+            // Start particle filer:
+            if (words[0] == "sp")
+            {
+
+                cout << "Starting particle filter.\n";
+
+                loadParticleFilter();
+
+                continue;
+            }
+
+            // Sending messages and recording to wav file simultanious.
+            if (words[0] == "pf")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Processing file " << filename << ".\n";
+
+                processFileWoDistance(filename);
 
                 continue;
             }

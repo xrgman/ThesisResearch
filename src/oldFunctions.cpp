@@ -191,3 +191,78 @@ void graphSineWave5()
 
 // // Almost the same, but still different because python code does it in reverse
 // stringToBits(text, size, dataBits);
+
+/*void decodeMessageForAudio(const char *filename)
+{
+    const int frames_per_buffer = 1536;
+
+    FILE *fileRead;
+
+    if (!openWAVFile(filename, &fileRead, true))
+    {
+        cout << "Failed to open WAV file...\n";
+    }
+
+    // Initialize the FFT:
+    initializeFFT(PREAMBLE_BITS, STFT_WINDOW_SIZE);
+
+    // Reading successfull, so decoding it:
+    while (!feof(fileRead))
+    {
+        int16_t audioData[frames_per_buffer];
+        size_t bytesRead = fread(audioData, 2, frames_per_buffer, fileRead);
+
+        // SAMPLE FILE HAS ONLY ONE CHANNEL:
+        for (int i = 0; i < bytesRead; i += 1)
+        {
+            audioCodec.decode(audioData[i], i % NUM_CHANNELS);
+        }
+    }
+
+    // Closing file:
+    fclose(fileRead);
+
+    cout << "Done decoding WAV file!\n";
+}*/
+
+/*void decodingLive()
+{
+    cout << "Live decoding started!\n";
+
+    while (liveDecoding)
+    {
+        // Checking if new data is available:
+        if (!audioHelper.readNextBatch())
+        {
+            usleep(1);
+
+            continue;
+        }
+
+        audioHelper.setNextBatchRead();
+
+        // Determine order of microphones, only executed once:
+        if (!audioHelper.determineMicrophoneOrder())
+        {
+            cout << "Failed to determine microphone order! Stopping program.\n";
+
+            return;
+        }
+
+        // Looping over all frames in the buffer:
+        for (int i = 0; i < FRAMES_PER_BUFFER; i++)
+        {
+            // Looping over all microphones:
+            for (uint8_t channel = 0; channel < 1; channel++)
+            {
+                uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
+                int16_t *channelData = audioHelper.audioData[channelIdx];
+
+                audioCodec.decode(channelData[i], channel);
+            }
+        }
+
+        audioHelper.signalBatchProcessed();
+    }
+}
+*/

@@ -55,6 +55,8 @@ bool openFile(const char *filename, FILE **file, const char *mode);
 long getFileSize(FILE *file);
 char *readFileText(FILE *file);
 
+int readDistanceFromFileName(const char *filename);
+
 uint8_t determineOrientationThreePoints(int p1X, int p1Y, int p2X, int p2Y, int p3X, int p3Y);
 bool onSegment(int p1X, int p1Y, int p2X, int p2Y, int p3X, int p3Y);
 
