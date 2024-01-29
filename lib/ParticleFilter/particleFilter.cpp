@@ -6,6 +6,7 @@
 
 using json = nlohmann::json;
 
+/// @brief Constructor.
 ParticleFilter::ParticleFilter() : generator(rd()), normal_distribution(NOISE_MEAN, NOISE_STDEV)
 {
     this->selectedCellIdx = -1;
@@ -15,6 +16,9 @@ ParticleFilter::ParticleFilter() : generator(rd()), normal_distribution(NOISE_ME
 //******** Map functions **************************
 //*************************************************
 
+/// @brief Load map data from a .json file into a mapData object.
+/// @param filename Name of the file containing the map data.
+/// @return Whether decoding the map data was successfull.
 bool ParticleFilter::loadMap(const char *filename)
 {
     FILE *fileMapData;
@@ -48,11 +52,15 @@ bool ParticleFilter::loadMap(const char *filename)
     return true;
 }
 
+/// @brief Get the name of the loaded map.
+/// @return The name of the map.
 const char *ParticleFilter::getMapName()
 {
     return mapData.getName();
 }
 
+/// @brief Get a reference to the object containing the map data.
+/// @return Reference to the map data.
 MapData *ParticleFilter::getMapData()
 {
     return &mapData;
@@ -105,10 +113,20 @@ void ParticleFilter::initializeParticlesUniformly()
 //******** Update particle filter *****************
 //*************************************************
 
-// distance travelled = pi * diameter
-// Diameter wheel = 12CM
+/// @brief Update the particles based on an received message from one of the robots.
+/// @param distance Distance to the other robot.
+/// @param angle Angle to the other robot.
+void ParticleFilter::processMessage(double distance, double angle)
+{
+}
+
+/// @brief Update all particles based on the movement of the robot.
+/// @param distance Distance the robot moved.
+/// @param angle The angle at which the robot moved.
 void ParticleFilter::processMovement(double distance, int angle)
 {
+    // distance travelled = pi * diameter
+    // Diameter wheel = 12CM
     int noise1, noise2;
 
     // Calculate movement along the x and y axis:
@@ -188,6 +206,8 @@ void ParticleFilter::processMovement(double distance, int angle)
     determineLocalizationCell(particlesPerCell);
 }
 
+/// @brief Get the currently selected cell, based on the position of the particles.
+/// @return Id of the selected cell.
 int ParticleFilter::getSelectedCellIdx()
 {
     return this->selectedCellIdx;

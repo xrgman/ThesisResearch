@@ -22,6 +22,7 @@ T positive_modulo(T val, T mod) {
 
 #define DIAMETER_WHEEL 12 //12CM
 
+#define ROBOTS_COUNT 6
 #define ROBOT_ID 1
 
 #define LOCALIZATION_INTERVAL_SECONDS 1.0

@@ -25,6 +25,8 @@ public:
     int getNumberOfParticles();
 
     void initializeParticlesUniformly();
+
+    void processMessage(double distance, double angle);
     void processMovement(double distance, int angle);
 
     MapData* getMapData();

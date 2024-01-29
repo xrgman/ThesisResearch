@@ -83,9 +83,8 @@ void dataDecodedCallback(AudioCodecResult result)
 
             cout << "Received message from robot " << result.senderId << " at " << distance << "cm and " << doa << " degrees\n";
 
-            
-
-            // Use angle + distance to process particle filter :)
+            //Passing message information to the particle filter.
+            particleFilter.processMessage(distance, doa);
         }
     }
     else if (result.messageType == LOCALIZATION2)
