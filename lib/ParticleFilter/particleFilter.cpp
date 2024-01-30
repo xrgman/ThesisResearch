@@ -129,7 +129,7 @@ void ParticleFilter::processMessage(double distance, double angle, double robotA
         std::cerr << "No particles found, make sure to initialize before processing any movement.\n";
 
         return;
-    }
+    } 
 
     // 1. Adjust the angle to match the orientation of the map (YAW of robot).
     angle = positive_modulo((angle + robotAngle), 360.0);

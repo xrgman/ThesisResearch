@@ -151,7 +151,7 @@ void openAndPlayWavFile(const char *filename)
     // Reading WAV file:
     FILE *fileRead;
 
-    if (!openWAVFile(filename, &fileRead, true))
+    if (!openWAVFile(filename, &fileRead, NULL, true))
     {
         cout << "Failed to open WAV file...\n";
 
@@ -323,7 +323,7 @@ void encodeMessageForAudio(const char *filename)
     fillArrayWithZeros(codedAudioData, size);
 
     // Encode the message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION2);
+    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
 
     // Write data to file:
     writeWavFile(filename, codedAudioData, size, SAMPLE_RATE, 16, 1);
@@ -342,8 +342,9 @@ void decodeMessageConvolution(const char *filename)
     const int frames_per_buffer = 4410;
 
     FILE *fileRead;
+    WavHeader wavHeader;
 
-    if (!openWAVFile(filename, &fileRead, true))
+    if (!openWAVFile(filename, &fileRead, &wavHeader, true))
     {
         cout << "Failed to open WAV file...\n";
 
@@ -365,7 +366,7 @@ void decodeMessageConvolution(const char *filename)
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
         for (int i = 0; i < bytesRead; i += 1)
         {
-            audioCodec.decode(audioData[i], i % NUM_CHANNELS); // i % NUM_CHANNELS
+            audioCodec.decode(audioData[i], i % wavHeader.numChannels); // i % NUM_CHANNELS
         }
     }
 
@@ -610,7 +611,7 @@ void processFileWoDistance(const char *filename)
 
     FILE *fileRead;
 
-    if (!openWAVFile(filename, &fileRead, true))
+    if (!openWAVFile(filename, &fileRead, NULL, true))
     {
         cout << "Failed to open WAV file...\n";
 
@@ -859,17 +860,17 @@ int main()
 
     audioHelper.signalBatchProcessed();
 
-    handleKeyboardInput();
+    //handleKeyboardInput();
     // decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
 
-    // openAndPlayWavFile();
+    //openAndPlayWavFile("../src/song2.wav");
     //  loadParticleFilter();
-    // encodeMessageForAudio("../recordings/convolution/encoding1.wav");
+    encodeMessageForAudio("../recordings/convolution/encoding1.wav");
 
     // recordToWavFile("TestOpname.wav", 5);
 
     // decodeMessageForAudio("../recordings/los/50cm_90deg.wav");
-    // decodeMessageConvolution("../recordings/convolution/los/50cm_90deg_v2.wav");
+    decodeMessageConvolution("../recordings/convolution/encoding1.wav");
     // // decodingLiveConvolution();
 
     audioHelper.clearBuffers();

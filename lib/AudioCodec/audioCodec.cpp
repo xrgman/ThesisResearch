@@ -158,7 +158,7 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     // 1. Creating data array, containing all data to be send:
     uint8_t data[dataLength];
 
-    // Encode padding (1's):
+    // Encode padding (1's), TODO change to ID and based on that select decoding freqs?:
     for (uint8_t i = 0; i < 8; i++)
     {
         data[i] = 1;
@@ -467,7 +467,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 // Calculate the direction of arrival (DOA):
                 decodingResult.doa = calculateDOA(decodingResult.preambleDetectionPosition, NUM_CHANNELS); // TODO: check if num_channels shouldnt just be the amount of detected preambles
 
-                //cout << "Found DOA: " << decodingResult.doa << endl;
+                // cout << "Found DOA: " << decodingResult.doa << endl;
             }
         }
 
@@ -510,6 +510,8 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
 int AudioCodec::containsPreamble(const double *window, const int windowSize)
 {
+    auto t1 = chrono::high_resolution_clock::now();
+
     // 1. Get convolution results:
     double convolutionData[PREAMBLE_BITS];
 
@@ -522,11 +524,18 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
     // 3. Find the maximum peak:
     double max_peak = *max_element(convolutionData, convolutionData + PREAMBLE_BITS);
 
-    // 3.5 Check if peak is not from own send message:
+// 3.5 Check if peak is not from own send message:
+#ifdef CHECK_FOR_OWN_SIGNAL
     if (max_peak > PREAMBLE_CONVOLUTION_CUTOFF)
     {
         return -1;
     }
+#endif
+
+    auto t2 = chrono::high_resolution_clock::now();
+    chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+
+    cout << "Check preamble took: " << ms_int.count() << "ns\n";
 
     // 4. Check if the maximum peak exceeds the threshold:
     if (max_peak > preamble_min_peak * 4)
