@@ -148,7 +148,7 @@ bool openWAVFile(const char *filename, FILE **fileRead, WavHeader *wavHeader, bo
     {
         printWAVHeader(header);
     }
-
+ 
     return true;
 }
 

@@ -316,7 +316,7 @@ void loadParticleFilter()
 void encodeMessageForAudio(const char *filename)
 {
     // Create array and fill it with zeros:
-    int size = audioCodec.getEncodingSize();
+    int size = audioCodec.getEncodingSize() + 400;
 
     int16_t codedAudioData[size];
 

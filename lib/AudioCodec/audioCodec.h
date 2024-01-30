@@ -9,19 +9,28 @@
 #define AUDIO_CODEC_SIZE 44100
 #define NUMBER_OF_SUB_CHIRPS 8
 
-#define CHIRP_AMPLITUDE 1.0 // Was 0.5
+#define CHIRP_AMPLITUDE 1.0
 
 #define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source
-#define PREAMBLE_DURATION 0.1857596372 // 0.092879818//0.1857596372 //Make sure the number of bits is 8192
-static const int PREAMBLE_BITS = round(PREAMBLE_DURATION * SAMPLE_RATE);
 
-// #define SYMBOL_DURATION 0.0072562358 //For 44.1Khz
-#define SYMBOL_DURATION 0.0145124716 // For 22.05Khz
-static const int SYMBOL_BITS = round(SYMBOL_DURATION * SAMPLE_RATE);
+//*** Encoding frequency definitions ***
+#define START_FREQ_PREAMBLE 5500.0
+#define STOP_FREQ_PREAMBLE 9500.0
+
+#define START_FREQ_BITS 5500.0
+#define STOP_FREQ_BITS 9500.0
+
+//*** Encoding bits definitions ***
+#define PREAMBLE_BITS 4096
+#define PREAMBLE_DURATION (double)PREAMBLE_BITS / SAMPLE_RATE
+ 
+#define SYMBOL_BITS 320
+#define SYMBOL_DURATION (double)SYMBOL_BITS / SAMPLE_RATE//0.0145124716 // For 22.05Khz 0.0072562358 //For 44.1Khz
+
 
 static const int DECODING_BUFFER_SIZE = PREAMBLE_BITS * 2;
 
-#define HOP_SIZE 4096 // 8192 +
+#define HOP_SIZE PREAMBLE_BITS // For now, we just keep on hopping using the preamble size, for performance. 
 
 // Decoding bits for convolution:
 #define DECODING_BITS_COUNT 104
@@ -140,7 +149,7 @@ public:
 
 private:
     double volume;
-    AudioCodecFrequencyPair frequencyPair;
+    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBits;
     void (*data_decoded_callback)(AudioCodecResult);
 
     // FFT configurations convolution:

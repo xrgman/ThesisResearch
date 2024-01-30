@@ -3,13 +3,9 @@
 
 #include <cmath>
 #include <iostream>
+#include <algorithm>   
+#include <complex>
 
-#include "gnuplot-iostream.h"
-
-#define START_FREQ_CHRIP 5500.0
-#define STOP_FREQ_CHIRP 9500.0
-
-// #define ENCODING_BIT_DURATION 0.006956521739130435
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
@@ -17,8 +13,10 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
 {
     this->data_decoded_callback = data_decoded_callback;
     this->volume = 1.0;
-    this->frequencyPair.startFrequency = START_FREQ_CHRIP;
-    this->frequencyPair.stopFrequency = STOP_FREQ_CHIRP;
+    this->frequencyPairPreamble.startFrequency = START_FREQ_PREAMBLE;
+    this->frequencyPairPreamble.stopFrequency = STOP_FREQ_PREAMBLE;
+    this->frequencyPairBits.startFrequency = START_FREQ_BITS;
+    this->frequencyPairBits.stopFrequency = STOP_FREQ_BITS;
     this->decodingResult.reset();
 
     for (uint8_t i; i < NUM_CHANNELS; i++)
@@ -214,7 +212,7 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
 /// @param stopFrequency Stop frequency of the preamble.
 void AudioCodec::encodePreamble(double *output, bool flipped)
 {
-    AudioCodecFrequencyPair frequencySpectrum[1] = {frequencyPair};
+    AudioCodecFrequencyPair frequencySpectrum[1] = {frequencyPairPreamble};
 
     bitToChirp(output, 0, frequencySpectrum, 1, PREAMBLE_DURATION);
 
@@ -340,8 +338,8 @@ void AudioCodec::generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SU
         {
             int chirpOrderIdx = chirpOrder[row][column];
 
-            double fs = frequencyPair.startFrequency + ((chirpOrderIdx - 1) * (frequencyPair.stopFrequency - frequencyPair.startFrequency)) / numberOfSubChirps;
-            double fe = fs + (frequencyPair.stopFrequency - frequencyPair.startFrequency) / numberOfSubChirps;
+            double fs = frequencyPairBits.startFrequency + ((chirpOrderIdx - 1) * (frequencyPairBits.stopFrequency - frequencyPairBits.startFrequency)) / numberOfSubChirps;
+            double fe = fs + (frequencyPairBits.stopFrequency - frequencyPairBits.startFrequency) / numberOfSubChirps;
 
             // Determine whether to use an up or down chirp:
             if (chirpOrderIdx % 2 == column % 2)
