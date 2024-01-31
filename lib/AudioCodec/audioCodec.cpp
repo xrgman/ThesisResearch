@@ -51,8 +51,8 @@ void AudioCodec::generateConvolutionFields()
     reverse(bit1Flipped, bit1Flipped + SYMBOL_BITS);
 
     // Calculate optimal FFT values (foud using python):
-    int convolvePreambleN = 8192; // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
-    int convolveBitN = 640;       // 625;        // getNextPowerOf2(DECODING_BIT_BITS * 2 - 1);
+    int convolvePreambleN = getNextPowerOf2(PREAMBLE_BITS * 2 - 1); // 8192; // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
+    int convolveBitN = 640;                                         // getNextPowerOf2(SYMBOL_BITS * 2 - 1); //640
 
     fftConfigStoreConvPre = {
         PREAMBLE_BITS * 2 - 1,
