@@ -6,9 +6,7 @@
 #include "main.h"
 #include "fftWrapper.h"
 
-#define AUDIO_CODEC_SIZE 44100
 #define NUMBER_OF_SUB_CHIRPS 8
-
 #define CHIRP_AMPLITUDE 1.0
 
 #define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source

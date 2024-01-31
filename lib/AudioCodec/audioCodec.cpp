@@ -515,7 +515,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
 int AudioCodec::containsPreamble(const double *window, const int windowSize)
 {
-    // auto t1 = chrono::high_resolution_clock::now();
+    //auto t1 = chrono::high_resolution_clock::now();
 
     // 1. Get convolution results:
     double convolutionData[windowSize];
