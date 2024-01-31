@@ -308,7 +308,7 @@ void loadParticleFilter()
     // mapRenderer.stop();
 }
 
-void encodeMessageForAudio(const char *filename)
+void encodeMessageForAudio(const char *filename, int robotId)
 {
     // Create array and fill it with zeros:
     int size = audioCodec.getEncodingSize() + 400;
@@ -318,7 +318,7 @@ void encodeMessageForAudio(const char *filename)
     fillArrayWithZeros(codedAudioData, size);
 
     // Encode the message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
+    audioCodec.encode(codedAudioData, robotId, ENCODING_TEST);
 
     // Write data to file:
     writeWavFile(filename, codedAudioData, size, SAMPLE_RATE, 16, 1);
@@ -378,7 +378,7 @@ void decodingLiveConvolution()
 {
     cout << "Live decoding started!\n";
 
-    // vector<double> durations;
+    vector<double> durations;
     // vector<double> averageDurations;
 
     while (liveDecoding)
@@ -393,7 +393,7 @@ void decodingLiveConvolution()
 
         audioHelper.setNextBatchRead();
 
-        // auto t1 = chrono::high_resolution_clock::now();
+        auto t1 = chrono::high_resolution_clock::now();
 
         //  Looping over all microphones:
         for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
@@ -408,9 +408,15 @@ void decodingLiveConvolution()
             }
         }
 
-        // auto t2 = chrono::high_resolution_clock::now();
-        // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
-        // durations.push_back(ms_int.count());
+        auto t2 = chrono::high_resolution_clock::now();
+        chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+        durations.push_back(ms_int.count());
+
+        if(durations.size() > 100) {
+            double maxValue = *max_element(durations.begin(), durations.end());
+
+            cout << "Max value: " << maxValue << endl;
+        }
 
         // if (durations.size() >= (PREAMBLE_BITS / FRAMES_PER_BUFFER))
         // {
@@ -732,7 +738,7 @@ void handleKeyboardInput()
 
                 cout << "Starting encoding to file " << filename << endl;
 
-                encodeMessageForAudio(filename);
+                encodeMessageForAudio(filename, ROBOT_ID);
 
                 continue;
             }
@@ -878,12 +884,12 @@ int main()
 
     audioHelper.signalBatchProcessed();
 
-    handleKeyboardInput();
+    //handleKeyboardInput();
     // decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
 
     // openAndPlayWavFile("../src/song2.wav");
     //   loadParticleFilter();
-    // encodeMessageForAudio("../recordings/convolution/encoding1.wav");
+    encodeMessageForAudio("../recordings/convolution/encoding2.wav", 2);
 
     // recordToWavFile("TestOpname.wav", 5);
 

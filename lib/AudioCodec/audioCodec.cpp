@@ -203,8 +203,10 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     // 3. Encode preamble to the front of the message
     encodePreamble(outputBuffer, false);
 
+    // 4. Encode the robot ID using standard frequency
+
     // 4. Encode the data:
-    bitsToChirp(&outputBuffer[preambleLength], data, dataLength, symbols, NUMBER_OF_SUB_CHIRPS);
+    bitsToChirp(&outputBuffer[preambleLength], &data[0], dataLength, symbols, NUMBER_OF_SUB_CHIRPS);
 
     // 5. Convert outputBuffer to int16:
     for (int i = 0; i < outputLength; i++)
@@ -487,7 +489,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
     if (decodingBitsPosition > 0 && microphoneId == 0 && decodingBitsPosition + SYMBOL_BITS <= numberOfReceivedBits[microphoneId])
     {
-        auto t1 = chrono::high_resolution_clock::now();
+       // auto t1 = chrono::high_resolution_clock::now();
 
         // Creating frame:
         double frame[SYMBOL_BITS];
@@ -506,9 +508,9 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         // Increasing read position:
         decodingStore[microphoneId].decodingBitsPosition += SYMBOL_BITS;
 
-        auto t2 = chrono::high_resolution_clock::now();
-        chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
-        durations.push_back(ms_int.count());
+        // auto t2 = chrono::high_resolution_clock::now();
+        // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+        // durations.push_back(ms_int.count());
 
         // Checking if all bits are received:
         if (decodingResult.decodedBitsCnt >= getNumberOfBits())
