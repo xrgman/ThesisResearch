@@ -98,8 +98,8 @@ void AudioCodec::generateConvolutionFields()
 /// @return Number of bits in encoded message.
 int AudioCodec::getNumberOfBits()
 {
-    // PADDING + Robot ID + Message ID + Data + CRC
-    return 8 + 8 + 8 + 64 + 8;
+    // Robot ID + Message ID + Data + CRC
+    return 8 + 8 + 64 + 8;
 }
 
 /// @brief Get the size in bits of the hello world encoding.
@@ -164,25 +164,25 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     uint8_t data[dataLength];
 
     // Encode padding (1's), TODO change to ID and based on that select decoding freqs?:
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        data[i] = 1;
-    }
+    // for (uint8_t i = 0; i < 8; i++)
+    // {
+    //     data[i] = 1;
+    // }
 
     // Encode sender id:
-    uint8ToBits(senderId, &data[8]);
+    uint8ToBits(senderId, &data[0]);
 
     // Encode message type id:
-    uint8ToBits(messageType, &data[16]);
+    uint8ToBits(messageType, &data[8]);
 
     // Encoding data:
     for (int i = 0; i < 64; i++)
     {
-        data[24 + i] = dataBits[i];
+        data[16 + i] = dataBits[i];
     }
 
     // Calculate and add CRC (excluding padding):
-    uint8_t crc = calculateCRC(&data[8], dataLength - 8 - 8);
+    uint8_t crc = calculateCRC(&data[0], dataLength - 8);
     uint8ToBits(crc, &data[dataLength - 8]);
 
 #ifdef PRINT_CODED_BITS
@@ -397,6 +397,8 @@ uint8_t AudioCodec::calculateCRC(const uint8_t *data, const int size)
 //******** Decoding *******************************
 //*************************************************
 
+static vector<double> durations;
+
 void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 {
     // int siz = 9;
@@ -485,6 +487,8 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
     if (decodingBitsPosition > 0 && microphoneId == 0 && decodingBitsPosition + SYMBOL_BITS <= numberOfReceivedBits[microphoneId])
     {
+        auto t1 = chrono::high_resolution_clock::now();
+
         // Creating frame:
         double frame[SYMBOL_BITS];
 
@@ -502,13 +506,17 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         // Increasing read position:
         decodingStore[microphoneId].decodingBitsPosition += SYMBOL_BITS;
 
+        auto t2 = chrono::high_resolution_clock::now();
+        chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+        durations.push_back(ms_int.count());
+
         // Checking if all bits are received:
         if (decodingResult.decodedBitsCnt >= getNumberOfBits())
         {
             // Save decoding time:
             chrono::time_point decodingDoneTime = chrono::high_resolution_clock::now();
 
-            completeDecoding(8, getNumberOfBits() - 8, decodingDoneTime);
+            completeDecoding(0, getNumberOfBits() - 8, decodingDoneTime);
         }
     }
 }
@@ -614,7 +622,7 @@ void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits, 
     uint8_t crcInMessage = bitsToUint8(&decodingResult.decodedBits[getNumberOfBits() - 8]);
     uint8_t crcCalculated = calculateCRC(&decodingResult.decodedBits[startIndex], numberOfBits - 8);
 
-    cout << "Preamble found at: " << decodingResult.preambleDetectionPosition[0] << endl;
+   // cout << "Preamble found at: " << decodingResult.preambleDetectionPosition[0] << endl;
 
     if (crcInMessage == crcCalculated)
     {
