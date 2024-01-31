@@ -59,7 +59,7 @@ void AudioCodec::generateConvolutionFields()
 
     // Calculate optimal FFT values (foud using python):
     int convolvePreambleN = getNextPowerOf2(UNDER_SAMPLING_BITS * 2 - 1); // 8192; // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
-    int convolveBitN = 640;                                         // getNextPowerOf2(SYMBOL_BITS * 2 - 1); //640
+    int convolveBitN = 640;                                               // getNextPowerOf2(SYMBOL_BITS * 2 - 1); //640
 
     fftConfigStoreConvPre = {
         UNDER_SAMPLING_BITS * 2 - 1,
@@ -515,7 +515,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
 int AudioCodec::containsPreamble(const double *window, const int windowSize)
 {
-    auto t1 = chrono::high_resolution_clock::now();
+    // auto t1 = chrono::high_resolution_clock::now();
 
     // 1. Get convolution results:
     double convolutionData[windowSize];
@@ -537,10 +537,10 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
     }
 #endif
 
-    auto t2 = chrono::high_resolution_clock::now();
-    chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+    // auto t2 = chrono::high_resolution_clock::now();
+    // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-    cout << "Check preamble took: " << ms_int.count() << "ns\n";
+    // cout << "Check preamble took: " << ms_int.count() << "ns\n";
 
     // 4. Check if the maximum peak exceeds the threshold:
     if (max_peak > preamble_min_peak * 4)

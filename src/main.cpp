@@ -405,7 +405,7 @@ void decodingLiveConvolution()
 
         // It works for one microphone, more it becomes too slow :(
         //  Looping over all microphones:
-        for (uint8_t channel = 0; channel < 4; channel++)
+        for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
         {
             uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
             int16_t *channelData = audioHelper.audioData[channelIdx];
@@ -741,6 +741,16 @@ void handleKeyboardInput()
                 continue;
             }
 
+            // Start live decoding:
+            if (words[0] == "l" || words[0] == "L")
+            {
+                cout << "Starting live decoding.\n";
+
+                decodingLiveConvolution();
+
+                continue;
+            }
+
             // Sending three messages needed for distance determination.
             if (words[0] == "se")
             {
@@ -860,17 +870,17 @@ int main()
 
     audioHelper.signalBatchProcessed();
 
-    //handleKeyboardInput();
+    handleKeyboardInput();
     // decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
 
     //openAndPlayWavFile("../src/song2.wav");
     //  loadParticleFilter();
-    encodeMessageForAudio("../recordings/convolution/encoding1.wav");
+    //encodeMessageForAudio("../recordings/convolution/encoding1.wav");
 
     // recordToWavFile("TestOpname.wav", 5);
 
     // decodeMessageForAudio("../recordings/los/50cm_90deg.wav");
-    decodeMessageConvolution("../recordings/convolution/encoding1.wav");
+    //decodeMessageConvolution("../recordings/convolution/encoding1.wav");
     // // decodingLiveConvolution();
 
     audioHelper.clearBuffers();
