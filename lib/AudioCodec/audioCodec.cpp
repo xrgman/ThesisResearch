@@ -516,7 +516,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
             // Save decoding time:
             chrono::time_point decodingDoneTime = chrono::high_resolution_clock::now();
 
-            completeDecoding(0, getNumberOfBits() - 8, decodingDoneTime);
+            completeDecoding(0, getNumberOfBits(), decodingDoneTime);
         }
     }
 }
