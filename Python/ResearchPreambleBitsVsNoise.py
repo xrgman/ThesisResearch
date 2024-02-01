@@ -58,7 +58,7 @@ undersampling_size = int(PREAMBLE_BITS / undersampling_divisor)
 correct_preambles_detected = 0
 
 #filename = 'recordings/Convolution/recording_270deg_50cm.wav'
-filename = 'recordings/Convolution/encoding1.wav'
+filename = 'Audio_files/encoding1.wav'
 
 encode = True
 
