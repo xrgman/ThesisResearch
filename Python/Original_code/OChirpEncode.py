@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io.wavfile import write
 from scipy.signal import chirp
-from BitManipulation import tobits
-import pandas as pd
+from .BitManipulation import tobits
+
 
 class OChirpEncode:
 
@@ -394,18 +394,37 @@ class OChirpEncode:
 
         return filename, concat_samples
 
+    def get_encoded_data(self, data: str, no_window: bool = None) -> (str, np.ndarray):
+        symbols = self.get_orthogonal_chirps()
 
-if __name__ == '__main__':
-    data_to_send = "Hello, World!"
+        # Choose the init argument als default
+        if no_window is None:
+            no_window = self.no_window
 
-    # test = [10, 20, 30, 40]
-    #
-    # test = 5 * test;
+        bits_to_send = tobits(data)
+        chirps = self.get_chirps_from_bits(symbols, bits_to_send, no_window=no_window)
 
-    oc = OChirpEncode(T=None)
-    file, data = oc.convert_data_to_sound(data_to_send)
-    # sd.play(data, oc.fsample, blocking=True)
+        preamble = self.get_preamble()
 
-    plt.figure()
-    plt.plot(oc.get_single_chirp(4))
-    plt.show()
+        concat_samples = np.array(preamble)
+        for sample in chirps:
+            concat_samples = np.append(concat_samples, np.array(sample))
+
+        # Convert float to int16
+        concat_samples = concat_samples * np.iinfo(np.int16).max
+        concat_samples = concat_samples.astype(np.int16)
+
+        # Write the filename
+        return concat_samples
+
+
+# if __name__ == '__main__':
+#     data_to_send = "Hello, World!"
+#
+#     oc = OChirpEncode(T=None)
+#     file, data = oc.convert_data_to_sound(data_to_send)
+#     # sd.play(data, oc.fsample, blocking=True)
+#
+#     plt.figure()
+#     plt.plot(oc.get_single_chirp(4))
+#     plt.show()
