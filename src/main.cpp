@@ -16,12 +16,7 @@
 #include "mapRenderer.h"
 #include "audioCodec.h"
 
-// #include "gnuplot-iostream.h"
-
 using namespace std;
-
-#define nrOfChannelsToPlot 2 // NUM_CHANNELS
-#define FREQ
 
 // Func defs:
 void dataDecodedCallback(AudioCodecResult result);
@@ -37,7 +32,7 @@ chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool liveDecoding = true;
 
 // Distance to be used as long as we can't calculate it from the actual received message:
-bool processDecodedDataToPf = true; //TODO: set to false
+bool processDecodedDataToPf = true; // TODO: set to false
 double currentProcessingDistance = 0;
 
 /// @brief This function is called when the program is suddenly terminated (ctrl + c)
@@ -83,7 +78,7 @@ void dataDecodedCallback(AudioCodecResult result)
 
             cout << "Received message from robot " << result.senderId << " at " << distance << "cm and " << doa << " degrees\n";
 
-            //Passing message information to the particle filter.
+            // Passing message information to the particle filter.
             particleFilter.processMessage(distance, doa, 0);
         }
     }
@@ -102,7 +97,7 @@ void dataDecodedCallback(AudioCodecResult result)
         cout << "Received message type not yet implemented!";
     }
 
-    liveDecoding = false;
+    // liveDecoding = false;
 
     decodingStart = chrono::high_resolution_clock::now();
 
@@ -383,6 +378,9 @@ void decodingLiveConvolution()
 {
     cout << "Live decoding started!\n";
 
+    // vector<double> durations;
+    // vector<double> averageDurations;
+
     while (liveDecoding)
     {
         // Checking if new data is available:
@@ -395,17 +393,10 @@ void decodingLiveConvolution()
 
         audioHelper.setNextBatchRead();
 
-        // Determine order of microphones, only executed once:
-        if (!audioHelper.determineMicrophoneOrder())
-        {
-            cout << "Failed to determine microphone order! Stopping program.\n";
+        // auto t1 = chrono::high_resolution_clock::now();
 
-            return;
-        }
-
-        // It works for one microphone, more it becomes too slow :(
         //  Looping over all microphones:
-        for (uint8_t channel = 0; channel < 4; channel++)
+        for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
         {
             uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
             int16_t *channelData = audioHelper.audioData[channelIdx];
@@ -416,6 +407,24 @@ void decodingLiveConvolution()
                 audioCodec.decode(channelData[i], channel);
             }
         }
+
+        // auto t2 = chrono::high_resolution_clock::now();
+        // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+        // durations.push_back(ms_int.count());
+
+        // if (durations.size() >= (PREAMBLE_BITS / FRAMES_PER_BUFFER))
+        // {
+        //     double averageDuration = calculateAverage(durations.data(), durations.size());
+
+        //     averageDurations.push_back(averageDuration);
+
+        //     durations.clear();
+        // }
+
+        // if(averageDurations.size() >= 100) {
+        //     double avg = calculateAverage(averageDurations.data(), averageDurations.size());
+        //     cout << "Average duration " << PREAMBLE_BITS << " bytes for all channels = " << avg << " ns\n";
+        // }
 
         audioHelper.signalBatchProcessed();
     }
@@ -656,7 +665,6 @@ void processFileWoDistance(const char *filename)
     cout << "Done processing WAV file!\n";
 }
 
-
 void handleKeyboardInput()
 {
     bool keepProcessing = true;
@@ -741,6 +749,16 @@ void handleKeyboardInput()
                 continue;
             }
 
+            // Start live decoding:
+            if (words[0] == "l" || words[0] == "L")
+            {
+                cout << "Starting live decoding.\n";
+
+                decodingLiveConvolution();
+
+                continue;
+            }
+
             // Sending three messages needed for distance determination.
             if (words[0] == "se")
             {
@@ -816,7 +834,7 @@ void handleKeyboardInput()
         }
     }
 
-    //Clearing map renderer:
+    // Clearing map renderer:
     mapRenderer.stop();
 }
 
@@ -860,17 +878,17 @@ int main()
 
     audioHelper.signalBatchProcessed();
 
-    //handleKeyboardInput();
+    handleKeyboardInput();
     // decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
 
-    //openAndPlayWavFile("../src/song2.wav");
-    //  loadParticleFilter();
-    encodeMessageForAudio("../recordings/convolution/encoding1.wav");
+    // openAndPlayWavFile("../src/song2.wav");
+    //   loadParticleFilter();
+    // encodeMessageForAudio("../recordings/convolution/encoding1.wav");
 
     // recordToWavFile("TestOpname.wav", 5);
 
     // decodeMessageForAudio("../recordings/los/50cm_90deg.wav");
-    decodeMessageConvolution("../recordings/convolution/encoding1.wav");
+    // decodeMessageConvolution("../recordings/convolution/encoding1.wav");
     // // decodingLiveConvolution();
 
     audioHelper.clearBuffers();

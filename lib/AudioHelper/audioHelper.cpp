@@ -61,7 +61,7 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 
     if (!isBatchProcessed && microphonesAreOrdered)
     {
-        // cout << "Batch was not yet processed!\n";
+        cout << "Batch was not yet processed!\n";
     }
 
     // Grabbing read data:

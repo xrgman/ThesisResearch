@@ -6,9 +6,7 @@
 #include "main.h"
 #include "fftWrapper.h"
 
-#define AUDIO_CODEC_SIZE 44100
 #define NUMBER_OF_SUB_CHIRPS 8
-
 #define CHIRP_AMPLITUDE 1.0
 
 #define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source
@@ -21,16 +19,20 @@
 #define STOP_FREQ_BITS 9500.0
 
 //*** Encoding bits definitions ***
-#define PREAMBLE_BITS 4096
+#define PREAMBLE_BITS 8192 //Was 4096
 #define PREAMBLE_DURATION (double)PREAMBLE_BITS / SAMPLE_RATE
  
 #define SYMBOL_BITS 320
 #define SYMBOL_DURATION (double)SYMBOL_BITS / SAMPLE_RATE//0.0145124716 // For 22.05Khz 0.0072562358 //For 44.1Khz
 
+//*** Under sampling definitions ***
+#define UNDER_SAMPLING_DIVISOR 4 //Was 1
+#define UNDER_SAMPLING_BITS PREAMBLE_BITS / UNDER_SAMPLING_DIVISOR //Number of bits to use when under sampling the signal when decoding.
+
+//*** Decoding definitions ***
+#define HOP_SIZE PREAMBLE_BITS // For now, we just keep on hopping using the preamble size, for performance. 
 
 static const int DECODING_BUFFER_SIZE = PREAMBLE_BITS * 2;
-
-#define HOP_SIZE PREAMBLE_BITS // For now, we just keep on hopping using the preamble size, for performance. 
 
 // Decoding bits for convolution:
 #define DECODING_BITS_COUNT 104
@@ -195,7 +197,7 @@ private:
     double durationPerBit;
 
     AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS]; // Here the different sub frequencies of the bits 0 and 1 are stored.
-    double originalPreambleFlipped[PREAMBLE_BITS];
+    double originalPreambleFlipped[UNDER_SAMPLING_BITS];
     double bit0Flipped[SYMBOL_BITS];
     double bit1Flipped[SYMBOL_BITS];
 

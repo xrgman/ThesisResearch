@@ -287,7 +287,7 @@ int16_t doubleToInt16(double value)
 /// @return Double value.
 double int16ToDouble(int16_t value)
 {
-    return static_cast<double>(value) / INT16_MAX;
+    return static_cast<double>(value) / INT16_MAX_TYPED;
 }
 
 /// @brief Given a specific value, find the next power of 2.
