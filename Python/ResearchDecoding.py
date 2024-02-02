@@ -6,9 +6,8 @@ from decodingClasses import AudioCodecResult, AudioCodecDecoding, most_occuring_
 from matplotlib import pyplot as plt
 from scipy.io.wavfile import read
 from ResearchHelperFunctions import bits_to_uint8t, calculate_crc, calculate_energy, add_noise, contains_preamble, \
-    decode_bit, decode_bit_new, generate_flipped_symbols
-from ResearchEncoding import encode_message, get_encoded_bits_flipped, get_data_for_encoding
-from GenerateMultipleSourceMessages import generate_overlapped
+    decode_bit, generate_flipped_symbols, decode_bit_new
+from ResearchEncoding import encode_message, get_encoded_bits_flipped
 from determineDOA2 import determine_doa
 from scipy.io.wavfile import write
 from typing import List
@@ -63,20 +62,16 @@ correct_preambles_detected = 0
 encode = True
 number_of_sources = 3
 
-bits_flipped = get_encoded_bits_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, 8)
-
 # filename = 'Audio_files/threesources_no_overlap_preamble.wav'
 # filename = 'Audio_files/threesources_overlap_preamble.wav'
-
-#filename = 'Audio_files/threesources_overlap_preamble_start_delay.wav'
-filename = 'Audio_files/overlapped_test.wav'
+filename = 'Audio_files/encoding0_test.wav'
 
 # filename = 'Audio_files/encoding0.wav'
 
 
 # Set SNR:
-useSNR = False
-SNRdB = -5
+useSNR = True
+SNRdB = -14
 
 
 def finish_decoding(decoding_result):
@@ -84,8 +79,8 @@ def finish_decoding(decoding_result):
     crc_in_message = bits_to_uint8t(decoding_result.decoded_bits[-8:])
     crc_calculated = calculate_crc(decoding_result.decoded_bits[0:-8])
 
-    for bit in decoding_result.decoded_bits:
-        print(str(bit) + " ", end='')
+    # for bit in decoding_result.decoded_bits:
+    #     print(str(bit) + " ", end='')
 
     if crc_in_message == crc_calculated:
         # Decoding sender ID:
@@ -100,7 +95,7 @@ def finish_decoding(decoding_result):
         if decoding_result.message_type == AudioCodedMessageType.ENCODING_TEST:
             embedded_text = frombits(decoding_result.decoded_data)
 
-            print("Received: " + str(embedded_text))
+            #print("Received: " + str(embedded_text))
 
         # Perform distance calculation:
         # distance = calculate_distance(decoding_result)
@@ -272,43 +267,34 @@ for i in range(UNDER_SAMPLING_SIZE):
 symbols_original = encoder.get_orthogonal_chirps()
 symbols = generate_flipped_symbols(encoder, symbols_original)
 
+
+bits_flipped = get_encoded_bits_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, 8)
+
+
 # ENCODING:
 if encode:
-    encoded_message_0 = encode_message(SAMPLE_RATE, PREAMBLE_BITS, SYMBOL_BITS, START_FREQ_PREAMBLE, STOP_FREQ_PREAMBLE,
+    encoded_message = encode_message(SAMPLE_RATE, PREAMBLE_BITS, SYMBOL_BITS, START_FREQ_PREAMBLE, STOP_FREQ_PREAMBLE,
                                      START_FREQ_BITS, STOP_FREQ_BITS, 0)
 
-    encoded_message_1 = encode_message(SAMPLE_RATE, PREAMBLE_BITS, SYMBOL_BITS, START_FREQ_PREAMBLE, STOP_FREQ_PREAMBLE,
-                                       START_FREQ_BITS, STOP_FREQ_BITS, 1)
+    write(filename, SAMPLE_RATE, np.array(encoded_message))
 
-    encoded_message_2 = encode_message(SAMPLE_RATE, PREAMBLE_BITS, SYMBOL_BITS, START_FREQ_PREAMBLE, STOP_FREQ_PREAMBLE,
-                                       START_FREQ_BITS, STOP_FREQ_BITS, 2)
+for j in range(0, decoding_cycles):
+    # receivedReadPosition = 0
+    # receivedWritePosition = 0
 
-    write('Audio_files/encoding0_test.wav', SAMPLE_RATE, np.array(encoded_message_0))
-    write('Audio_files/encoding1_test.wav', SAMPLE_RATE, np.array(encoded_message_1))
-    write('Audio_files/encoding2_test.wav', SAMPLE_RATE, np.array(encoded_message_2))
+    # Open, read, and decode file bit by bit:
+    fs, data_int16 = read(filename)
+    data_normalized = data_int16.astype(np.double) / np.iinfo(np.int16).max
 
-    generate_overlapped('Audio_files/encoding0_test.wav', 'Audio_files/encoding1_test.wav',
-                        'Audio_files/encoding2_test.wav', filename)
+    # Add noise to the signal if required:
+    if useSNR:
+        data_normalized = add_noise(np.array(data_normalized), SNRdB)
 
-# for j in range(0, decoding_cycles):
-#     receivedReadPosition = 0
-#     receivedWritePosition = 0
-#     processedBitsPosition = 0
+    for i in range(0, len(data_normalized)):
+        if decode(data_normalized[i], 0, preamble_undersampled, symbols):
+            decoding_cycles_success += 1
 
-# Open, read, and decode file bit by bit:
-fs, data_int16 = read(filename)
-data_normalized = data_int16.astype(np.double) / np.iinfo(np.int16).max
-
-# Add noise to the signal if required:
-if useSNR:
-    data_normalized = add_noise(np.array(data_normalized), SNRdB)
-
-for i in range(0, len(data_normalized)):
-    if decode(data_normalized[i], 0, preamble_undersampled, symbols):
-        decoding_cycles_success += 1
-
-print(
-    "Successfull runs: " + str(decoding_cycles_success) + ", successfull preambles: " + str(correct_preambles_detected))
+print("Successfull runs: " + str(decoding_cycles_success) + ", successfull preambles: " + str(correct_preambles_detected))
 
 # fig, axs = plt.subplots(2)
 # fig.suptitle("preamble data")

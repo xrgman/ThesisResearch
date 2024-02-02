@@ -1,4 +1,3 @@
-from Original_code.OChirpEncode import OChirpEncode
 from pydub import AudioSegment
 from pydub.playback import play
 
@@ -10,32 +9,36 @@ SYMBOL_BITS = 320
 T = SYMBOL_BITS / SAMPLE_RATE
 T_preamble = PREAMBLE_BITS / SAMPLE_RATE
 
-# Specifying file locations:
-base_folder = "Audio_files/"
-filename0 = base_folder + "encoding0.wav"
-filename1 = base_folder + "encoding1.wav"
-filename2 = base_folder + "encoding2.wav"
+NUM_FILES = 3
 
-# Loading in the audio data:
-audio0 = AudioSegment.from_file(filename0)
-audio1 = AudioSegment.from_file(filename1)
-audio2 = AudioSegment.from_file(filename2)
 
-# Delaying the audio messages (delay in ms):
-delay = T_preamble / 2
+def generate_overlapped(filename0, filename1, filename2, output_filename):
+    # Specifying file locations:
+    base_folder = "Audio_files/"
+    # filename0 = base_folder + filename0
+    # filename1 = base_folder + filename1
+    # filename2 = base_folder + filename2
 
-audio1 = AudioSegment.silent(duration=delay * 1000) + audio1
-audio2 = AudioSegment.silent(duration=delay * 2 * 1000) + audio2
+    # Loading in the audio data:
+    audio0 = AudioSegment.from_file(filename0)
+    audio1 = AudioSegment.from_file(filename1)
+    audio2 = AudioSegment.from_file(filename2)
 
-# Overlaying audio signals:
-mixed = audio0.overlay(audio1)
-mixed = mixed.overlay(audio2)
+    # Delaying the audio messages (delay in ms):
+    delay = T_preamble / 2
 
-# Adding delay to the front of the audio file:
-mixed = AudioSegment.silent(duration=100) + mixed
+    #Adding extension to first audio message:
+    audio0 = audio0 + AudioSegment.silent(duration=delay * NUM_FILES * 1000)
 
-# Saving mixed audio file:
-mixed.export(base_folder + "threesources_overlap_preamble_start_delay.wav", format='wav')
+    # Overlaying audio signals:
+    mixed = audio0.overlay(audio1, position=delay * 1000)
+    mixed = mixed.overlay(audio2, position=delay * 2 * 1000)
+
+    # Adding delay to the front of the audio file:
+    mixed = AudioSegment.silent(duration=100) + mixed
+
+    # Saving mixed audio file:
+    mixed.export(output_filename, format='wav')
 
 
 

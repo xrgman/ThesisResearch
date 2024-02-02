@@ -205,7 +205,8 @@ class OChirpEncode:
             symbols.append(chirp)
 
         # Only return two chirps based on the offset
-        return symbols[self.orthogonal_pair_offset:self.orthogonal_pair_offset+2]
+        return symbols
+        #return symbols[self.orthogonal_pair_offset:self.orthogonal_pair_offset+2]
 
     def get_preamble(self, flipped: bool = False) -> list:
         """
