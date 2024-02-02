@@ -26,13 +26,13 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
         localiztionStore[i].reset();
     }
 
-    generateConvolutionFields();
+    generateConvolutionFields(ROBOT_ID);
 
     fillArrayWithZeros(numberOfReceivedBits, NUM_CHANNELS);
     fillArrayWithZeros(startReadingPosition, NUM_CHANNELS);
 }
 
-void AudioCodec::generateConvolutionFields()
+void AudioCodec::generateConvolutionFields(int robotId)
 {
     // Calculate duration per bit:
     durationPerBit = SYMBOL_DURATION; // getMinSymbolTime(NUMBER_OF_SUB_CHIRPS, REQUIRED_NUMBER_OF_CYCLES, frequencyPair);
@@ -48,11 +48,11 @@ void AudioCodec::generateConvolutionFields()
     }
 
     // Create encoding symbols
-    generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS);
+    generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS, robotId);
 
     // Create flipped decoding symbols:
-    bitToChirp(bit0Flipped, 0, symbols[0], NUMBER_OF_SUB_CHIRPS, durationPerBit);
-    bitToChirp(bit1Flipped, 1, symbols[1], NUMBER_OF_SUB_CHIRPS, durationPerBit);
+    bitToChirp(bit0Flipped, symbols[0], NUMBER_OF_SUB_CHIRPS, durationPerBit);
+    bitToChirp(bit1Flipped, symbols[1], NUMBER_OF_SUB_CHIRPS, durationPerBit);
 
     reverse(bit0Flipped, bit0Flipped + SYMBOL_BITS);
     reverse(bit1Flipped, bit1Flipped + SYMBOL_BITS);
@@ -217,13 +217,11 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
 
 /// @brief Encode the preamble into the output buffer.
 /// @param output The output buffer.
-/// @param startFrequency Start frequency of the preamble.
-/// @param stopFrequency Stop frequency of the preamble.
 void AudioCodec::encodePreamble(double *output, bool flipped)
 {
     AudioCodecFrequencyPair frequencySpectrum[1] = {frequencyPairPreamble};
 
-    bitToChirp(output, 0, frequencySpectrum, 1, PREAMBLE_DURATION);
+    bitToChirp(output, frequencySpectrum, 1, PREAMBLE_DURATION);
 
     // Flip the signal, if its needed for convolution:
     if (flipped)
@@ -234,11 +232,10 @@ void AudioCodec::encodePreamble(double *output, bool flipped)
 
 /// @brief Translate a bit (0 or 1), into a chirp between the start and stop frequencies.
 /// @param output Output array where the chrip will be placed in.
-/// @param bit Bit to translate, either 0 or 1.
 /// @param symbols List containing the frequencies of the sub chirps.
 /// @param numberOfSubChirps Number of sub chrips contained between the start and end frequency.
 /// @param duration Duration of the whole chirp (so sum of all subchirp durations).
-void AudioCodec::bitToChirp(double *output, uint8_t bit, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration)
+void AudioCodec::bitToChirp(double *output, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration)
 {
     // Calculate duration per sub chirp:
     double durationPerSubChirp = duration / numberOfSubChirps;
@@ -278,7 +275,7 @@ void AudioCodec::bitsToChirp(double *output, uint8_t *bits, int numberOfBits, Au
         int bit = bits[i];
         AudioCodecFrequencyPair *symbolsForBit = symbols[bit];
 
-        bitToChirp(&output[i * SYMBOL_BITS], bit, symbolsForBit, numberOfSubChirps, durationPerBit);
+        bitToChirp(&output[i * SYMBOL_BITS], symbolsForBit, numberOfSubChirps, durationPerBit);
     }
 }
 
@@ -321,7 +318,7 @@ double AudioCodec::applyKaiserWindow(double value, int totalSize, int i, int bet
 }
 
 // TODO: make this way nice, kinda shit atm :)
-void AudioCodec::generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps)
+void AudioCodec::generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps, int robotId)
 {
     int chirpOrder[8][8] = {
         {1, 8, 7, 4, 3, 5, 2, 6},
@@ -341,7 +338,7 @@ void AudioCodec::generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SU
     }
 
     // Only fill first two rows for now, representing bit 0 and 1:
-    for (int row = 0; row < 2; row++)
+    for (int row = robotId * 2; row < robotId * 2 + 2; row++)
     {
         for (int column = 0; column < numberOfSubChirps; column++)
         {
@@ -353,13 +350,13 @@ void AudioCodec::generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SU
             // Determine whether to use an up or down chirp:
             if (chirpOrderIdx % 2 == column % 2)
             {
-                symbols[row][column].startFrequency = fe;
-                symbols[row][column].stopFrequency = fs;
+                symbols[row % 2][column].startFrequency = fe;
+                symbols[row % 2][column].stopFrequency = fs;
             }
             else
             {
-                symbols[row][column].startFrequency = fs;
-                symbols[row][column].stopFrequency = fe;
+                symbols[row % 2][column].startFrequency = fs;
+                symbols[row % 2][column].stopFrequency = fe;
             }
         }
     }

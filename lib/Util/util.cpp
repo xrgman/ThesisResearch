@@ -299,7 +299,7 @@ int getNextPowerOf2(int value)
 }
 
 //*************************************************
-//******** Bits helpers ***************************
+//******** Bit helpers ***************************
 //*************************************************
 
 /// @brief Transform an uint8_t value into an array of 8 bits.

@@ -412,7 +412,8 @@ void decodingLiveConvolution()
         chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
         durations.push_back(ms_int.count());
 
-        if(durations.size() > 100) {
+        if (durations.size() > 100)
+        {
             double maxValue = *max_element(durations.begin(), durations.end());
 
             cout << "Max value: " << maxValue << endl;
@@ -884,12 +885,22 @@ int main()
 
     audioHelper.signalBatchProcessed();
 
-    //handleKeyboardInput();
-    // decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
+    // handleKeyboardInput();
+    //  decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
 
     // openAndPlayWavFile("../src/song2.wav");
     //   loadParticleFilter();
-    encodeMessageForAudio("../recordings/convolution/encoding2.wav", 2);
+
+    for (int i = 0; i < ROBOTS_COUNT; i++)
+    {
+        audioCodec.generateConvolutionFields(i);
+
+        std::string filename = "../recordings/convolution/encoding" + std::to_string(i) + ".wav";
+
+        encodeMessageForAudio(filename.c_str(), i);
+    }
+
+    //encodeMessageForAudio("../recordings/convolution/encoding2.wav", ROBOT_ID);
 
     // recordToWavFile("TestOpname.wav", 5);
 

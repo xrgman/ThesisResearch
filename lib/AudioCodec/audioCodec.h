@@ -12,17 +12,17 @@
 #define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source
 
 //*** Encoding frequency definitions ***
-#define START_FREQ_PREAMBLE 5500.0
-#define STOP_FREQ_PREAMBLE 9500.0
+#define START_FREQ_PREAMBLE 2500.0//5500.0
+#define STOP_FREQ_PREAMBLE 6500.0//9500.0
 
-#define START_FREQ_BITS 5500.0
-#define STOP_FREQ_BITS 9500.0
+#define START_FREQ_BITS 6500.0//5500.0
+#define STOP_FREQ_BITS 10500.0//9500.0
 
 //*** Encoding bits definitions ***
 #define PREAMBLE_BITS 8192 //Was 4096
 #define PREAMBLE_DURATION (double)PREAMBLE_BITS / SAMPLE_RATE
  
-#define SYMBOL_BITS 320
+#define SYMBOL_BITS 1024 //320
 #define SYMBOL_DURATION (double)SYMBOL_BITS / SAMPLE_RATE//0.0145124716 // For 22.05Khz 0.0072562358 //For 44.1Khz
 
 //*** Under sampling definitions ***
@@ -149,6 +149,8 @@ public:
 
     void decode(int16_t bit, uint8_t microphoneId);
 
+    void generateConvolutionFields(int robotId);
+
 private:
     double volume;
     AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBits;
@@ -164,13 +166,13 @@ private:
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits);
     void encodePreamble(double *output, bool flipped);
 
-    void bitToChirp(double *output, uint8_t bit, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration);
+    void bitToChirp(double *output, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration);
     void bitsToChirp(double *output, uint8_t *bits, int numberOfBits, AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps);
 
     void generateChirp(double *output, AudioCodecFrequencyPair frequencies, double duration);
     double applyKaiserWindow(double value, int totalSize, int i, int beta);
 
-    void generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps);
+    void generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps, int robotId);
     double getMinSymbolTime(int numberOfSubChirps, int requiredNumberOfCycles, AudioCodecFrequencyPair frequencies);
 
     uint8_t calculateCRC(const uint8_t *data, const int size);
@@ -214,7 +216,7 @@ private:
     int containsPreamble(const double *window, const int windowSize);
     int decode_symbol(const double *window, const int windowSize);
 
-    void generateConvolutionFields();
+    
     void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, FFTConfigStore fftConfigStoreConvolve, FFTConfigStore fftConfigStoreHilbert);
     int decodeBit(const double *window, const int windowSize);
 
