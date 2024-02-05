@@ -1,4 +1,3 @@
-from Original_code.OChirpEncode import OChirpEncode
 from pydub import AudioSegment
 from pydub.playback import play
 
@@ -10,32 +9,40 @@ SYMBOL_BITS = 320
 T = SYMBOL_BITS / SAMPLE_RATE
 T_preamble = PREAMBLE_BITS / SAMPLE_RATE
 
-# Specifying file locations:
-base_folder = "Audio_files/"
-filename0 = base_folder + "encoding0.wav"
-filename1 = base_folder + "encoding1.wav"
-filename2 = base_folder + "encoding2.wav"
 
-# Loading in the audio data:
-audio0 = AudioSegment.from_file(filename0)
-audio1 = AudioSegment.from_file(filename1)
-audio2 = AudioSegment.from_file(filename2)
+def generate_overlapped(filenames, output_filename):
+    # Specifying file locations:
+    base_folder = "Audio_files/"
 
-# Delaying the audio messages (delay in ms):
-delay = T_preamble / 2
+    audio_data = []
 
-audio1 = AudioSegment.silent(duration=delay * 1000) + audio1
-audio2 = AudioSegment.silent(duration=delay * 2 * 1000) + audio2
+    for j, filename in enumerate(filenames):
+        audio_data.append(AudioSegment.from_file(filename))
 
-# Overlaying audio signals:
-mixed = audio0.overlay(audio1)
-mixed = mixed.overlay(audio2)
+    # Loading in the audio data:
+    # audio0 = AudioSegment.from_file(filename0)
+    # audio1 = AudioSegment.from_file(filename1)
+    # audio2 = AudioSegment.from_file(filename2)
 
-# Adding delay to the front of the audio file:
-mixed = AudioSegment.silent(duration=100) + mixed
+    # Delaying the audio messages (delay in ms):
+    delay = T_preamble / 2
 
-# Saving mixed audio file:
-mixed.export(base_folder + "threesources_overlap_preamble_start_delay.wav", format='wav')
+    #Adding extension to first audio message:
+    result_audio = audio_data[0] + AudioSegment.silent(duration=delay * len(filenames) * 1000)
+
+    for j, audio in enumerate(audio_data[1:]):
+        result_audio = result_audio.overlay(audio, position=delay * (j+1) * 1000)
+
+
+    # Overlaying audio signals:
+    # mixed = audio0.overlay(audio1, position=delay * 1000)
+    # mixed = mixed.overlay(audio2, position=delay * 2 * 1000)
+
+    # Adding delay to the front of the audio file:
+    result_audio = AudioSegment.silent(duration=100) + result_audio
+
+    # Saving mixed audio file:
+    result_audio.export(output_filename, format='wav')
 
 
 

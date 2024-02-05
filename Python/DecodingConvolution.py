@@ -1,6 +1,6 @@
 import numpy as np
-from BitManipulation import frombits, tobits
-from OChirpEncode import OChirpEncode
+from Original_code.BitManipulation import frombits, tobits
+from Original_code.OChirpEncode import OChirpEncode
 from scipy.signal import hilbert
 from matplotlib import pyplot as plt
 from scipy.io.wavfile import write
@@ -112,7 +112,7 @@ g = hilbert(test)
 vba = printMyHilbert(test)
 bla = efficient_hilbert_transform(test)
 
-hophop = sp_fft.next_fast_len(8191)
+hophop = sp_fft.next_fast_len(400)
 
 def centered(array, new_length):
     current_length = len(array)
