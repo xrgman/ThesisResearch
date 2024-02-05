@@ -4,7 +4,7 @@ from collections import Counter
 SAMPLE_RATE = 22050
 NUM_CHANNELS = 6
 
-DECODING_BITS_COUNT = 88
+DECODING_BITS_COUNT = 80
 DECODING_DATA_BITS = 64
 
 
@@ -17,7 +17,7 @@ class AudioCodedMessageType(IntEnum):
 
 class AudioCodecResult:
     def __init__(self):
-        self.sender_id = 0
+        self.sender_id = -1
         self.message_type: AudioCodedMessageType = AudioCodedMessageType.ENCODING_TEST
         self.doa = 0.0
         self.distance = 0.0
@@ -30,7 +30,7 @@ class AudioCodecResult:
         self.decoded_data = [0] * DECODING_DATA_BITS  # Replace DECODING_DATA_BITS with the actual value
 
     def reset(self):
-        self.sender_id = 0
+        self.sender_id = -1
         self.message_type = AudioCodedMessageType.ENCODING_TEST
         self.doa = 0.0
         self.distance = 0.0

@@ -117,40 +117,27 @@ def contains_preamble(frame_data, original_preamble, own_signal_cutoff):
 
 
 # Decode a bit, based on a data frame:
-def decode_bit(frame_data, original_symbols):
-    # Performing convolution for both symbols:
-    conv_data = get_conv_results(frame_data, original_symbols)
-
-    max_0 = np.max(conv_data[0])
-    max_1 = np.max(conv_data[1])
-
-    max_2 = np.max(conv_data[1])
-    max_3 = np.max(conv_data[2])
-    max_4 = np.max(conv_data[3])
-    max_5 = np.max(conv_data[4])
-    max_6 = np.max(conv_data[5])
-    max_7 = np.max(conv_data[6])
-
-
-    bit = 0 if max_0 > max_1 else 1
-
-    return bit
-
-
-def decode_bit_new(frame_data, flipped_bits):
+def decode_bit(frame_data, flipped_bits):
     # Performing convolution for both symbols:
     conv_data = get_conv_results(frame_data, flipped_bits)
 
     max_0 = np.max(conv_data[0])
     max_1 = np.max(conv_data[1])
 
-    max_2 = np.max(conv_data[1])
-    max_3 = np.max(conv_data[2])
-    max_4 = np.max(conv_data[3])
-    max_5 = np.max(conv_data[4])
-    max_6 = np.max(conv_data[5])
-    max_7 = np.max(conv_data[6])
-
     bit = 0 if max_0 > max_1 else 1
 
     return bit
+
+
+def determine_robot_id(frame_data, flipped_identifiers):
+    conv_data = get_conv_results(frame_data, flipped_identifiers)
+
+    max_conv_peaks = []
+
+    for i in range(len(conv_data)):
+        max_conv_peaks.append(np.max(conv_data[i]))
+
+    # Maybe add a threshold?
+
+    return np.argmax(max_conv_peaks)
+
