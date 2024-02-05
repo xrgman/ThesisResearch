@@ -146,7 +146,7 @@ def get_encoded_identifiers_flipped(sample_rate, symbol_bits, frequency_start, f
     return identifier_encodings
 
 
-def get_data_for_encoding(robot_id):
+def get_data_for_encoding():
     data: List[int] = []
 
     # Encoding message type:
@@ -183,7 +183,7 @@ def encode_message(sample_rate, preamble_bits, symbol_bits, f_preamble_start, f_
     # symbols = encoder.get_orthogonal_chirps()
 
     # Encoding data:
-    data = get_data_for_encoding(robot_id)
+    data = get_data_for_encoding()
 
     message = []
 

@@ -261,11 +261,8 @@ results = np.empty((preamble_bit_cycles, nr_of_snr_cycles))
 for snr_hop in range(nr_of_snr_cycles):
     snr = 0 - snr_hop_size * snr_hop
 
-    # Set start of preamble bits based on current SNR:
-    preamble_start_idx = 0
-
     for preamble_bits_idx in range(preamble_bit_cycles):
-        PREAMBLE_BITS = preamble_bits_values[preamble_start_idx + preamble_bits_idx]
+        PREAMBLE_BITS = preamble_bits_values[preamble_bits_idx]
         T_preamble = PREAMBLE_BITS / sample_rate
 
         # Under sampling:
