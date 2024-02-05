@@ -891,21 +891,21 @@ int main()
     // openAndPlayWavFile("../src/song2.wav");
     //   loadParticleFilter();
 
-    for (int i = 0; i < ROBOTS_COUNT; i++)
-    {
-        audioCodec.generateConvolutionFields(i);
+    // for (int i = 0; i < ROBOTS_COUNT; i++)
+    // {
+    //     audioCodec.generateConvolutionFields(i);
 
-        std::string filename = "../recordings/convolution/encoding" + std::to_string(i) + ".wav";
+    //     std::string filename = "../recordings/convolution/encoding" + std::to_string(i) + ".wav";
 
-        encodeMessageForAudio(filename.c_str(), i);
-    }
+    //     encodeMessageForAudio(filename.c_str(), i);
+    // }
 
-    //encodeMessageForAudio("../recordings/convolution/encoding2.wav", ROBOT_ID);
+    encodeMessageForAudio("../recordings/convolution/encoding0.wav", ROBOT_ID);
 
     // recordToWavFile("TestOpname.wav", 5);
 
     // decodeMessageForAudio("../recordings/los/50cm_90deg.wav");
-    // decodeMessageConvolution("../recordings/convolution/encoding1.wav");
+    decodeMessageConvolution("../recordings/convolution/overlapped_test.wav");
     // // decodingLiveConvolution();
 
     audioHelper.clearBuffers();

@@ -15,9 +15,6 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
     this->volume = 1.0;
     this->frequencyPairPreamble.startFrequency = START_FREQ_PREAMBLE;
     this->frequencyPairPreamble.stopFrequency = STOP_FREQ_PREAMBLE;
-    this->frequencyPairBits.startFrequency = START_FREQ_BITS;
-    this->frequencyPairBits.stopFrequency = STOP_FREQ_BITS;
-    this->decodingResult.reset();
 
     for (uint8_t i; i < NUM_CHANNELS; i++)
     {
@@ -35,7 +32,19 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
 void AudioCodec::generateConvolutionFields(int robotId)
 {
     // Calculate duration per bit:
-    durationPerBit = SYMBOL_DURATION; // getMinSymbolTime(NUMBER_OF_SUB_CHIRPS, REQUIRED_NUMBER_OF_CYCLES, frequencyPair);
+    durationPerBit = SYMBOL_DURATION;
+
+    // Determining frequency range for specific robot ID:
+    double totalBandwidth = STOP_FREQ_BITS - START_FREQ_BITS;
+    double bandwidthRobot = totalBandwidth / ROBOTS_COUNT;
+
+    double startFrequency = START_FREQ_BITS + (robotId * bandwidthRobot);
+    double stopFrequency = startFrequency + bandwidthRobot;
+
+    this->frequencyPairBits0.startFrequency = stopFrequency;
+    this->frequencyPairBits0.stopFrequency = startFrequency;
+    this->frequencyPairBits1.startFrequency = startFrequency;
+    this->frequencyPairBits1.stopFrequency = stopFrequency;
 
     // Create the original preamble chirp flipped taking into account undersampling, used for detecting preamble:
     double originalPreamble[PREAMBLE_BITS];
@@ -47,15 +56,15 @@ void AudioCodec::generateConvolutionFields(int robotId)
         originalPreambleFlipped[i] = originalPreamble[i * UNDER_SAMPLING_DIVISOR];
     }
 
-    // Create encoding symbols
-    generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS, robotId);
+    // Create sender ID flipped:
+    for (uint8_t i = 0; i < ROBOTS_COUNT; i++)
+    {
+        encodeSenderId(senderIdsFlipped[i], true);
+    }
 
     // Create flipped decoding symbols:
-    bitToChirp(bit0Flipped, symbols[0], NUMBER_OF_SUB_CHIRPS, durationPerBit);
-    bitToChirp(bit1Flipped, symbols[1], NUMBER_OF_SUB_CHIRPS, durationPerBit);
-
-    reverse(bit0Flipped, bit0Flipped + SYMBOL_BITS);
-    reverse(bit1Flipped, bit1Flipped + SYMBOL_BITS);
+    encodeBit(bit0Flipped, 0, true);
+    encodeBit(bit1Flipped, 1, true);
 
     // Calculate optimal FFT values (foud using python):
     int convolvePreambleN = getNextPowerOf2(UNDER_SAMPLING_BITS * 2 - 1); // 8192; // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
@@ -98,15 +107,15 @@ void AudioCodec::generateConvolutionFields(int robotId)
 /// @return Number of bits in encoded message.
 int AudioCodec::getNumberOfBits()
 {
-    // Robot ID + Message ID + Data + CRC
-    return 8 + 8 + 64 + 8;
+    // Message ID + Data + CRC
+    return 8 + 64 + 8;
 }
 
 /// @brief Get the size in bits of the hello world encoding.
 /// @return Size.
 int AudioCodec::getEncodingSize()
 {
-    return PREAMBLE_BITS + (getNumberOfBits() * SYMBOL_BITS);
+    return PREAMBLE_BITS + SYMBOL_BITS + (getNumberOfBits() * SYMBOL_BITS);
 }
 
 /// @brief Get the duration of an encoded message in seconds.
@@ -158,27 +167,18 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
 {
     const uint16_t dataLength = getNumberOfBits();
     const int preambleLength = PREAMBLE_BITS;
-    const int outputLength = preambleLength + (dataLength * SYMBOL_BITS);
+    const int outputLength = getEncodingSize();
 
     // 1. Creating data array, containing all data to be send:
     uint8_t data[dataLength];
 
-    // Encode padding (1's), TODO change to ID and based on that select decoding freqs?:
-    // for (uint8_t i = 0; i < 8; i++)
-    // {
-    //     data[i] = 1;
-    // }
-
-    // Encode sender id:
-    uint8ToBits(senderId, &data[0]);
-
     // Encode message type id:
-    uint8ToBits(messageType, &data[8]);
+    uint8ToBits(messageType, &data[0]);
 
     // Encoding data:
     for (int i = 0; i < 64; i++)
     {
-        data[16 + i] = dataBits[i];
+        data[8 + i] = dataBits[i];
     }
 
     // Calculate and add CRC (excluding padding):
@@ -203,12 +203,13 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     // 3. Encode preamble to the front of the message
     encodePreamble(outputBuffer, false);
 
-    // 4. Encode the robot ID using standard frequency
+    // 4. Encode the sender ID:
+    encodeSenderId(&outputBuffer[preambleLength], false);
 
-    // 4. Encode the data:
-    bitsToChirp(&outputBuffer[preambleLength], &data[0], dataLength, symbols, NUMBER_OF_SUB_CHIRPS);
+    // 5. Encode the data:
+    encodeBits(&outputBuffer[preambleLength + SYMBOL_BITS], data, dataLength);
 
-    // 5. Convert outputBuffer to int16:
+    // 6. Convert outputBuffer to int16:
     for (int i = 0; i < outputLength; i++)
     {
         output[i] = doubleToInt16(outputBuffer[i]);
@@ -217,11 +218,10 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
 
 /// @brief Encode the preamble into the output buffer.
 /// @param output The output buffer.
+/// @param flipped Whether to flip the data in the output buffer for convolution.
 void AudioCodec::encodePreamble(double *output, bool flipped)
 {
-    AudioCodecFrequencyPair frequencySpectrum[1] = {frequencyPairPreamble};
-
-    bitToChirp(output, frequencySpectrum, 1, PREAMBLE_DURATION);
+    encodeChirp(output, frequencyPairPreamble, PREAMBLE_BITS);
 
     // Flip the signal, if its needed for convolution:
     if (flipped)
@@ -230,52 +230,81 @@ void AudioCodec::encodePreamble(double *output, bool flipped)
     }
 }
 
-/// @brief Translate a bit (0 or 1), into a chirp between the start and stop frequencies.
-/// @param output Output array where the chrip will be placed in.
-/// @param symbols List containing the frequencies of the sub chirps.
-/// @param numberOfSubChirps Number of sub chrips contained between the start and end frequency.
-/// @param duration Duration of the whole chirp (so sum of all subchirp durations).
-void AudioCodec::bitToChirp(double *output, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration)
+/// @brief Encode a bit into a chirp signal (1 = up, 0 = down)
+/// @param output The output buffer.
+/// @param bit Bit to encode.
+/// @param flipped Whether to flip the data in the output buffer for convolution.
+void AudioCodec::encodeBit(double *output, uint8_t bit, bool flipped)
 {
-    // Calculate duration per sub chirp:
-    double durationPerSubChirp = duration / numberOfSubChirps;
+    // Determining which frequency pair to use based on the bit to encode:
+    encodeChirp(output, bit == 0 ? frequencyPairBits0 : frequencyPairBits1, SYMBOL_BITS);
 
-    // Calculate the size of a generated chirp:
-    int size = round(SAMPLE_RATE * durationPerSubChirp);
-
-    // Looping over all symbols:
-    for (int i = 0; i < numberOfSubChirps; i++)
+    // Flip the signal, if its needed for convolution:
+    if (flipped)
     {
-        // Generate chirp:
-        generateChirp(&output[size * i], symbols[i], durationPerSubChirp);
-
-        // Loop over all items in the chirp and modify them by applying volume correction and kaiser window:
-        for (int j = 0; j < size; j++)
-        {
-            // Apply volume:
-            output[size * i + j] *= volume;
-
-            // Apply kaiser window:
-            output[size * i + j] = applyKaiserWindow(output[size * i + j], size, j, KAISER_WINDOW_BETA);
-        }
+        reverse(output, output + SYMBOL_BITS);
     }
 }
 
-/// @brief Translate a whole array of bits into miltiple chirps.
+/// @brief Translate a whole array of bits into multiple chirps.
 /// @param output Output array where the chrips will be placed into.
 /// @param bits List of bits to be translated.
 /// @param numberOfBits Number of bits to be translated.
-/// @param symbols List containing the frequencies of the sub chirps.
-/// @param numberOfSubChirps Duration of the whole chirp (so sum of all subchirp durations).
-void AudioCodec::bitsToChirp(double *output, uint8_t *bits, int numberOfBits, AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps)
+void AudioCodec::encodeBits(double *output, uint8_t *bits, int numberOfBits)
 {
     // Looping over all bits:
     for (int i = 0; i < numberOfBits; i++)
     {
         int bit = bits[i];
-        AudioCodecFrequencyPair *symbolsForBit = symbols[bit];
 
-        bitToChirp(&output[i * SYMBOL_BITS], symbolsForBit, numberOfSubChirps, durationPerBit);
+        encodeBit(&output[i * SYMBOL_BITS], bit, false);
+    }
+}
+
+/// @brief Encode the sender ID into an unique identifier signal.
+/// @param output Output array, where the identifier will be placed into.
+/// @param flipped Whether to flip the data in the output buffer for convolutio
+void AudioCodec::encodeSenderId(double *output, bool flipped)
+{
+    int subChirpOrder[8] = {0, 7, 6, 3, 2, 4, 1, 5};
+
+    double bandwidthPerSubChirp = (frequencyPairBits1.stopFrequency - frequencyPairBits1.startFrequency) / 8;
+    int sizePerSubChirp = SYMBOL_BITS / 8;
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        AudioCodecFrequencyPair frequencyPair = {
+            frequencyPairBits1.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp),
+            (frequencyPairBits1.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp,
+        };
+
+        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp);
+    }
+
+    // Flip the signal, if its needed for convolution:
+    if (flipped)
+    {
+        reverse(output, output + SYMBOL_BITS);
+    }
+}
+
+/// @brief Create an encoded linear chirp with the given start and stop frequency spanning size amount of samples.
+/// @param output Output array where the chrip will be placed in.
+/// @param frequencies Object containing the frequencies of the sub chirps.
+/// @param size Samples of the chirp.
+void AudioCodec::encodeChirp(double *output, AudioCodecFrequencyPair frequencies, int size)
+{
+    // Generate chirp:
+    generateChirp(output, frequencies, size);
+
+    // Loop over all items in the chirp and modify them by applying volume correction and kaiser window:
+    for (int j = 0; j < size; j++)
+    {
+        // Apply volume:
+        output[j] *= volume;
+
+        // Apply kaiser window:
+        output[j] = applyKaiserWindow(output[j], size, j, KAISER_WINDOW_BETA);
     }
 }
 
@@ -283,10 +312,11 @@ void AudioCodec::bitsToChirp(double *output, uint8_t *bits, int numberOfBits, Au
 /// @param output Output array to store the chirp in, size should be at least SAMPLE_RATE * duration.
 /// @param startFrequency Start frequency of the chirp.
 /// @param stopFrequency Stop frequency of the chirp.
-/// @param duration Duration of the chirp.
-void AudioCodec::generateChirp(double *output, AudioCodecFrequencyPair frequencies, double duration)
+/// @param size Number of samples of the chirp.
+void AudioCodec::generateChirp(double *output, AudioCodecFrequencyPair frequencies, int size)
 {
-    int size = round(SAMPLE_RATE * duration);
+    // int size = round(SAMPLE_RATE * duration);
+    double duration = (double)size / (double)SAMPLE_RATE;
 
     for (int i = 0; i < size; i++)
     {
@@ -318,6 +348,7 @@ double AudioCodec::applyKaiserWindow(double value, int totalSize, int i, int bet
 }
 
 // TODO: make this way nice, kinda shit atm :)
+// TODO: Check if can delete this entirely
 void AudioCodec::generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps, int robotId)
 {
     int chirpOrder[8][8] = {
@@ -338,28 +369,28 @@ void AudioCodec::generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SU
     }
 
     // Only fill first two rows for now, representing bit 0 and 1:
-    for (int row = robotId * 2; row < robotId * 2 + 2; row++)
-    {
-        for (int column = 0; column < numberOfSubChirps; column++)
-        {
-            int chirpOrderIdx = chirpOrder[row][column];
+    // for (int row = robotId * 2; row < robotId * 2 + 2; row++)
+    // {
+    //     for (int column = 0; column < numberOfSubChirps; column++)
+    //     {
+    //         int chirpOrderIdx = chirpOrder[row][column];
 
-            double fs = frequencyPairBits.startFrequency + ((chirpOrderIdx - 1) * (frequencyPairBits.stopFrequency - frequencyPairBits.startFrequency)) / numberOfSubChirps;
-            double fe = fs + (frequencyPairBits.stopFrequency - frequencyPairBits.startFrequency) / numberOfSubChirps;
+    //         double fs = frequencyPairBits.startFrequency + ((chirpOrderIdx - 1) * (frequencyPairBits.stopFrequency - frequencyPairBits.startFrequency)) / numberOfSubChirps;
+    //         double fe = fs + (frequencyPairBits.stopFrequency - frequencyPairBits.startFrequency) / numberOfSubChirps;
 
-            // Determine whether to use an up or down chirp:
-            if (chirpOrderIdx % 2 == column % 2)
-            {
-                symbols[row % 2][column].startFrequency = fe;
-                symbols[row % 2][column].stopFrequency = fs;
-            }
-            else
-            {
-                symbols[row % 2][column].startFrequency = fs;
-                symbols[row % 2][column].stopFrequency = fe;
-            }
-        }
-    }
+    //         // Determine whether to use an up or down chirp:
+    //         if (chirpOrderIdx % 2 == column % 2)
+    //         {
+    //             symbols[row % 2][column].startFrequency = fe;
+    //             symbols[row % 2][column].stopFrequency = fs;
+    //         }
+    //         else
+    //         {
+    //             symbols[row % 2][column].startFrequency = fs;
+    //             symbols[row % 2][column].stopFrequency = fe;
+    //         }
+    //     }
+    // }
 }
 
 /// @brief Calculate the minimum symbol time to encode one bit.
@@ -446,34 +477,43 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
         // Checking if frame contains the preamble:
         int preambleIndex = containsPreamble(frame, UNDER_SAMPLING_BITS) * UNDER_SAMPLING_DIVISOR;
+        bool newPeakFound = false;
 
         if (preambleIndex > 0)
         {
-            decodingStore[microphoneId].preambleSeen = true;
-
             preambleIndex += readingPosition;
             decodingStore[microphoneId].preamblePositionStorage.push_back(preambleIndex);
+
+            newPeakFound = true;
         }
-        else if (decodingStore[microphoneId].preambleSeen)
+
+        // Processing possible preamble indexes to find an actual index:
+        preambleIndex = processPreamblePositions(microphoneId, newPeakFound);
+
+        if (preambleIndex > 0)
         {
-            decodingStore[microphoneId].preambleSeen = false;
+            cout << "Preamble found: " << preambleIndex << endl;
+            // Checking if peak was already found, if not create a new results object:
+            int decodingResultIdx = findDecodingResult(preambleIndex);
 
-            // Determining real peak:
-            int realPreamblePosition = mostOccuring(decodingStore[microphoneId].preamblePositionStorage.data(), decodingStore[microphoneId].preamblePositionStorage.size());
-
-            decodingStore[microphoneId].preamblePositionStorage.clear();
-            decodingStore[microphoneId].decodingBitsPosition = realPreamblePosition + (PREAMBLE_BITS / 2);
-
-            decodingResult.preambleDetectionPosition[microphoneId] = realPreamblePosition;
-            decodingResult.preambleDetectionCnt++;
-
-            // Checking if preamble is detected for all microphones:
-            if (decodingResult.preambleDetectionCnt >= NUM_CHANNELS)
+            if (decodingResultIdx < 0)
             {
-                // Calculate the direction of arrival (DOA):
-                decodingResult.doa = calculateDOA(decodingResult.preambleDetectionPosition, NUM_CHANNELS); // TODO: check if num_channels shouldnt just be the amount of detected preambles
+                decodingResultIdx = decodingResults.size();
 
-                // cout << "Found DOA: " << decodingResult.doa << endl;
+                decodingResults.push_back(AudioCodecResult());
+            }
+
+            // Setting decoding bits start position:
+            decodingResults[decodingResultIdx].decodingBitsPosition = preambleIndex + (PREAMBLE_BITS / 2);
+
+            // Saving preamble peak:
+            decodingResults[decodingResultIdx].preambleDetectionPosition[microphoneId] = preambleIndex;
+            decodingResults[decodingResultIdx].preambleDetectionCnt++;
+
+            // Checking if all channels received the peak:
+            if (decodingResults[decodingResultIdx].preambleDetectionCnt >= NUM_CHANNELS)
+            {
+                decodingResults[decodingResultIdx].doa = calculateDOA(decodingResults[decodingResultIdx].preambleDetectionPosition, NUM_CHANNELS);
             }
         }
 
@@ -481,48 +521,104 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         startReadingPosition[microphoneId] += HOP_SIZE;
     }
 
-    // Performing bit decoding when ready, for microphone 1:
-    int decodingBitsPosition = decodingStore[microphoneId].decodingBitsPosition;
-
-    if (decodingBitsPosition > 0 && microphoneId == 0 && decodingBitsPosition + SYMBOL_BITS <= numberOfReceivedBits[microphoneId])
+    // Performing bit decoding when ready, for microphone 0:
+    if (microphoneId == 0)
     {
-       // auto t1 = chrono::high_resolution_clock::now();
+        int decodingResultIdx = 0;
 
-        // Creating frame:
-        double frame[SYMBOL_BITS];
-
-        for (int j = 0; j < SYMBOL_BITS; j++)
+        // Processing all decoding result instances:
+        while (decodingResultIdx < decodingResults.size())
         {
-            frame[j] = decodingBuffer[microphoneId][(decodingBitsPosition + j) % DECODING_BUFFER_SIZE];
-        }
+            int decodingBitsPosition = decodingResults[decodingResultIdx].decodingBitsPosition;
 
-        // Decode bit and add it to decoded bits list:
-        int bit = decodeBit(frame, SYMBOL_BITS);
+            if (decodingBitsPosition + SYMBOL_BITS <= numberOfReceivedBits[microphoneId])
+            {
+                // Creating frame:
+                double bitFrame[SYMBOL_BITS];
 
-        decodingResult.decodedBits[decodingResult.decodedBitsCnt] = bit;
-        decodingResult.decodedBitsCnt++;
+                for (int j = 0; j < SYMBOL_BITS; j++)
+                {
+                    bitFrame[j] = decodingBuffer[microphoneId][(decodingBitsPosition + j) % DECODING_BUFFER_SIZE];
+                }
 
-        // Increasing read position:
-        decodingStore[microphoneId].decodingBitsPosition += SYMBOL_BITS;
+                // Decode sender id if not done yet:
+                if (decodingResults[decodingResultIdx].senderId < 0)
+                {
+                    decodingResults[decodingResultIdx].senderId = decodeSenderId(bitFrame, SYMBOL_BITS);
+                    decodingResults[decodingResultIdx].decodingBitsPosition += SYMBOL_BITS;
 
-        // auto t2 = chrono::high_resolution_clock::now();
-        // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
-        // durations.push_back(ms_int.count());
+                    continue;
+                }
 
-        // Checking if all bits are received:
-        if (decodingResult.decodedBitsCnt >= getNumberOfBits())
-        {
-            // Save decoding time:
-            chrono::time_point decodingDoneTime = chrono::high_resolution_clock::now();
+                // Decode bit and add it to decoded bits list:
+                int bit = decodeBit(bitFrame, SYMBOL_BITS);
 
-            completeDecoding(0, getNumberOfBits(), decodingDoneTime);
+                decodingResults[decodingResultIdx].decodedBits[decodingResults[decodingResultIdx].decodedBitsCnt] = bit;
+                decodingResults[decodingResultIdx].decodedBitsCnt++;
+
+                // Increasing read position:
+                decodingResults[decodingResultIdx].decodingBitsPosition += SYMBOL_BITS;
+
+                // Checking if all bits are received:
+                if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits())
+                {
+                    // Save decoding time:
+                    chrono::time_point decodingDoneTime = chrono::high_resolution_clock::now();
+
+                    completeDecoding(decodingResults[decodingResultIdx], decodingDoneTime);
+                }
+            }
         }
     }
+
+    /* if (decodingBitsPosition > 0 && microphoneId == 0 && decodingBitsPosition + SYMBOL_BITS <= numberOfReceivedBits[microphoneId])
+     {
+         // auto t1 = chrono::high_resolution_clock::now();
+
+         // Creating frame:
+         double frame[SYMBOL_BITS];
+
+         for (int j = 0; j < SYMBOL_BITS; j++)
+         {
+             frame[j] = decodingBuffer[microphoneId][(decodingBitsPosition + j) % DECODING_BUFFER_SIZE];
+         }
+
+         // Decode bit and add it to decoded bits list:
+         int bit = decodeBit(frame, SYMBOL_BITS);
+
+         decodingResult.decodedBits[decodingResult.decodedBitsCnt] = bit;
+         decodingResult.decodedBitsCnt++;
+
+         // Increasing read position:
+         decodingStore[microphoneId].decodingBitsPosition += SYMBOL_BITS;
+
+         // auto t2 = chrono::high_resolution_clock::now();
+         // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+         // durations.push_back(ms_int.count());
+
+         // Checking if all bits are received:
+         if (decodingResult.decodedBitsCnt >= getNumberOfBits())
+         {
+             // Save decoding time:
+             chrono::time_point decodingDoneTime = chrono::high_resolution_clock::now();
+
+             completeDecoding(0, getNumberOfBits(), decodingDoneTime);
+         }
+     }*/
 }
 
+/// @brief Check if a preamble is contained in the given window and return its middle index.
+/// @param window Window possibly containing the preamble.
+/// @param windowSize Size of the window
+/// @return -1 when no preamble is found, else the middle index of the preamble.
 int AudioCodec::containsPreamble(const double *window, const int windowSize)
 {
-    //auto t1 = chrono::high_resolution_clock::now();
+    // auto t1 = chrono::high_resolution_clock::now();
+    double w0 = window[0];
+    double w1 = window[1];
+    double w2 = window[2];
+    double w3 = window[3];
+    double w4 = window[4];
 
     // 1. Get convolution results:
     double convolutionData[windowSize];
@@ -558,6 +654,54 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
     return -1;
 }
 
+/// @brief Process the found preamble peaks and determine the actual index of the preamble.
+/// @param channelId Current channel ID.
+/// @param newPeakFound Whether a new peak was found right before calling this function.
+/// @return  -1 when no real preamble is found, else the middle index of the preamble.
+int AudioCodec::processPreamblePositions(const uint8_t channelId, bool newPeakFound)
+{
+    int preamble_index = -1;
+
+    // Grabbing preamble position storage:
+    vector<int> &preamblePositionStorage = decodingStore[channelId].preamblePositionStorage;
+    int numberOfPreamblePeaks = decodingStore[channelId].preamblePositionStorage.size();
+
+    // Option 1: Only one peak in storage and no new peak is detected:
+    if (numberOfPreamblePeaks == 1 && !newPeakFound)
+    {
+        preamble_index = preamblePositionStorage[0];
+
+        decodingStore[channelId].preamblePositionStorage.clear();
+    }
+    // Option 2: More than one peak in storage and a new peak has just been added:
+    else if (numberOfPreamblePeaks > 1 && newPeakFound)
+    {
+        // Check if two consecutive peaks are far apart:
+        for (uint8_t i = 0; i < numberOfPreamblePeaks - 1; i++)
+        {
+            if (abs(preamblePositionStorage[i] - preamblePositionStorage[i + 1]) > 100)
+            {
+                // Now we find the most occuring peak index up until index i:
+                preamble_index = mostOccuring(preamblePositionStorage.data(), i + 1);
+
+                // Removing the peaks from the list:
+                decodingStore[channelId].preamblePositionStorage.erase(decodingStore[channelId].preamblePositionStorage.begin(), decodingStore[channelId].preamblePositionStorage.begin() + i + 1);
+
+                break;
+            }
+        }
+    }
+    // Option 3: More than one peak in storage, but no new peak is detected:
+    else if (numberOfPreamblePeaks > 1)
+    {
+        preamble_index = mostOccuring(preamblePositionStorage.data(), numberOfPreamblePeaks);
+
+        decodingStore[channelId].preamblePositionStorage.clear();
+    }
+
+    return preamble_index;
+}
+
 /// @brief Get the convolution result from a data frame and a given symbol.
 /// Both data and symbolData should be the same size.
 /// @param data Data array.
@@ -580,6 +724,27 @@ void AudioCodec::getConvolutionResults(const double *data, const double *symbolD
 
     // 3. Take the absolute value:
     complexAbsolute(hilbertResult, output, size);
+}
+
+/// @brief Decode the sender ID, by using convolution using a unique pattern.
+/// @param window Window containing the sender id.
+/// @param windowSize The size of the window.
+/// @return The ID of the sender.
+int AudioCodec::decodeSenderId(const double *window, const int windowSize)
+{
+    double maxConvolutionResults[ROBOTS_COUNT];
+    double convolutionData[SYMBOL_BITS];
+
+    for (uint8_t i = 0; i < ROBOTS_COUNT; i++)
+    {
+        // Performing convolution:
+        getConvolutionResults(window, senderIdsFlipped[i], SYMBOL_BITS, convolutionData, fftConfigStoreConvBit, fftConfigStoreHilBit);
+
+        // Grabbing the peak from the convolution data:
+        maxConvolutionResults[i] = *max_element(convolutionData, convolutionData + SYMBOL_BITS);
+    }
+
+    return findMaxIndex(maxConvolutionResults, ROBOTS_COUNT);
 }
 
 /// @brief Decode a single bit in the data stream, based on the maximum convolution result.
@@ -606,7 +771,27 @@ int AudioCodec::decodeBit(const double *window, const int windowSize)
     return max0 > max1 ? 0 : 1;
 }
 
-void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits, chrono::system_clock::time_point decodingEndTime)
+/// @brief This function tries to find the decoding results index which is associated with the same preamble.
+/// @param preamblePeakIndex Preamble index to check against.
+/// @return -1 if no decoding result is there yet, else the index of the matching decoding result in the array.
+int AudioCodec::findDecodingResult(int preamblePeakIndex)
+{
+    for (uint8_t i = 0; i < decodingResults.size(); i++)
+    {
+        // It's a match when the result contains an index close (within 100) to the given index:
+        for (uint8_t j = 0; j < NUM_CHANNELS; j++)
+        {
+            if (abs(decodingResults[i].preambleDetectionPosition[i] - preamblePeakIndex) < 100)
+            {
+                return i;
+            }
+        }
+    }
+
+    return -1;
+}
+
+void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime)
 {
 #ifdef PRINT_CODED_BITS
     for (int i = 0; i < getNumberOfBits(); i++)
@@ -619,22 +804,22 @@ void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits, 
 
     // Decoding CRC and checking if message was received successfully:
     uint8_t crcInMessage = bitsToUint8(&decodingResult.decodedBits[getNumberOfBits() - 8]);
-    uint8_t crcCalculated = calculateCRC(&decodingResult.decodedBits[startIndex], numberOfBits - 8);
+    uint8_t crcCalculated = calculateCRC(&decodingResult.decodedBits[0], getNumberOfBits() - 8);
 
-   // cout << "Preamble found at: " << decodingResult.preambleDetectionPosition[0] << endl;
+    // cout << "Preamble found at: " << decodingResult.preambleDetectionPosition[0] << endl;
 
     if (crcInMessage == crcCalculated)
     {
         // Decoding robot ID of sender:
-        decodingResult.senderId = bitsToUint8(&decodingResult.decodedBits[startIndex]);
+        decodingResult.senderId = bitsToUint8(&decodingResult.decodedBits[0]);
 
         // Decoding message Type:
-        decodingResult.messageType = (AudioCodedMessageType)bitsToUint8(&decodingResult.decodedBits[startIndex + 8]);
+        decodingResult.messageType = (AudioCodedMessageType)bitsToUint8(&decodingResult.decodedBits[8]);
 
         // Putting data in the correct array:
         for (int i = 0; i < DECODING_DATA_BITS; i++)
         {
-            decodingResult.decodedData[i] = decodingResult.decodedBits[startIndex + 16 + i];
+            decodingResult.decodedData[i] = decodingResult.decodedBits[16 + i];
         }
 
         // Handle distance calculation:
@@ -662,7 +847,7 @@ void AudioCodec::completeDecoding(const int startIndex, const int numberOfBits, 
 
 void AudioCodec::performDistanceTracking(chrono::system_clock::time_point decodingEndTime)
 {
-    if (decodingResult.messageType == LOCALIZATION1)
+    /*if (decodingResult.messageType == LOCALIZATION1)
     {
         for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
         {
@@ -690,7 +875,7 @@ void AudioCodec::performDistanceTracking(chrono::system_clock::time_point decodi
 
         //     int bananananana = 10;
         // }
-    }
+    }*/
 
     // First two messages are used to keep track of the timing:
     // if (decodingResult.messageType == LOCALIZATION1)

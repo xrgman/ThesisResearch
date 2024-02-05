@@ -30,7 +30,7 @@
 #define UNDER_SAMPLING_BITS PREAMBLE_BITS / UNDER_SAMPLING_DIVISOR //Number of bits to use when under sampling the signal when decoding.
 
 //*** Decoding definitions ***
-#define HOP_SIZE PREAMBLE_BITS // For now, we just keep on hopping using the preamble size, for performance. 
+#define HOP_SIZE PREAMBLE_BITS / 2
 
 static const int DECODING_BUFFER_SIZE = PREAMBLE_BITS * 2;
 
@@ -57,15 +57,16 @@ enum AudioCodedMessageType
 
 struct AudioCodecResult
 {
-    int senderId;
-    AudioCodedMessageType messageType;
-    double doa;
-    double distance;
+    int senderId = -1;
+    AudioCodedMessageType messageType = ENCODING_TEST;
+    double doa = 0.0;
+    double distance = 0.0;
 
-    int preambleDetectionCnt;
+    int preambleDetectionCnt = 0;
     int preambleDetectionPosition[NUM_CHANNELS];
 
-    uint8_t decodedBitsCnt;
+    int decodingBitsPosition = 0;
+    uint8_t decodedBitsCnt = 0;
     uint8_t decodedBits[DECODING_BITS_COUNT];
 
     // Stores the actual decoded data:
@@ -73,32 +74,25 @@ struct AudioCodecResult
 
     void reset()
     {
-        senderId = 0;
+        senderId = -1;
         messageType = ENCODING_TEST;
         doa = 0.0;
         distance = 0.0;
 
         preambleDetectionCnt = 0;
 
+        decodingBitsPosition = 0;
         decodedBitsCnt = 0;
     }
 };
 
 struct AudioCodecDecoding
 {
-    // Decoding using convolution:
     int processedBitsPosition;
-    bool preambleSeen;
     vector<int> preamblePositionStorage;
-
-    int decodingBitsPosition;
 
     void reset()
     {
-        // processedBitsPosition = 0;
-        preambleSeen = false;
-        decodingBitsPosition = 0;
-
         preamblePositionStorage.clear();
     }
 };
@@ -153,7 +147,7 @@ public:
 
 private:
     double volume;
-    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBits;
+    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBits0, frequencyPairBits1;
     void (*data_decoded_callback)(AudioCodecResult);
 
     // FFT configurations convolution:
@@ -164,28 +158,20 @@ private:
     int getNumberOfBits();
     double getEncodingDuration();
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits);
+
     void encodePreamble(double *output, bool flipped);
+    void encodeBit(double *output, uint8_t bit, bool flipped);
+    void encodeBits(double *output, uint8_t *bits, int numberOfBits);
+    void encodeSenderId(double *output, bool flipped);
 
-    void bitToChirp(double *output, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration);
-    void bitsToChirp(double *output, uint8_t *bits, int numberOfBits, AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps);
-
-    void generateChirp(double *output, AudioCodecFrequencyPair frequencies, double duration);
+    void encodeChirp(double *output, AudioCodecFrequencyPair frequencies, int size);
+    void generateChirp(double *output, AudioCodecFrequencyPair frequencies, int size);
     double applyKaiserWindow(double value, int totalSize, int i, int beta);
 
     void generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps, int robotId);
     double getMinSymbolTime(int numberOfSubChirps, int requiredNumberOfCycles, AudioCodecFrequencyPair frequencies);
 
     uint8_t calculateCRC(const uint8_t *data, const int size);
-
-    int chirpOrder8SubChirps[8][8] = {
-        {1, 8, 7, 4, 3, 5, 2, 6},
-        {3, 6, 5, 2, 4, 7, 8, 1},
-        {8, 5, 6, 7, 1, 2, 4, 3},
-        {7, 1, 2, 5, 8, 6, 3, 4},
-        {6, 7, 4, 3, 2, 1, 5, 8},
-        {2, 4, 3, 6, 7, 8, 1, 5},
-        {4, 2, 1, 8, 5, 3, 6, 7},
-        {5, 3, 8, 1, 6, 4, 7, 2}};
 
     // DECODING:
     int numberOfReceivedBits[NUM_CHANNELS];
@@ -202,25 +188,27 @@ private:
     double originalPreambleFlipped[UNDER_SAMPLING_BITS];
     double bit0Flipped[SYMBOL_BITS];
     double bit1Flipped[SYMBOL_BITS];
+    double senderIdsFlipped[ROBOTS_COUNT][SYMBOL_BITS];
 
     // Decoding stores:
     AudioCodecDecoding decodingStore[NUM_CHANNELS];
 
     // Decoding results:
-    AudioCodecResult decodingResult;
+    vector<AudioCodecResult> decodingResults;
 
     // Localization stores:
     AudioCodecLocalizationStore localiztionStore[NUM_CHANNELS];
 
-    bool containsPreamble(int firstSymbol, int secondSymbol, int thirthSymbol);
     int containsPreamble(const double *window, const int windowSize);
-    int decode_symbol(const double *window, const int windowSize);
+    int processPreamblePositions(const uint8_t channelId, bool newPeakFound);
 
-    
     void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, FFTConfigStore fftConfigStoreConvolve, FFTConfigStore fftConfigStoreHilbert);
+    int decodeSenderId(const double *window, const int windowSize);
     int decodeBit(const double *window, const int windowSize);
 
-    void completeDecoding(const int startIndex, const int numberOfBits, chrono::system_clock::time_point decodingEndTime);
+    int findDecodingResult(int preamblePeakIndex);
+
+    void completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime);
     void performDistanceTracking(chrono::system_clock::time_point decodingEndTime);
 
     // General decoding functions:
