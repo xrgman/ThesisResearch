@@ -1,5 +1,6 @@
 #include "util.h"
 #include <numeric>
+#include <vector>
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
@@ -147,35 +148,46 @@ int findMaxIndex(const int *array, int size)
 /// @param threshold Maximum merge distance between keys.
 void mergeCloseMapKeys(map<int, double> *data, int threshold)
 {
+    // Transform data into vector:
+    vector<int> keysToDelete;
+
     double max = 0.0;
     auto previousIt = data->end();
 
-    data->at() //Try this
-
-    for (auto it = data->begin(); it != data->end(); ) 
+    // Finding keys to remove:
+    for (auto it = data->begin(); it != data->end();)
     {
         if (previousIt != data->end() && abs(previousIt->first - it->first) < threshold)
         {
-            if(max > 0 && max < it->second) {
-                //Removing the previous entry from the list:
-                it = data->erase(previousIt);
+            if (max > 0 && max < it->second)
+            {
+                // Removing the previous entry from the list:
+                // it = data->erase(previousIt);
+                keysToDelete.push_back(previousIt->first);
 
-                //Setting new highest value:
+                // Setting new highest value:
                 max = it->second;
             }
-            else {
-                //Remove the current entry:
-                it = data->erase(it);
+            else
+            {
+                // Remove the current entry:
+                // it = data->erase(it);
+                keysToDelete.push_back(it->first);
             }
         }
-        else {
-            previousIt = it;
-            it++;
-
-            max = previousIt->second;
+        else
+        {
+            max = it->second;
         }
 
+        previousIt = it;
+        it++;
+    }
 
+    // Removing keys from map:
+    for (int i = 0; i < keysToDelete.size(); i++)
+    {
+        data->erase(keysToDelete[i]);
     }
 }
 
