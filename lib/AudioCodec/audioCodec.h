@@ -147,7 +147,8 @@ public:
 
 private:
     double volume;
-    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBits0, frequencyPairBits1;
+    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairOwnUp, frequencyPairOwnDown;
+    AudioCodecFrequencyPair frequencyPairsOwn[2];
     void (*data_decoded_callback)(AudioCodecResult);
 
     // FFT configurations convolution:
@@ -160,9 +161,9 @@ private:
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits);
 
     void encodePreamble(double *output, bool flipped);
-    void encodeBit(double *output, uint8_t bit, bool flipped);
+    void encodeBit(double *output, uint8_t bit, AudioCodecFrequencyPair *frequencies, bool flipped);
     void encodeBits(double *output, uint8_t *bits, int numberOfBits);
-    void encodeSenderId(double *output, bool flipped);
+    void encodeSenderId(double *output, AudioCodecFrequencyPair frequencies, bool flipped);
 
     void encodeChirp(double *output, AudioCodecFrequencyPair frequencies, int size);
     void generateChirp(double *output, AudioCodecFrequencyPair frequencies, int size);
@@ -186,8 +187,8 @@ private:
 
     AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS]; // Here the different sub frequencies of the bits 0 and 1 are stored.
     double originalPreambleFlipped[UNDER_SAMPLING_BITS];
-    double bit0Flipped[SYMBOL_BITS];
-    double bit1Flipped[SYMBOL_BITS];
+    double bit0Flipped[ROBOTS_COUNT][SYMBOL_BITS];
+    double bit1Flipped[ROBOTS_COUNT][SYMBOL_BITS];
     double senderIdsFlipped[ROBOTS_COUNT][SYMBOL_BITS];
 
     // Decoding stores:
@@ -204,7 +205,7 @@ private:
 
     void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, FFTConfigStore fftConfigStoreConvolve, FFTConfigStore fftConfigStoreHilbert);
     int decodeSenderId(const double *window, const int windowSize);
-    int decodeBit(const double *window, const int windowSize);
+    int decodeBit(const double *window, const int windowSize, int senderId);
 
     int findDecodingResult(int preamblePeakIndex);
 

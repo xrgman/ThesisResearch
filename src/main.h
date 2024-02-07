@@ -25,7 +25,7 @@ static double INT16_MAX_TYPED = static_cast<double>(INT16_MAX);
 
 #define DIAMETER_WHEEL 12 //12CM
 
-#define ROBOTS_COUNT 4
+#define ROBOTS_COUNT 3
 #define ROBOT_ID 0
 
 #define LOCALIZATION_INTERVAL_SECONDS 1.0
