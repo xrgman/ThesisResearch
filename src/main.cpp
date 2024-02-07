@@ -268,11 +268,11 @@ void recordToWavFile(const char *filename, const int seconds)
 
 void loadParticleFilter()
 {
-    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
-    const uint8_t scale = 1;
+    // const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    // const uint8_t scale = 1;
 
-    // const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
-    // const uint8_t scale = 3;
+    const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
+    const uint8_t scale = 3;
 
     if (!particleFilter.loadMap(filenameMap))
     {
@@ -885,7 +885,7 @@ int main()
 
     audioHelper.signalBatchProcessed();
 
-    // handleKeyboardInput();
+    //handleKeyboardInput();
     //  decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
 
     // openAndPlayWavFile("../src/song2.wav");

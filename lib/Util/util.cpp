@@ -142,6 +142,43 @@ int findMaxIndex(const int *array, int size)
     return idx;
 }
 
+/// @brief Merge elements in a map with keys close to eachother by selecting the one with the highest value.
+/// @param data Map containing the data.
+/// @param threshold Maximum merge distance between keys.
+void mergeCloseMapKeys(map<int, double> *data, int threshold)
+{
+    double max = 0.0;
+    auto previousIt = data->end();
+
+    data->at() //Try this
+
+    for (auto it = data->begin(); it != data->end(); ) 
+    {
+        if (previousIt != data->end() && abs(previousIt->first - it->first) < threshold)
+        {
+            if(max > 0 && max < it->second) {
+                //Removing the previous entry from the list:
+                it = data->erase(previousIt);
+
+                //Setting new highest value:
+                max = it->second;
+            }
+            else {
+                //Remove the current entry:
+                it = data->erase(it);
+            }
+        }
+        else {
+            previousIt = it;
+            it++;
+
+            max = previousIt->second;
+        }
+
+
+    }
+}
+
 /// @brief Find the index of the element with the highest value.
 /// @param array Array containing the elements.
 /// @param size Size of the array.

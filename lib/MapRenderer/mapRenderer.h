@@ -7,8 +7,8 @@
 #include "Map/mapData.h"
 #include "particle.h"
 
-#define WINDOW_WIDTH 600//1280
-#define WINDOW_HEIGHT 900//720 
+#define WINDOW_WIDTH 1280//600//1280
+#define WINDOW_HEIGHT 720//900//720 
 
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 30

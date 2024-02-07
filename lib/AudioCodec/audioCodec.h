@@ -2,6 +2,7 @@
 #define AUDIOCODEC_H
 
 #include <chrono>
+#include <set>
 
 #include "main.h"
 #include "fftWrapper.h"
@@ -89,7 +90,7 @@ struct AudioCodecResult
 struct AudioCodecDecoding
 {
     int processedBitsPosition;
-    vector<int> preamblePositionStorage;
+    vector<int> preamblePositionStorage; //TODO make it a set
 
     void reset()
     {
@@ -202,6 +203,7 @@ private:
 
     int containsPreamble(const double *window, const int windowSize);
     int processPreamblePositions(const uint8_t channelId, bool newPeakFound);
+    bool preamblePeakSeen(const uint8_t channelId, const int peak);
 
     void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, FFTConfigStore fftConfigStoreConvolve, FFTConfigStore fftConfigStoreHilbert);
     int decodeSenderId(const double *window, const int windowSize);

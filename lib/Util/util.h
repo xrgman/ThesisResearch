@@ -3,6 +3,7 @@
 
 #include "main.h"
 #include <chrono>
+#include <map>
 
 using namespace std;
 
@@ -18,6 +19,8 @@ bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold);
 
 int findMaxIndex(const int *array, int size);
 int findMaxIndex(const double *array, int size);
+
+void mergeCloseMapKeys(map<int, double> *data, int threshold);
 
 int mostOccuring(const int *array, int size);
 void divideAllElements(double *array, const int size, const double divisor);

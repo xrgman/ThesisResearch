@@ -5,6 +5,7 @@
 #include <iostream>
 #include <algorithm>
 #include <complex>
+#include <map>
 
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
@@ -606,8 +607,6 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 /// @return -1 when no preamble is found, else the middle index of the preamble.
 int AudioCodec::containsPreamble(const double *window, const int windowSize)
 {
-    // auto t1 = chrono::high_resolution_clock::now();
-
     // 1. Get convolution results:
     double convolutionData[windowSize];
 
@@ -618,7 +617,7 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
     double preamble_min_peak = 2 * average;
 
     // 3. Find the maximum peak:
-    double max_peak = *max_element(convolutionData, convolutionData + windowSize);
+    double maxPeak = *max_element(convolutionData, convolutionData + windowSize);
 
 // 3.5 Check if peak is not from own send message:
 #ifdef CHECK_FOR_OWN_SIGNAL
@@ -628,15 +627,25 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
     }
 #endif
 
-    // auto t2 = chrono::high_resolution_clock::now();
-    // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
-
-    // cout << "Check preamble took: " << ms_int.count() << "ns\n";
-
     // 4. Check if the maximum peak exceeds 100 (to prevent false preamble detection) and the threshold:
-    if (max_peak > 100 && max_peak > preamble_min_peak * 4)
+    if (maxPeak > 100 && maxPeak > preamble_min_peak * 4)
     {
-        return findMaxIndex(convolutionData, windowSize);
+        int maxPeakIndex = findMaxIndex(convolutionData, windowSize);
+
+        // 5. Find all possible peak candidates, that are far away enough from the biggest peak:
+        map<int, double> possiblePeaks = {{maxPeakIndex, maxPeak}};
+
+        for (int i = 0; i < windowSize; i++)
+        {
+            if (convolutionData[i] > 100 && convolutionData[i] > preamble_min_peak * 4 && abs(maxPeakIndex - i) > 100)
+            {
+                possiblePeaks[i] = convolutionData[i];
+            }
+        }
+
+        mergeCloseMapKeys(&possiblePeaks, 100);
+
+        int banaan = 10;
     }
 
     return -1;
@@ -662,7 +671,7 @@ int AudioCodec::processPreamblePositions(const uint8_t channelId, bool newPeakFo
         decodingStore[channelId].preamblePositionStorage.clear();
     }
     // Option 2: More than one peak in storage and a new peak has just been added:
-    else if (numberOfPreamblePeaks > 1 && newPeakFound)
+    else if (numberOfPreamblePeaks > 1)
     {
         // Check if two consecutive peaks are far apart:
         for (uint8_t i = 0; i < numberOfPreamblePeaks - 1; i++)
@@ -678,16 +687,34 @@ int AudioCodec::processPreamblePositions(const uint8_t channelId, bool newPeakFo
                 break;
             }
         }
-    }
-    // Option 3: More than one peak in storage, but no new peak is detected:
-    else if (numberOfPreamblePeaks > 1)
-    {
-        preamble_index = mostOccuring(preamblePositionStorage.data(), numberOfPreamblePeaks);
 
-        decodingStore[channelId].preamblePositionStorage.clear();
+        // Option 3: More than one peak in storage, but no new peak is detected
+        if (preamble_index < 0)
+        {
+            preamble_index = mostOccuring(preamblePositionStorage.data(), numberOfPreamblePeaks);
+
+            decodingStore[channelId].preamblePositionStorage.clear();
+        }
     }
 
     return preamble_index;
+}
+
+/// @brief Check whether a certain preamble peak was already detected before.
+/// @param channelId Current channel that is being processed.
+/// @param peak The newly found peak.
+/// @return Whether the peak has been found before in another iteration.
+bool AudioCodec::preamblePeakSeen(const uint8_t channelId, const int peak)
+{
+    for (uint8_t i = 0; i < decodingStore[channelId].preamblePositionStorage.size(); i++)
+    {
+        if (decodingStore[channelId].preamblePositionStorage[i] == peak)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /// @brief Get the convolution result from a data frame and a given symbol.
@@ -799,7 +826,7 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::syste
     if (crcInMessage == crcCalculated)
     {
         // Decoding robot ID of sender:
-        //decodingResult.senderId = bitsToUint8(&decodingResult.decodedBits[0]);
+        // decodingResult.senderId = bitsToUint8(&decodingResult.decodedBits[0]);
 
         // Decoding message Type:
         decodingResult.messageType = (AudioCodedMessageType)bitsToUint8(&decodingResult.decodedBits[0]);
