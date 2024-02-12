@@ -504,11 +504,14 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         bool newPeakFound = possiblePreambleIdxs.size() > 0;
 
         // Processing possible preamble indexes to find an actual index:
-        int preambleIndex = processPreamblePositions(microphoneId, newPeakFound);
+        vector<int> preambleIdxs = processPreamblePositions(microphoneId, newPeakFound);
 
-        if (preambleIndex > 0)
+        for (int i = 0; i < preambleIdxs.size(); i++)
         {
-            cout << "Preamble found: " << preambleIndex << endl;
+            int preambleIndex = preambleIdxs[i];
+
+            //cout << "Preamble found: " << preambleIndex << endl;
+
             // Checking if peak was already found, if not create a new results object:
             int decodingResultIdx = findDecodingResult(preambleIndex);
 
@@ -547,7 +550,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         {
             int decodingBitsPosition = decodingResults[decodingResultIdx].decodingBitsPosition;
 
-            //TODO keep decoding untill not possible, to allow for smaller buffer :)
+            // TODO keep decoding untill not possible, to allow for smaller buffer :)
             if (decodingBitsPosition + SYMBOL_BITS <= numberOfReceivedBits[microphoneId])
             {
                 // Creating frame:
@@ -658,49 +661,51 @@ vector<int> AudioCodec::containsPreamble(const double *window, const int windowS
 /// @param channelId Current channel ID.
 /// @param newPeakFound Whether a new peak was found right before calling this function.
 /// @return  -1 when no real preamble is found, else the middle index of the preamble.
-int AudioCodec::processPreamblePositions(const uint8_t channelId, bool newPeakFound)
+vector<int> AudioCodec::processPreamblePositions(const uint8_t channelId, bool newPeakFound)
 {
-    int preamble_index = -1;
+    vector<int> preamble_indexes;
 
     // Grabbing preamble position storage:
-    vector<int> &preamblePositionStorage = decodingStore[channelId].preamblePositionStorage;
     int numberOfPreamblePeaks = decodingStore[channelId].preamblePositionStorage.size();
 
     // Option 1: Only one peak in storage and no new peak is detected:
     if (numberOfPreamblePeaks == 1 && !newPeakFound)
     {
-        preamble_index = preamblePositionStorage[0];
+        preamble_indexes.push_back(decodingStore[channelId].preamblePositionStorage[0]);
 
         decodingStore[channelId].preamblePositionStorage.clear();
     }
     // Option 2: More than one peak in storage and a new peak has just been added:
     else if (numberOfPreamblePeaks > 1)
     {
-        // Check if two consecutive peaks are far apart:
-        for (uint8_t i = 0; i < numberOfPreamblePeaks - 1; i++)
+        int i = 0;
+
+        while (i < decodingStore[channelId].preamblePositionStorage.size())
         {
-            if (abs(preamblePositionStorage[i] - preamblePositionStorage[i + 1]) > 100)
+            if (abs(decodingStore[channelId].preamblePositionStorage[i] - decodingStore[channelId].preamblePositionStorage[i + 1]) > 100)
             {
                 // Now we find the most occuring peak index up until index i:
-                preamble_index = mostOccuring(preamblePositionStorage.data(), i + 1);
+                preamble_indexes.push_back(mostOccuring(decodingStore[channelId].preamblePositionStorage.data(), i + 1));
 
                 // Removing the peaks from the list:
                 decodingStore[channelId].preamblePositionStorage.erase(decodingStore[channelId].preamblePositionStorage.begin(), decodingStore[channelId].preamblePositionStorage.begin() + i + 1);
-
-                break;
+            }
+            else
+            {
+                i++;
             }
         }
 
         // Option 3: More than one peak in storage, but no new peak is detected
-        if (preamble_index < 0)
+        if (preamble_indexes.size() <= 0 && !newPeakFound)
         {
-            preamble_index = mostOccuring(preamblePositionStorage.data(), numberOfPreamblePeaks);
+            preamble_indexes.push_back(mostOccuring(decodingStore[channelId].preamblePositionStorage.data(), numberOfPreamblePeaks));
 
             decodingStore[channelId].preamblePositionStorage.clear();
         }
     }
 
-    return preamble_index;
+    return preamble_indexes;
 }
 
 /// @brief Check whether a certain preamble peak was already detected before.
@@ -857,7 +862,7 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::syste
     // Resetting decoding stores:
     for (uint8_t i = 0; i < NUM_CHANNELS; i++)
     {
-        //decodingStore[i].reset();
+        // decodingStore[i].reset();
     }
 }
 
