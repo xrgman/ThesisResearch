@@ -885,7 +885,7 @@ int main()
 
     audioHelper.signalBatchProcessed();
 
-    //handleKeyboardInput();
+    handleKeyboardInput();
     //  decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
 
     // openAndPlayWavFile("../src/song2.wav");
@@ -900,12 +900,12 @@ int main()
     //     encodeMessageForAudio(filename.c_str(), i);
     // }
 
-    encodeMessageForAudio("../recordings/convolution/encoding0.wav", ROBOT_ID);
+    //encodeMessageForAudio("../recordings/convolution/encoding0.wav", ROBOT_ID);
 
     // recordToWavFile("TestOpname.wav", 5);
 
     // decodeMessageForAudio("../recordings/los/50cm_90deg.wav");
-    decodeMessageConvolution("../recordings/convolution/overlapped_test.wav");
+    //decodeMessageConvolution("../recordings/convolution/overlapped_test.wav");
     // // decodingLiveConvolution();
 
     audioHelper.clearBuffers();
