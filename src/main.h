@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <cmath>
 
-// #define PRINT_CODED_BITS
+#define PRINT_CODED_BITS
 // #define CHECK_FOR_OWN_SIGNAL
 
 template <typename T>
@@ -26,7 +26,7 @@ static double INT16_MAX_TYPED = static_cast<double>(INT16_MAX);
 #define DIAMETER_WHEEL 12 //12CM
 
 #define ROBOTS_COUNT 8
-#define ROBOT_ID 0
+#define ROBOT_ID 1
 
 #define LOCALIZATION_INTERVAL_SECONDS 1.0
 

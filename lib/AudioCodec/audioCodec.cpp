@@ -510,7 +510,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         {
             int preambleIndex = preambleIdxs[i];
 
-            //cout << "Preamble found: " << preambleIndex << endl;
+            cout << "Preamble found: " << preambleIndex << endl;
 
             // Checking if peak was already found, if not create a new results object:
             int decodingResultIdx = findDecodingResult(preambleIndex);
@@ -522,8 +522,11 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 decodingResults.push_back(AudioCodecResult());
             }
 
-            // Setting decoding bits start position:
-            decodingResults[decodingResultIdx].decodingBitsPosition = preambleIndex + (PREAMBLE_BITS / 2);
+            if (microphoneId == 0)
+            {
+                // Setting decoding bits start position:
+                decodingResults[decodingResultIdx].decodingBitsPosition = preambleIndex + (PREAMBLE_BITS / 2);
+            }
 
             // Saving preamble peak:
             decodingResults[decodingResultIdx].preambleDetectionPosition[microphoneId] = preambleIndex;
@@ -625,12 +628,14 @@ vector<int> AudioCodec::containsPreamble(const double *window, const int windowS
 #ifdef CHECK_FOR_OWN_SIGNAL
     if (max_peak > PREAMBLE_CONVOLUTION_CUTOFF)
     {
-        return -1;
+        return vector<int>();
     }
 #endif
 
+    // cout << "Max peak: " << maxPeak << ", Min peak: " << preamble_min_peak << ", Statement:" << (maxPeak > preamble_min_peak * 4 ? "True" : "False") << endl;
+
     // 4. Check if the maximum peak exceeds 100 (to prevent false preamble detection) and the threshold:
-    if (maxPeak > 100 && maxPeak > preamble_min_peak * 4)
+    if (maxPeak > preamble_min_peak * 8) // maxPeak > 100 &&
     {
         int maxPeakIndex = findMaxIndex(convolutionData, windowSize);
 
@@ -639,7 +644,7 @@ vector<int> AudioCodec::containsPreamble(const double *window, const int windowS
 
         for (int i = 0; i < windowSize; i++)
         {
-            if (convolutionData[i] > 100 && convolutionData[i] > preamble_min_peak * 4 && abs(maxPeakIndex - i) > 100)
+            if (convolutionData[i] > preamble_min_peak * 8 && abs(maxPeakIndex - i) > 2000) // convolutionData[i] > 100 REmoved this to make it work with recordings.
             {
                 possiblePeaks[i] = convolutionData[i];
             }
