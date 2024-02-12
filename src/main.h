@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <cmath>
 
-#define PRINT_CODED_BITS
+// #define PRINT_CODED_BITS
 // #define CHECK_FOR_OWN_SIGNAL
 
 template <typename T>

@@ -510,7 +510,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         {
             int preambleIndex = preambleIdxs[i];
 
-            cout << "Preamble found: " << preambleIndex << endl;
+            //cout << "Preamble found: " << preambleIndex << endl;
 
             // Checking if peak was already found, if not create a new results object:
             int decodingResultIdx = findDecodingResult(preambleIndex);
