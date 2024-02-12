@@ -492,19 +492,19 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         }
 
         // Checking if frame contains the preamble:
-        int preambleIndex = containsPreamble(frame, UNDER_SAMPLING_BITS) * UNDER_SAMPLING_DIVISOR;
-        bool newPeakFound = false;
+        vector<int> possiblePreambleIdxs = containsPreamble(frame, UNDER_SAMPLING_BITS);
 
-        if (preambleIndex > 0)
+        for (int i = 0; i < possiblePreambleIdxs.size(); i++)
         {
-            preambleIndex += readingPosition;
-            decodingStore[microphoneId].preamblePositionStorage.push_back(preambleIndex);
+            possiblePreambleIdxs[i] = (possiblePreambleIdxs[i] * UNDER_SAMPLING_DIVISOR) + readingPosition;
 
-            newPeakFound = true;
+            decodingStore[microphoneId].preamblePositionStorage.push_back(possiblePreambleIdxs[i]);
         }
 
+        bool newPeakFound = possiblePreambleIdxs.size() > 0;
+
         // Processing possible preamble indexes to find an actual index:
-        preambleIndex = processPreamblePositions(microphoneId, newPeakFound);
+        int preambleIndex = processPreamblePositions(microphoneId, newPeakFound);
 
         if (preambleIndex > 0)
         {
@@ -547,6 +547,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         {
             int decodingBitsPosition = decodingResults[decodingResultIdx].decodingBitsPosition;
 
+            //TODO keep decoding untill not possible, to allow for smaller buffer :)
             if (decodingBitsPosition + SYMBOL_BITS <= numberOfReceivedBits[microphoneId])
             {
                 // Creating frame:
@@ -567,8 +568,6 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 }
 
                 // Decode bit and add it to decoded bits list:
-                // TODO give it the correct frequency decoding shizzles:
-
                 int bit = decodeBit(bitFrame, SYMBOL_BITS, decodingResults[decodingResultIdx].senderId);
 
                 decodingResults[decodingResultIdx].decodedBits[decodingResults[decodingResultIdx].decodedBitsCnt] = bit;
@@ -605,7 +604,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 /// @param window Window possibly containing the preamble.
 /// @param windowSize Size of the window
 /// @return -1 when no preamble is found, else the middle index of the preamble.
-int AudioCodec::containsPreamble(const double *window, const int windowSize)
+vector<int> AudioCodec::containsPreamble(const double *window, const int windowSize)
 {
     // 1. Get convolution results:
     double convolutionData[windowSize];
@@ -643,12 +642,16 @@ int AudioCodec::containsPreamble(const double *window, const int windowSize)
             }
         }
 
+        // 6. Filtering out close cannidates:
         mergeCloseMapKeys(&possiblePeaks, 100);
 
-        int banaan = 10;
+        // 7. Returning only the indexes:
+        vector<int> peakIndexes = mapKeysToVector(&possiblePeaks);
+
+        return peakIndexes;
     }
 
-    return -1;
+    return vector<int>();
 }
 
 /// @brief Process the found preamble peaks and determine the actual index of the preamble.
@@ -775,8 +778,8 @@ int AudioCodec::decodeBit(const double *window, const int windowSize, int sender
     getConvolutionResults(window, bit0Flipped[senderId], SYMBOL_BITS, convolutionData0, fftConfigStoreConvBit, fftConfigStoreHilBit);
     getConvolutionResults(window, bit1Flipped[senderId], SYMBOL_BITS, convolutionData1, fftConfigStoreConvBit, fftConfigStoreHilBit);
 
-    double avg0 = calculateAverage(convolutionData0, SYMBOL_BITS);
-    double avg1 = calculateAverage(convolutionData1, SYMBOL_BITS);
+    // double avg0 = calculateAverage(convolutionData0, SYMBOL_BITS);
+    // double avg1 = calculateAverage(convolutionData1, SYMBOL_BITS);
 
     // 2. Find the maximum values of both convolutions:
     double max0 = *max_element(convolutionData0, convolutionData0 + SYMBOL_BITS);
@@ -851,12 +854,10 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::syste
         cout << "CRC mismatch, dropping message!\n\n";
     }
 
-    // Resetting all fields:
-    decodingResult.reset();
-
+    // Resetting decoding stores:
     for (uint8_t i = 0; i < NUM_CHANNELS; i++)
     {
-        decodingStore[i].reset();
+        //decodingStore[i].reset();
     }
 }
 

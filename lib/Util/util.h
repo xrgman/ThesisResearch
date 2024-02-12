@@ -3,6 +3,7 @@
 
 #include "main.h"
 #include <chrono>
+#include <vector>
 #include <map>
 
 using namespace std;
@@ -26,12 +27,12 @@ int mostOccuring(const int *array, int size);
 void divideAllElements(double *array, const int size, const double divisor);
 void cumsum(double *array, const int size);
 
+vector<int> mapKeysToVector(map<int, double> *data);
+
 void fillArrayWithZeros(uint8_t *array, const int size);
 void fillArrayWithZeros(int16_t *array, const int size);
 void fillArrayWithZeros(int *array, const int size);
 void fillArrayWithZeros(double *array, const int size);
-
-
 
 void setValues(uint8_t *array, const int startIdx, const int stopIdx, const uint8_t value);
 

@@ -4,7 +4,6 @@
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
-#include <map>
 
 //*************************************************
 //******** Collection helpers *********************
@@ -258,6 +257,25 @@ void cumsum(double *array, const int size)
     }
 }
 
+/// @brief Transform a map into a vector containing all the keys.
+/// @param map Map to extract keys from.
+/// @return Vector containing all keys.
+vector<int> mapKeysToVector(map<int, double> *data)
+{
+    vector<int> keys(data->size());
+    int i = 0;
+
+    for (auto it = data->begin(); it != data->end();)
+    {
+        keys[i] = it->first;
+
+        it++;
+        i++;
+    }
+
+    return keys;
+}
+
 //*************************************************
 //******** Collection fillers *********************
 //*************************************************
@@ -318,6 +336,7 @@ void setValues(uint8_t *array, const int startIdx, const int stopIdx, const uint
         array[i] = value;
     }
 }
+
 
 //*************************************************
 //******** Type changers  *************************

@@ -31,7 +31,7 @@
 #define UNDER_SAMPLING_BITS PREAMBLE_BITS / UNDER_SAMPLING_DIVISOR //Number of bits to use when under sampling the signal when decoding.
 
 //*** Decoding definitions ***
-#define HOP_SIZE PREAMBLE_BITS / 2
+#define HOP_SIZE PREAMBLE_BITS
 
 static const int DECODING_BUFFER_SIZE = PREAMBLE_BITS * 2;
 
@@ -201,7 +201,7 @@ private:
     // Localization stores:
     AudioCodecLocalizationStore localiztionStore[NUM_CHANNELS];
 
-    int containsPreamble(const double *window, const int windowSize);
+    vector<int> containsPreamble(const double *window, const int windowSize);
     int processPreamblePositions(const uint8_t channelId, bool newPeakFound);
     bool preamblePeakSeen(const uint8_t channelId, const int peak);
 
