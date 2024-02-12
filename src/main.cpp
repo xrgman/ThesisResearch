@@ -393,7 +393,7 @@ void decodingLiveConvolution()
 
         audioHelper.setNextBatchRead();
 
-        auto t1 = chrono::high_resolution_clock::now();
+        //auto t1 = chrono::high_resolution_clock::now();
 
         //  Looping over all microphones:
         for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
@@ -408,16 +408,16 @@ void decodingLiveConvolution()
             }
         }
 
-        auto t2 = chrono::high_resolution_clock::now();
-        chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
-        durations.push_back(ms_int.count());
+        // auto t2 = chrono::high_resolution_clock::now();
+        // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+        // durations.push_back(ms_int.count());
 
-        if (durations.size() > 100)
-        {
-            double maxValue = *max_element(durations.begin(), durations.end());
+        // if (durations.size() > 100)
+        // {
+        //     double maxValue = *max_element(durations.begin(), durations.end());
 
-            cout << "Max value: " << maxValue << endl;
-        }
+        //     cout << "Max value: " << maxValue << endl;
+        // }
 
         // if (durations.size() >= (PREAMBLE_BITS / FRAMES_PER_BUFFER))
         // {
