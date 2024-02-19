@@ -596,7 +596,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
             {
                 decodingResults[decodingResultIdx].doa = calculateDOA(decodingResults[decodingResultIdx].preambleDetectionPosition, NUM_CHANNELS);
 
-                cout << "DOA: " << decodingResults[decodingResultIdx].doa << endl;
+                //cout << "DOA: " << decodingResults[decodingResultIdx].doa << endl;
             }
         }
 
@@ -643,8 +643,8 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 // Increasing read position:
                 decodingResults[decodingResultIdx].decodingBitsPosition += SYMBOL_BITS;
 
-                // Checking if all bits are received:
-                if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits())
+                // Checking if all bits are received (-8 because of padding in back):
+                if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits() - 8)
                 {
                     // Save decoding time:
                     chrono::time_point decodingDoneTime = chrono::high_resolution_clock::now();
