@@ -133,8 +133,8 @@ void AudioCodec::generateConvolutionFields(int robotId)
 /// @return Number of bits in encoded message.
 int AudioCodec::getNumberOfBits()
 {
-    // Message ID + Data + CRC
-    return 8 + 64 + 8;
+    // Message ID + Data + CRC + Padding
+    return 8 + 64 + 8 + 8;
 }
 
 /// @brief Get the size in bits of the hello world encoding.
@@ -208,8 +208,15 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     }
 
     // Calculate and add CRC (excluding padding):
-    uint8_t crc = calculateCRC(&data[0], dataLength - 8);
-    uint8ToBits(crc, &data[dataLength - 8]);
+    // uint8_t crc = calculateCRC(&data[0], dataLength - 8);
+    // uint8ToBits(crc, &data[dataLength - 8]);
+     uint8_t crc = calculateCRC(&data[0], dataLength - 16);
+    uint8ToBits(crc, &data[dataLength - 16]);
+
+    //Adding padding of 1's
+    for (uint8_t i = 0; i < 8; i ++) {
+        data[dataLength - 8 + i] = 1;
+    }
 
 #ifdef PRINT_CODED_BITS
     for (int i = 0; i < dataLength; i++)
