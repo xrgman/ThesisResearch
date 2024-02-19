@@ -13,13 +13,13 @@ from determineDOA2 import determine_doa
 from scipy.io.wavfile import write
 from typing import List
 
-NUM_ROBOTS = 8
+NUM_ROBOTS = 1
 
 # Project settings:
-SAMPLE_RATE = 22050
+SAMPLE_RATE = 44100
 NUM_CHANNELS = 6
 PREAMBLE_BITS = 8192
-SYMBOL_BITS = 320  # 320
+SYMBOL_BITS = 1058#320  # 320
 
 START_FREQ_PREAMBLE = 2500
 STOP_FREQ_PREAMBLE = 6500
@@ -57,10 +57,11 @@ decoding_cycles = 1
 decoding_cycles_success = 0
 
 # Under sampling:
-UNDER_SAMPLING_DIVISOR = 4
+UNDER_SAMPLING_DIVISOR = 1
 UNDER_SAMPLING_SIZE = int(PREAMBLE_BITS / UNDER_SAMPLING_DIVISOR)
 
 correct_preambles_detected = 0
+correct_ber_results = 0
 
 encode = False
 
@@ -71,20 +72,37 @@ identifiers_flipped = get_encoded_identifiers_flipped(SAMPLE_RATE, SYMBOL_BITS, 
 # filename = 'Audio_files/threesources_overlap_preamble.wav'
 
 #filename = 'Audio_files/threesources_overlap_preamble_start_delay.wav'
-filename = 'Audio_files/testLive2.wav'
+filename = 'Audio_files/encoding0_test_2_-26dB.wav'
 
 # filename = 'Audio_files/encoding0.wav'
 
 
 # Set SNR:
 useSNR = False
-SNRdB = -9
+SNRdB = -16
 
 
 def finish_decoding(decoding_result):
+    global correct_ber_results
+
     # Checking CRC:
     crc_in_message = bits_to_uint8t(decoding_result.decoded_bits[-8:])
     crc_calculated = calculate_crc(decoding_result.decoded_bits[0:-8])
+
+    # Show bit error rate:
+    original_bits = get_data_for_encoding()
+    wrong_bits = 0
+
+    for i, bit in enumerate(decoding_result.decoded_bits):
+        if bit != original_bits[i]:
+            wrong_bits += 1
+
+    ber = wrong_bits / len(original_bits)
+    print("BER: " + str(ber))
+
+    if ber == 0:
+        correct_ber_results += 1
+
 
     # for bit in decoding_result.decoded_bits:
     #     print(str(bit) + " ", end='')
@@ -195,7 +213,6 @@ def decode(bit, channelId, original_preamble):
 
         possible_preamble_idxs = [(x * UNDER_SAMPLING_DIVISOR) + reading_position for x in possible_preamble_idxs]
 
-        boef = 10
 
         for z, p_idx in enumerate(possible_preamble_idxs):
             # if not has_preamble_peak_been_seen(decoding_store[channelId].preamble_position_storage,
@@ -334,7 +351,7 @@ for z in range(10):
 
             write(encoded_filename, SAMPLE_RATE, np.array(encoded_message))
 
-        generate_overlapped(encoded_filenames, filename, delay)
+        #generate_overlapped(encoded_filenames, filename, delay)
 
     for j in range(0, decoding_cycles):
         # Open, read, and decode file bit by bit:
@@ -346,7 +363,7 @@ for z in range(10):
             data_normalized = add_noise(np.array(data_normalized), SNRdB)
 
         for i in range(0, len(data_normalized)):
-            decode(data_normalized[i][0], 0, preamble_undersampled)
+            decode(data_normalized[i], 0, preamble_undersampled)
 
     result.append(correct_preambles_detected)
 
@@ -354,15 +371,13 @@ for z in range(10):
         failed += 1
 
     decoding_cycles_success = 0
-    correct_preambles_detected = 0
+    #correct_preambles_detected = 0
     preamble_peaks.clear()
 
+print("successfull preambles: " + str(correct_preambles_detected))
+print("Successfull BER's: " + str(correct_ber_results))
 
-print("Runs failed: " + str(failed))
+#unique_preamble_peaks = list(set(preamble_peaks))
 
-print("Successfull runs: " + str(decoding_cycles_success) + ", successfull preambles: " + str(correct_preambles_detected) + " out of " + str(NUM_ROBOTS))
-
-unique_preamble_peaks = list(set(preamble_peaks))
-
-print("Peaks found: " + str(unique_preamble_peaks))
+#print("Peaks found: " + str(unique_preamble_peaks))
 
