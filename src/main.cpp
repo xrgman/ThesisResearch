@@ -395,7 +395,7 @@ void decodingLiveConvolution()
 
         audioHelper.setNextBatchRead();
 
-        //auto t1 = chrono::high_resolution_clock::now();
+        // auto t1 = chrono::high_resolution_clock::now();
 
         //  Looping over all microphones:
         for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
@@ -674,6 +674,48 @@ void processFileWoDistance(const char *filename)
     cout << "Done processing WAV file!\n";
 }
 
+void sendMessages(int count)
+{
+    // Create array and fill it with zeros:
+    int size = audioCodec.getEncodingSize();
+    int16_t codedAudioData[size];
+
+    // Encode the message:
+    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
+
+    for (int i = 0; i < count; i++)
+    {
+        int bytesWritten = 0;
+
+        // Reading successfull, so playing it:
+        while (bytesWritten < size)
+        {
+            // Waiting for batch to be written:
+            if (!audioHelper.writeNextBatch())
+            {
+                //usleep(1);
+
+                continue;
+            }
+
+            // Writing to helper:
+            if (!audioHelper.writeBytes(&codedAudioData[bytesWritten], FRAMES_PER_BUFFER))
+            {
+                break;
+            }
+
+            bytesWritten += FRAMES_PER_BUFFER;
+        }
+
+        audioHelper.clearBuffers();
+    }
+    
+    //Waiting 10ms for next:
+    usleep(10000);
+
+    cout << "Done sending messages!\n";
+}
+
 void handleKeyboardInput()
 {
     bool keepProcessing = true;
@@ -800,6 +842,18 @@ void handleKeyboardInput()
                 continue;
             }
 
+            // Send multiple signal messages:
+            if (words[0] == "sm")
+            {
+                int amount = stoi(words[1]);
+
+                cout << "Sending " << amount << " messages.\n";
+
+                sendMessages(amount);
+
+                continue;
+            }
+
             // Start particle filer:
             if (words[0] == "sp")
             {
@@ -902,12 +956,12 @@ int main()
     //     encodeMessageForAudio(filename.c_str(), i);
     // }
 
-    //encodeMessageForAudio("../recordings/convolution/encoding0.wav", ROBOT_ID);
+    // encodeMessageForAudio("../recordings/convolution/encoding0.wav", ROBOT_ID);
 
     // recordToWavFile("TestOpname.wav", 5);
 
     // decodeMessageForAudio("../recordings/los/50cm_90deg.wav");
-    //decodeMessageConvolution("../recordings/convolution/overlapped_test.wav");
+    // decodeMessageConvolution("../recordings/convolution/overlapped_test.wav");
     // // decodingLiveConvolution();
 
     audioHelper.clearBuffers();
