@@ -705,7 +705,7 @@ vector<int> AudioCodec::containsPreamble(const double *window, const int windowS
 
         for (int i = 0; i < windowSize; i++)
         {
-            if (convolutionData[i] > preamble_min_peak * 8 && abs(maxPeakIndex - i) > 2000) // convolutionData[i] > 100 REmoved this to make it work with recordings.
+            if (convolutionData[i] > preamble_min_peak * 8 && abs(maxPeakIndex - i) > MINIMUM_DISTANCE_PREAMBLE_PEAKS) // convolutionData[i] > 100 REmoved this to make it work with recordings.
             {
                 possiblePeaks[i] = convolutionData[i];
             }
@@ -748,7 +748,7 @@ vector<int> AudioCodec::processPreamblePositions(const uint8_t channelId, bool n
 
         while (i < decodingStore[channelId].preamblePositionStorage.size())
         {
-            if (abs(decodingStore[channelId].preamblePositionStorage[i] - decodingStore[channelId].preamblePositionStorage[i + 1]) > 100)
+            if (abs(decodingStore[channelId].preamblePositionStorage[i] - decodingStore[channelId].preamblePositionStorage[i + 1]) > MINIMUM_DISTANCE_PREAMBLE_PEAKS)
             {
                 // Now we find the most occuring peak index up until index i:
                 preamble_indexes.push_back(mostOccuring(decodingStore[channelId].preamblePositionStorage.data(), i + 1));
@@ -870,7 +870,7 @@ int AudioCodec::findDecodingResult(int preamblePeakIndex)
         // It's a match when the result contains an index close (within 100) to the given index:
         for (uint8_t j = 0; j < NUM_CHANNELS; j++)
         {
-            if (abs(decodingResults[i].preambleDetectionPosition[i] - preamblePeakIndex) < 100)
+            if (abs(decodingResults[i].preambleDetectionPosition[i] - preamblePeakIndex) < MINIMUM_DISTANCE_PREAMBLE_PEAKS)
             {
                 return i;
             }

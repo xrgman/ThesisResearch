@@ -941,7 +941,7 @@ int main()
 
     audioHelper.signalBatchProcessed();
 
-    decodeMessageConvolution("../recordings/convolution/los/100cm_270deg_10.wav");
+    decodeMessageConvolution("../recordings/convolution/los/200cm_180deg_10.wav");
 
     handleKeyboardInput();
     //  decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
