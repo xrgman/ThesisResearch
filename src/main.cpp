@@ -215,6 +215,8 @@ void playSingleMessage()
         bytesWritten += FRAMES_PER_BUFFER;
     }
 
+    audioHelper.clearBuffers();
+
     cout << "Done playing message.\n";
 }
 

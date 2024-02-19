@@ -166,6 +166,9 @@ private:
     void encodeBits(double *output, uint8_t *bits, int numberOfBits);
     void encodeSenderId(double *output, AudioCodecFrequencyPair frequencies, bool flipped);
 
+    void bitToChirpOld(double *output, uint8_t bit, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration);
+    void bitsToChirpOld(double *output, uint8_t *bits, int numberOfBits, AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps);
+
     void encodeChirp(double *output, AudioCodecFrequencyPair frequencies, int size);
     void generateChirp(double *output, AudioCodecFrequencyPair frequencies, int size);
     double applyKaiserWindow(double value, int totalSize, int i, int beta);
@@ -223,6 +226,12 @@ private:
     void hilbert(const double *input, kiss_fft_cpx *output, int size, FFTConfigStore fftConfigStore);
     void linespace(const double start, const double stop, const int numPoints, double *output, const bool inverse);
     void createSinWaveFromFreqs(const double *input, double *output, const int size);
+
+
+
+
+    double bit0OldFlipped[SYMBOL_BITS];
+    double bit1OldFlipped[SYMBOL_BITS];
 };
 
 #endif
