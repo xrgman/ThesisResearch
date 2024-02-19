@@ -6,20 +6,19 @@ from decodingClasses import AudioCodecResult, AudioCodecDecoding, most_occuring_
 from matplotlib import pyplot as plt
 from scipy.io.wavfile import read
 from ResearchHelperFunctions import bits_to_uint8t, calculate_crc, calculate_energy, add_noise, contains_preamble, \
-    decode_bit, generate_flipped_symbols, determine_robot_id, find_decoding_result_idx, has_preamble_peak_been_seen
-from ResearchEncoding import encode_message, get_encoded_bits_flipped, get_data_for_encoding, get_encoded_identifiers_flipped
-from GenerateMultipleSourceMessages import generate_overlapped
+    decode_bit, generate_flipped_symbols, determine_robot_id, find_decoding_result_idx
+from ResearchEncoding import encode_message, get_encoded_bits_flipped, get_encoded_identifiers_flipped
+
 from determineDOA2 import determine_doa
 from scipy.io.wavfile import write
 from typing import List
 
-NUM_ROBOTS = 8
-
 # Project settings:
 SAMPLE_RATE = 22050
 NUM_CHANNELS = 6
+NUM_ROBOTS = 1
 PREAMBLE_BITS = 8192
-SYMBOL_BITS = 320  # 320
+SYMBOL_BITS = 1024  # 320
 
 START_FREQ_PREAMBLE = 2500
 STOP_FREQ_PREAMBLE = 6500
@@ -57,21 +56,20 @@ decoding_cycles = 1
 decoding_cycles_success = 0
 
 # Under sampling:
-UNDER_SAMPLING_DIVISOR = 4
+UNDER_SAMPLING_DIVISOR = 1
 UNDER_SAMPLING_SIZE = int(PREAMBLE_BITS / UNDER_SAMPLING_DIVISOR)
+
+# Under sampling bits:
+UNDER_SAMPLING_BITS_DIVISOR = 1
+UNDER_SAMPLING_BITS_SIZE = int(SYMBOL_BITS / UNDER_SAMPLING_BITS_DIVISOR)
 
 correct_preambles_detected = 0
 
 encode = False
 
-bits_flipped = get_encoded_bits_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
-identifiers_flipped = get_encoded_identifiers_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
-
 # filename = 'Audio_files/threesources_no_overlap_preamble.wav'
 # filename = 'Audio_files/threesources_overlap_preamble.wav'
-
-#filename = 'Audio_files/threesources_overlap_preamble_start_delay.wav'
-filename = 'Audio_files/testLive2.wav'
+filename = 'Audio_files/110cm_90deg.wav'
 
 # filename = 'Audio_files/encoding0.wav'
 
@@ -99,7 +97,7 @@ def finish_decoding(decoding_result):
         if decoding_result.message_type == 0:
             embedded_text = frombits(decoding_result.decoded_data)
 
-            print("Received: " + str(embedded_text))
+            #print("Received: " + str(embedded_text))
 
         # Perform distance calculation:
         # distance = calculate_distance(decoding_result)
@@ -162,12 +160,13 @@ def is_preamble_detected(channelId, new_peak_detected: bool):
     return possible_peaks
 
 
+
 def decode(bit, channelId, original_preamble):
     global receivedBuffer
     global receivedWritePosition, receivedReadPosition
     global fftFrameSize, fftHopSize
     global decoding_store
-    global correct_preambles_detected, decoding_cycles_success
+    global correct_preambles_detected
 
     # Saving bit in buffer:
     receivedBuffer[channelId][receivedWritePosition[channelId] % fftFrameSize] = bit
@@ -191,7 +190,7 @@ def decode(bit, channelId, original_preamble):
 
         # Check if chunk contains preamble:
         possible_preamble_idxs = contains_preamble(frame_data, original_preamble,
-                                         PREAMBLE_CONVOLUTION_CUTOFF)
+                                                   PREAMBLE_CONVOLUTION_CUTOFF)
 
         possible_preamble_idxs = [(x * UNDER_SAMPLING_DIVISOR) + reading_position for x in possible_preamble_idxs]
 
@@ -204,25 +203,14 @@ def decode(bit, channelId, original_preamble):
 
         new_peak = False
 
-        ##if preamble_idx > 0:
         if len(possible_preamble_idxs) > 0:
-            #preamble_idx += reading_position
-            # if len(possible_preamble_idxs) > 2:
-            #     print("Help!\n")
-
-            # Determining most likely peak:
-            # if len(possible_preamble_idxs) == 1:
-            #     decoding_store[channelId].preamble_position_storage.append(possible_preamble_idxs[0])
-            # elif len(possible_preamble_idxs) > 1:
-
-
             new_peak = True
 
         # Checking if a preamble is detected:
         preamble_peak_indexes = is_preamble_detected(channelId, new_peak)
 
         for a, preamble_peak_index in enumerate(preamble_peak_indexes):
-        #if len(preamble_peak_index) > 4:
+            # if len(preamble_peak_index) > 4:
             # Saving the peak for the plot:
             preamble_peaks.append(preamble_peak_index)
 
@@ -236,13 +224,13 @@ def decode(bit, channelId, original_preamble):
                 decoding_results.append(AudioCodecResult())
 
             if channelId == 0:
-                decoding_results[decoding_results_idx].decoding_bits_position = preamble_peak_index + (PREAMBLE_BITS // 2)
+                decoding_results[decoding_results_idx].decoding_bits_position = preamble_peak_index + (
+                            PREAMBLE_BITS // 2)
 
             # Saving preamble detection position in result:
             # TODO not update this if value is simply overwritten with a new one:
             decoding_results[decoding_results_idx].preamble_detection_cnt += 1
             decoding_results[decoding_results_idx].preamble_detection_position[channelId] = preamble_peak_index
-
 
             # Checking if all 6 channels received preamble:
             if decoding_results[decoding_results_idx].preamble_detection_cnt >= NUM_CHANNELS:
@@ -258,13 +246,16 @@ def decode(bit, channelId, original_preamble):
     while decoding_result_idx < len(decoding_results):
         decoding_bits_position = decoding_results[decoding_result_idx].decoding_bits_position
 
-        # TODO: Cleanup until not possible anymore, so make a while loop
+        if len(decoding_results) == 3:
+            t=20
+
         if channelId == 0 and decoding_bits_position + SYMBOL_BITS <= receivedWritePosition[channelId]:
             # Create a symbol frame consisting of 304 bits:
-            bit_frame = np.empty(SYMBOL_BITS)
+            bit_frame = np.empty(UNDER_SAMPLING_BITS_SIZE)
 
-            for z in range(0, SYMBOL_BITS):
-                bit_frame[z] = receivedBuffer[channelId][(decoding_bits_position + z) % fftFrameSize]
+            for z in range(0, UNDER_SAMPLING_BITS_SIZE):
+                bit_frame[z] = receivedBuffer[channelId][
+                    (decoding_bits_position + (z * UNDER_SAMPLING_BITS_DIVISOR)) % fftFrameSize]
 
             if decoding_results[decoding_result_idx].sender_id < 0:
                 r_id = determine_robot_id(bit_frame, identifiers_flipped)
@@ -276,7 +267,9 @@ def decode(bit, channelId, original_preamble):
                 continue
 
             # Decoding bit:
-            bit = decode_bit(bit_frame, bits_flipped[decoding_results[decoding_result_idx].sender_id*2:decoding_results[decoding_result_idx].sender_id*2+2])
+            bit = decode_bit(bit_frame, bits_flipped_under_sampled[
+                                        decoding_results[decoding_result_idx].sender_id * 2:decoding_results[
+                                                                                                decoding_result_idx].sender_id * 2 + 2])
 
             # Saving decoded bit:
             decoding_results[decoding_result_idx].decoded_bits[
@@ -289,7 +282,7 @@ def decode(bit, channelId, original_preamble):
             # When enough symbols are received, process result:
             if decoding_results[decoding_result_idx].decoded_bits_cnt >= DECODING_BITS_COUNT:
                 if finish_decoding(decoding_results[decoding_result_idx]):
-                    decoding_cycles_success += 1
+                    success = True
 
                 decoding_results.pop(decoding_result_idx)
             else:
@@ -307,62 +300,55 @@ for i in range(UNDER_SAMPLING_SIZE):
     preamble_undersampled[0][i] = preamble[0][i * UNDER_SAMPLING_DIVISOR]
 
 
-result = []
-failed = 0
+bits_flipped = get_encoded_bits_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
+identifiers_flipped = get_encoded_identifiers_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
 
-for z in range(10):
-    if z == 1:
-        va = 10
+bits_flipped_under_sampled = np.empty((NUM_ROBOTS * 2, UNDER_SAMPLING_BITS_SIZE))
 
-    # ENCODING:
-    if encode:
-        encoded_filenames = []
-        delay = 0.191746032  # T_preamble / 2 #0.195#
+for r in range(NUM_ROBOTS * 2):
+    for i in range(UNDER_SAMPLING_BITS_SIZE):
+        bits_flipped_under_sampled[r][i] = bits_flipped[r][i * UNDER_SAMPLING_BITS_DIVISOR]
 
-        delay = 0.1857596 + (0.0001*z)  # This represents exactly half
-        delay = 0.1957596 + (0.0001 * z)
+# ENCODING:
+if encode:
+    encoded_message = encode_message(SAMPLE_RATE, PREAMBLE_BITS, SYMBOL_BITS, START_FREQ_PREAMBLE, STOP_FREQ_PREAMBLE,
+                                     START_FREQ_BITS, STOP_FREQ_BITS,  NUM_ROBOTS, 0)
 
-        #delay = 0.18363 + (0.0001*z)  # This is T_PREAMBLE / 3
+    write(filename, SAMPLE_RATE, np.array(encoded_message))
 
-        for i in range(NUM_ROBOTS):
-            encoded_message = encode_message(SAMPLE_RATE, PREAMBLE_BITS, SYMBOL_BITS, START_FREQ_PREAMBLE,
-                                               STOP_FREQ_PREAMBLE,
-                                               START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS, i)
-
-            encoded_filename = 'Audio_files/encoding' + str(i) + '_test.wav'
-            encoded_filenames.append(encoded_filename)
-
-            write(encoded_filename, SAMPLE_RATE, np.array(encoded_message))
-
-        generate_overlapped(encoded_filenames, filename, delay)
-
-    for j in range(0, decoding_cycles):
-        # Open, read, and decode file bit by bit:
-        fs, data_int16 = read(filename)
-        data_normalized = data_int16.astype(np.double) / np.iinfo(np.int16).max
-
-        # Add noise to the signal if required:
-        if useSNR:
-            data_normalized = add_noise(np.array(data_normalized), SNRdB)
-
-        for i in range(0, len(data_normalized)):
-            decode(data_normalized[i][0], 0, preamble_undersampled)
-
-    result.append(correct_preambles_detected)
-
-    if correct_preambles_detected != NUM_ROBOTS:
-        failed += 1
-
-    decoding_cycles_success = 0
-    correct_preambles_detected = 0
-    preamble_peaks.clear()
+for j in range(0, decoding_cycles):
+    # receivedReadPosition = 0
+    # receivedWritePosition = 0
 
 
-print("Runs failed: " + str(failed))
 
-print("Successfull runs: " + str(decoding_cycles_success) + ", successfull preambles: " + str(correct_preambles_detected) + " out of " + str(NUM_ROBOTS))
+    # Open, read, and decode file bit by bit:
+    fs, data_int16 = read(filename)
+    data_normalized = data_int16.astype(np.double) / np.iinfo(np.int16).max
 
-unique_preamble_peaks = list(set(preamble_peaks))
+    peak = [0, 8192, 8512, 11072, 31552, 34112]
 
-print("Peaks found: " + str(unique_preamble_peaks))
+    plt.subplot(2, 1, 1)
+    plt.plot(data_normalized, label='Signal')
+    plt.title('Signal')
+    plt.xlabel('Samples')
+    plt.ylabel('Amplitude')
+    plt.grid(True)
 
+    for p in peak:
+        plt.axvline(x=p, color='r', linestyle='--')
+
+    plt.legend()
+    plt.show()
+
+
+
+    # Add noise to the signal if required:
+    if useSNR:
+        data_normalized = add_noise(np.array(data_normalized), SNRdB)
+
+    for i in range(0, len(data_normalized)):
+        if decode(data_normalized[i][0], 0, preamble_undersampled):
+            decoding_cycles_success += 1
+
+print("Successfull runs: " + str(decoding_cycles_success) + ", successfull preambles: " + str(correct_preambles_detected))
