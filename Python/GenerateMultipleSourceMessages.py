@@ -3,14 +3,8 @@ from pydub.playback import play
 
 SAMPLE_RATE = 22050  # Sample rate in Hz
 
-PREAMBLE_BITS = 8192
-SYMBOL_BITS = 320
 
-T = SYMBOL_BITS / SAMPLE_RATE
-T_preamble = PREAMBLE_BITS / SAMPLE_RATE
-
-
-def generate_overlapped(filenames, output_filename):
+def generate_overlapped(filenames, output_filename, delay):
     # Specifying file locations:
     base_folder = "Audio_files/"
 
@@ -25,7 +19,6 @@ def generate_overlapped(filenames, output_filename):
     # audio2 = AudioSegment.from_file(filename2)
 
     # Delaying the audio messages (delay in ms):
-    delay = T_preamble / 2
 
     #Adding extension to first audio message:
     result_audio = audio_data[0] + AudioSegment.silent(duration=delay * len(filenames) * 1000)

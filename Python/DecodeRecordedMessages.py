@@ -6,7 +6,7 @@ from decodingClasses import AudioCodecResult, AudioCodecDecoding, most_occuring_
 from matplotlib import pyplot as plt
 from scipy.io.wavfile import read
 from ResearchHelperFunctions import bits_to_uint8t, calculate_crc, calculate_energy, add_noise, contains_preamble, \
-    decode_bit, generate_flipped_symbols, determine_robot_id, find_decoding_result_idx, has_preamble_peak_been_seen
+    decode_bit, generate_flipped_symbols, determine_robot_id, find_decoding_result_idx
 from ResearchEncoding import encode_message, get_encoded_bits_flipped, get_data_for_encoding, get_encoded_identifiers_flipped, encode_preamble
 from GenerateMultipleSourceMessages import generate_overlapped
 from determineDOA2 import determine_doa
@@ -66,7 +66,7 @@ encode = False
 bits_flipped = get_encoded_bits_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
 identifiers_flipped = get_encoded_identifiers_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
 
-filename = 'Audio_files/300cm_180deg_100.wav'
+filename = 'Audio_files/200cm_180deg_10.wav'
 
 # Set SNR:
 useSNR = False

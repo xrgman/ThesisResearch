@@ -6,7 +6,7 @@ from decodingClasses import AudioCodecResult, AudioCodecDecoding, most_occuring_
 from matplotlib import pyplot as plt
 from scipy.io.wavfile import read
 from ResearchHelperFunctions import bits_to_uint8t, calculate_crc, calculate_energy, add_noise, contains_preamble, \
-    decode_bit, generate_flipped_symbols, determine_robot_id, find_decoding_result_idx, has_preamble_peak_been_seen
+    decode_bit, generate_flipped_symbols, determine_robot_id, find_decoding_result_idx
 from ResearchEncoding import encode_message, get_encoded_bits_flipped, get_data_for_encoding, get_encoded_identifiers_flipped
 from GenerateMultipleSourceMessages import generate_overlapped
 from determineDOA2 import determine_doa
@@ -62,7 +62,7 @@ UNDER_SAMPLING_SIZE = int(PREAMBLE_BITS / UNDER_SAMPLING_DIVISOR)
 
 correct_preambles_detected = 0
 
-encode = False
+encode = True
 
 bits_flipped = get_encoded_bits_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
 identifiers_flipped = get_encoded_identifiers_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
@@ -71,7 +71,7 @@ identifiers_flipped = get_encoded_identifiers_flipped(SAMPLE_RATE, SYMBOL_BITS, 
 # filename = 'Audio_files/threesources_overlap_preamble.wav'
 
 #filename = 'Audio_files/threesources_overlap_preamble_start_delay.wav'
-filename = 'Audio_files/testLive2.wav'
+filename = 'Audio_files/encoding_multi.wav'
 
 # filename = 'Audio_files/encoding0.wav'
 
@@ -118,7 +118,6 @@ def finish_decoding(decoding_result):
 
 
 def is_preamble_detected(channelId, new_peak_detected: bool):
-    preamble_peak_index = -1
     possible_peaks = []
 
     preamble_positions_storage = decoding_store[channelId].preamble_position_storage
@@ -195,8 +194,6 @@ def decode(bit, channelId, original_preamble):
 
         possible_preamble_idxs = [(x * UNDER_SAMPLING_DIVISOR) + reading_position for x in possible_preamble_idxs]
 
-        boef = 10
-
         for z, p_idx in enumerate(possible_preamble_idxs):
             # if not has_preamble_peak_been_seen(decoding_store[channelId].preamble_position_storage,
             #                                    possible_preamble_idxs[z]):
@@ -206,16 +203,6 @@ def decode(bit, channelId, original_preamble):
 
         ##if preamble_idx > 0:
         if len(possible_preamble_idxs) > 0:
-            #preamble_idx += reading_position
-            # if len(possible_preamble_idxs) > 2:
-            #     print("Help!\n")
-
-            # Determining most likely peak:
-            # if len(possible_preamble_idxs) == 1:
-            #     decoding_store[channelId].preamble_position_storage.append(possible_preamble_idxs[0])
-            # elif len(possible_preamble_idxs) > 1:
-
-
             new_peak = True
 
         # Checking if a preamble is detected:
@@ -320,7 +307,7 @@ for z in range(10):
         delay = 0.191746032  # T_preamble / 2 #0.195#
 
         delay = 0.1857596 + (0.0001*z)  # This represents exactly half
-        delay = 0.1957596 + (0.0001 * z)
+        delay = 0.2 + (0.0001 * z)
 
         #delay = 0.18363 + (0.0001*z)  # This is T_PREAMBLE / 3
 
@@ -346,7 +333,7 @@ for z in range(10):
             data_normalized = add_noise(np.array(data_normalized), SNRdB)
 
         for i in range(0, len(data_normalized)):
-            decode(data_normalized[i][0], 0, preamble_undersampled)
+            decode(data_normalized[i], 0, preamble_undersampled)
 
     result.append(correct_preambles_detected)
 

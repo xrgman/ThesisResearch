@@ -100,7 +100,7 @@ def contains_preamble(frame_data, original_preamble, own_signal_cutoff):
     conv_data = get_conv_results(frame_data, original_preamble)
 
     # This threshold seems to work fine
-    preamble_min_peak = 2 * np.mean(conv_data)
+    preamble_min_peak = 8 * np.mean(conv_data)
 
     # GUESS FOR NOW, IF THERE IS AN ITEM THAT IS LIKE 4 TIMES BIGGER THEN PEAK?
     max_peak = np.max(conv_data)
@@ -108,12 +108,40 @@ def contains_preamble(frame_data, original_preamble, own_signal_cutoff):
     if max_peak > own_signal_cutoff:
         return -1
 
-    if max_peak > preamble_min_peak * 4:
+    possible_peaks = [(i, x) for i, x in enumerate(conv_data[0]) if x > preamble_min_peak]
+
+    if max_peak > preamble_min_peak:
         max_peak_index = np.argmax(conv_data)
 
-        return max_peak_index
+        # Finding other possible peaks:
+        possible_peaks = [x for x in possible_peaks if np.abs(max_peak_index - x[0]) >= 1000]
 
-    return -1
+        possible_peaks.append((max_peak_index, max_peak))
+        possible_peaks.sort()
+
+        # Merging close by peaks:
+        idx = 0
+        max_value = 0
+        previous_index = -1
+
+        while idx < len(possible_peaks):
+            if previous_index >= 0 and np.abs(possible_peaks[previous_index][0] - possible_peaks[idx][0]) < 100:
+                if max_value > 0 and max_value < possible_peaks[idx][1]:
+                    possible_peaks.pop(previous_index)
+
+                    max_value = possible_peaks[idx][1]
+                else:
+                    possible_peaks.pop(idx)
+            else:
+                previous_index = idx
+                max_value = possible_peaks[idx][1]
+                idx += 1
+
+        possible_peaks_idxs = [x[0] for x in possible_peaks]
+
+        return possible_peaks_idxs
+
+    return []
 
 
 # Decode a bit, based on a data frame:
@@ -140,4 +168,15 @@ def determine_robot_id(frame_data, flipped_identifiers):
     # Maybe add a threshold?
 
     return np.argmax(max_conv_peaks)
+
+
+def find_decoding_result_idx(decoding_results, preamble_index):
+    for i in range(len(decoding_results)):
+        for j in range(6):
+            if np.abs(preamble_index - decoding_results[i].preamble_detection_position[j]) < 1000:
+                return i
+
+    return -1
+
+
 
