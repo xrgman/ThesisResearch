@@ -171,7 +171,7 @@ def determine_robot_id(frame_data, flipped_identifiers, decoding_results):
     # max_conv_peaks = [x if x > mean_peak else 0 for x in max_conv_peaks]
 
     # For false preamble this is usually true, extra way of filtering them out:
-    if np.max(conv_data) > 0.2: # Maybe 0.2
+    if np.max(conv_data) > 0.2: # Maybe 0.2 test
         # Finding max peak and all peaks within 10% of that and return them sorted:
         # TODO check if we want to increase to 20%
         max_peak = np.max(max_conv_peaks)
