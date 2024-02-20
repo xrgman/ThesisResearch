@@ -6,7 +6,7 @@ from decodingClasses import AudioCodecResult, AudioCodecDecoding, most_occuring_
 from matplotlib import pyplot as plt
 from scipy.io.wavfile import read
 from ResearchHelperFunctions import bits_to_uint8t, calculate_crc, calculate_energy, add_noise, contains_preamble, \
-    decode_bit, generate_flipped_symbols, determine_robot_id, find_decoding_result_idx, has_preamble_peak_been_seen
+    decode_bit, generate_flipped_symbols, determine_robot_id, find_decoding_result_idx, does_decoding_result_exist_for_robot_id
 from ResearchEncoding import encode_message, get_encoded_bits_flipped, get_data_for_encoding, get_encoded_identifiers_flipped, encode_preamble
 from GenerateMultipleSourceMessages import generate_overlapped
 from determineDOA2 import determine_doa
@@ -176,6 +176,7 @@ def decode(bit, channelId, original_preamble):
     global fftFrameSize, fftHopSize
     global decoding_store
     global correct_preambles_detected, decoding_cycles_success
+    global preamble_peaks
 
     # Saving bit in buffer:
     receivedBuffer[channelId][receivedWritePosition[channelId] % fftFrameSize] = bit
@@ -202,12 +203,6 @@ def decode(bit, channelId, original_preamble):
                                          PREAMBLE_CONVOLUTION_CUTOFF)
 
         possible_preamble_idxs = [(x * UNDER_SAMPLING_DIVISOR) + reading_position for x in possible_preamble_idxs]
-
-        if channelId == 4 and len(possible_preamble_idxs) > 0:
-            t = 10
-
-        if channelId == 4:
-            t = 12
 
 
         for z, p_idx in enumerate(possible_preamble_idxs):
@@ -265,16 +260,25 @@ def decode(bit, channelId, original_preamble):
                 bit_frame[z] = receivedBuffer[channelId][(decoding_bits_position + z) % fftFrameSize]
 
             if decoding_results[decoding_result_idx].sender_id < 0:
-                r_id = determine_robot_id(bit_frame, identifiers_flipped)
+                robot_id = determine_robot_id(bit_frame, identifiers_flipped, decoding_results)
 
-                decoding_results[decoding_result_idx].sender_id = r_id
+                # Case 0: No valid robot ID found, so stopping decoding:
+                if robot_id < 0:
+                    # Only for python remove preamble detection (in C we can simply remove the object from list):
+                    preamble_peaks = [x for x in preamble_peaks if
+                                      x != decoding_results[decoding_result_idx].preamble_detection_position[0]]
+                    correct_preambles_detected -= 1
 
+                    # Removing decoding result:
+                    decoding_results.pop(decoding_result_idx)
+
+                    continue
+
+                # Case 1: Normal list, process all and find most likely:
+                decoding_results[decoding_result_idx].sender_id = robot_id
                 decoding_results[decoding_result_idx].decoding_bits_position += SYMBOL_BITS
 
                 continue
-
-            if decoding_results[decoding_result_idx].decoded_bits_cnt == 77:
-                t = 1
 
             # Decoding bit:
             bit = decode_bit(bit_frame, bits_flipped[decoding_results[decoding_result_idx].sender_id*2:decoding_results[decoding_result_idx].sender_id*2+2])

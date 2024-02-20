@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 
 
-def generate_chirp(sample_rate, frequency_start, frequency_stop, duration):
+def generate_chirp(sample_rate, frequency_start, frequency_stop, duration, amplitude=1.0):
     size = round(sample_rate * duration)
     output = []
 
@@ -17,7 +17,7 @@ def generate_chirp(sample_rate, frequency_start, frequency_stop, duration):
         frequency = frequency_start + (frequency_stop - frequency_start) * t / (2 * duration)
 
         # Generate a sinusoidal waveform for the chirp:
-        signal = 1.0 * np.cos(2.0 * np.pi * frequency * t)
+        signal = amplitude * np.cos(2.0 * np.pi * frequency * t)
 
         output.append(signal)
 
@@ -53,28 +53,28 @@ def bit_to_chirp(sample_rate, symbol, num_sub_chirps, duration):
 #
 #     return output
 
-def encode_bit(sample_rate, bit, frequency_start, frequency_stop, duration_bit):
+def encode_bit(sample_rate, bit, frequency_start, frequency_stop, duration_bit, amplitude=1.0):
     # Up chirp when 1 and down chirp when 0:
     start_freq = frequency_start if bit == 1 else frequency_stop
     stop_freq = frequency_stop if bit == 1 else frequency_start
 
-    chirp_signal = generate_chirp(sample_rate, start_freq, stop_freq, duration_bit)
+    chirp_signal = generate_chirp(sample_rate, start_freq, stop_freq, duration_bit, amplitude)
 
     window_kaiser = np.kaiser(len(chirp_signal), beta=4)
 
     return window_kaiser * chirp_signal
 
 
-def encode_bits(sample_rate, bits, frequency_start, frequency_stop, duration_bit):
+def encode_bits(sample_rate, bits, frequency_start, frequency_stop, duration_bit, amplitude=1.0):
     output = []
 
     for i, bit in enumerate(bits):
-        output.extend(encode_bit(sample_rate, bit, frequency_start, frequency_stop, duration_bit))
+        output.extend(encode_bit(sample_rate, bit, frequency_start, frequency_stop, duration_bit, amplitude))
 
     return output
 
 
-def encode_identifier(sample_rate, frequency_start, frequency_stop, duration_bit):
+def encode_identifier(sample_rate, frequency_start, frequency_stop, duration_bit, amplitude=1.0):
     nr_sub_chirps = 8
     chirp_order = [0, 7, 6, 3, 2, 4, 1, 5]
 
@@ -88,7 +88,7 @@ def encode_identifier(sample_rate, frequency_start, frequency_stop, duration_bit
         f_start = frequency_start + (chirp_order[i] * bandwidth_per_sub_chirp)
         f_stop = f_start + bandwidth_per_sub_chirp
 
-        chirp_signal = generate_chirp(sample_rate, f_start, f_stop, duration_per_sub_chirp)
+        chirp_signal = generate_chirp(sample_rate, f_start, f_stop, duration_per_sub_chirp, amplitude)
         window_kaiser = np.kaiser(len(chirp_signal), beta=4)
         chirp_signal = window_kaiser * chirp_signal
 
@@ -97,8 +97,8 @@ def encode_identifier(sample_rate, frequency_start, frequency_stop, duration_bit
     return output
 
 
-def encode_preamble(sample_rate, preamble_duration, preamble_size, f_preamble_start, f_preamble_stop):
-    chirp_signal = generate_chirp(sample_rate, f_preamble_start, f_preamble_stop, preamble_duration)
+def encode_preamble(sample_rate, preamble_duration, preamble_size, f_preamble_start, f_preamble_stop, amplitude=1.0):
+    chirp_signal = generate_chirp(sample_rate, f_preamble_start, f_preamble_stop, preamble_duration, amplitude)
 
     window_kaiser = np.kaiser(preamble_size, beta=4)
 
@@ -163,7 +163,7 @@ def get_data_for_encoding():
 
 
 def encode_message(sample_rate, preamble_bits, symbol_bits, f_preamble_start, f_preamble_stop,
-                   f_symbol_start, f_symbol_stop, number_of_robots, robot_id):
+                   f_symbol_start, f_symbol_stop, number_of_robots, robot_id, amplitude=1.0):
     T_symbol = symbol_bits / sample_rate
     T_preamble = preamble_bits / sample_rate
 
@@ -188,14 +188,14 @@ def encode_message(sample_rate, preamble_bits, symbol_bits, f_preamble_start, f_
     message = []
 
     # Encoding the preamble:
-    message.extend(encode_preamble(sample_rate, T_preamble, preamble_bits, f_preamble_start, f_preamble_stop))
+    message.extend(encode_preamble(sample_rate, T_preamble, preamble_bits, f_preamble_start, f_preamble_stop, amplitude))
 
     # Encode detection symbol:
-    message.extend(encode_identifier(sample_rate, f_bit_start, f_bit_stop, T_symbol))
+    message.extend(encode_identifier(sample_rate, f_bit_start, f_bit_stop, T_symbol, amplitude))
 
     # Encode the other data:
     #message.extend(encode_bits(sample_rate, data, symbols, 8, T_symbol))
-    message.extend(encode_bits(sample_rate, data, f_bit_start, f_bit_stop, T_symbol))
+    message.extend(encode_bits(sample_rate, data, f_bit_start, f_bit_stop, T_symbol, amplitude))
 
     # Convert float to int16
     message = [(x * np.iinfo(np.int16).max).astype(np.int16) for x in message]
