@@ -215,6 +215,7 @@ private:
     int decodeBit(const double *window, const int windowSize, int senderId);
 
     int findDecodingResult(int preamblePeakIndex);
+    bool doesDecodingResultExistForSenderId(int senderId);
 
     void completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime);
     void performDistanceTracking(chrono::system_clock::time_point decodingEndTime);

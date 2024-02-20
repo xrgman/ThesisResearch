@@ -25,7 +25,7 @@ static double INT16_MAX_TYPED = static_cast<double>(INT16_MAX);
 
 #define DIAMETER_WHEEL 12 //12CM
 
-#define ROBOTS_COUNT 8 //Use 2 when decoding the audio files
+#define ROBOTS_COUNT 2 //Use 2 when decoding the audio files
 #define ROBOT_ID 0
 
 #define LOCALIZATION_INTERVAL_SECONDS 1.0

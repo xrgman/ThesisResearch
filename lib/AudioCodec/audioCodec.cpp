@@ -63,7 +63,7 @@ void AudioCodec::generateConvolutionFields(int robotId)
     // Create encoding symbols
     generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS, ROBOT_ID);
 
-     // Create flipped decoding symbols:
+    // Create flipped decoding symbols:
     bitToChirpOld(bit0OldFlipped, 0, symbols[0], NUMBER_OF_SUB_CHIRPS, durationPerBit);
     bitToChirpOld(bit1OldFlipped, 1, symbols[1], NUMBER_OF_SUB_CHIRPS, durationPerBit);
 
@@ -210,11 +210,12 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     // Calculate and add CRC (excluding padding):
     // uint8_t crc = calculateCRC(&data[0], dataLength - 8);
     // uint8ToBits(crc, &data[dataLength - 8]);
-     uint8_t crc = calculateCRC(&data[0], dataLength - 16);
+    uint8_t crc = calculateCRC(&data[0], dataLength - 16);
     uint8ToBits(crc, &data[dataLength - 16]);
 
-    //Adding padding of 1's
-    for (uint8_t i = 0; i < 8; i ++) {
+    // Adding padding of 1's
+    for (uint8_t i = 0; i < 8; i++)
+    {
         data[dataLength - 8 + i] = 1;
     }
 
@@ -241,7 +242,7 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
 
     // 5. Encode the data:
     encodeBits(&outputBuffer[preambleLength + SYMBOL_BITS], data, dataLength);
-    //bitsToChirpOld(&outputBuffer[preambleLength + SYMBOL_BITS], data, dataLength, symbols, NUMBER_OF_SUB_CHIRPS);
+    // bitsToChirpOld(&outputBuffer[preambleLength + SYMBOL_BITS], data, dataLength, symbols, NUMBER_OF_SUB_CHIRPS);
 
     // 6. Convert outputBuffer to int16:
     for (int i = 0; i < outputLength; i++)
@@ -263,8 +264,6 @@ void AudioCodec::encodePreamble(double *output, bool flipped)
         reverse(output, output + PREAMBLE_BITS);
     }
 }
-
-
 
 void AudioCodec::bitToChirpOld(double *output, uint8_t bit, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration)
 {
@@ -300,10 +299,9 @@ void AudioCodec::bitsToChirpOld(double *output, uint8_t *bits, int numberOfBits,
         int bit = bits[i];
         AudioCodecFrequencyPair *symbolsForBit = symbols[bit];
 
-        bitToChirpOld(&output[i * SYMBOL_BITS], bit, symbolsForBit, numberOfSubChirps, durationPerBit); 
+        bitToChirpOld(&output[i * SYMBOL_BITS], bit, symbolsForBit, numberOfSubChirps, durationPerBit);
     }
 }
-
 
 /// @brief Encode a bit into a chirp signal (1 = up, 0 = down)
 /// @param output The output buffer.
@@ -569,7 +567,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         {
             int preambleIndex = preambleIdxs[i];
 
-            //cout << "Preamble found: " << preambleIndex << endl;
+            // cout << "Preamble found: " << preambleIndex << endl;
 
             // Checking if peak was already found, if not create a new results object:
             int decodingResultIdx = findDecodingResult(preambleIndex);
@@ -596,7 +594,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
             {
                 decodingResults[decodingResultIdx].doa = calculateDOA(decodingResults[decodingResultIdx].preambleDetectionPosition, NUM_CHANNELS);
 
-                //cout << "DOA: " << decodingResults[decodingResultIdx].doa << endl;
+                // cout << "DOA: " << decodingResults[decodingResultIdx].doa << endl;
             }
         }
 
@@ -628,7 +626,17 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 // Decode sender id if not done yet:
                 if (decodingResults[decodingResultIdx].senderId < 0)
                 {
-                    decodingResults[decodingResultIdx].senderId = decodeSenderId(bitFrame, SYMBOL_BITS);
+                    int senderId = decodeSenderId(bitFrame, SYMBOL_BITS);
+
+                    // When no sender ID is found, stop decoding:
+                    if (senderId < 0)
+                    {
+                        decodingResults.erase(decodingResults.begin() + decodingResultIdx);
+
+                        continue;
+                    }
+
+                    decodingResults[decodingResultIdx].senderId = senderId;
                     decodingResults[decodingResultIdx].decodingBitsPosition += SYMBOL_BITS;
 
                     continue;
@@ -680,7 +688,7 @@ vector<int> AudioCodec::containsPreamble(const double *window, const int windowS
 
     // 2. Calculate the minimum peak threshold
     double average = calculateAverage(convolutionData, windowSize);
-    double preamble_min_peak = 2 * average;
+    double preamble_min_peak = 8 * average;
 
     // 3. Find the maximum peak:
     double maxPeak = *max_element(convolutionData, convolutionData + windowSize);
@@ -696,7 +704,7 @@ vector<int> AudioCodec::containsPreamble(const double *window, const int windowS
     // cout << "Max peak: " << maxPeak << ", Min peak: " << preamble_min_peak << ", Statement:" << (maxPeak > preamble_min_peak * 4 ? "True" : "False") << endl;
 
     // 4. Check if the maximum peak exceeds 100 (to prevent false preamble detection) and the threshold:
-    if (maxPeak > preamble_min_peak * 8) // maxPeak > 100 &&
+    if (maxPeak > preamble_min_peak) // maxPeak > 100 &&
     {
         int maxPeakIndex = findMaxIndex(convolutionData, windowSize);
 
@@ -705,7 +713,7 @@ vector<int> AudioCodec::containsPreamble(const double *window, const int windowS
 
         for (int i = 0; i < windowSize; i++)
         {
-            if (convolutionData[i] > preamble_min_peak * 8 && abs(maxPeakIndex - i) > MINIMUM_DISTANCE_PREAMBLE_PEAKS) // convolutionData[i] > 100 REmoved this to make it work with recordings.
+            if (convolutionData[i] > preamble_min_peak && abs(maxPeakIndex - i) > MINIMUM_DISTANCE_PREAMBLE_PEAKS) // convolutionData[i] > 100 REmoved this to make it work with recordings.
             {
                 possiblePeaks[i] = convolutionData[i];
             }
@@ -833,7 +841,39 @@ int AudioCodec::decodeSenderId(const double *window, const int windowSize)
         maxConvolutionResults[i] = *max_element(convolutionData, convolutionData + SYMBOL_BITS);
     }
 
-    return findMaxIndex(maxConvolutionResults, ROBOTS_COUNT);
+    double maxConvolutionPeak = *max_element(maxConvolutionResults, maxConvolutionResults + ROBOTS_COUNT);
+
+    // False preamble detection have no real high convolution peaks:
+    if (maxConvolutionPeak > 0.15) // Try 0.2, or 0.1 for safety
+    {
+        vector<pair<int, double>> possiblePeaks;
+
+        // Finding convolution peaks that are closeby:
+        for (int i = 0; i < ROBOTS_COUNT; i++)
+        {
+            if (abs(maxConvolutionPeak - maxConvolutionResults[i]) < 0.2 * maxConvolutionPeak)
+            {
+                possiblePeaks.push_back({i, maxConvolutionResults[i]});
+            }
+        }
+
+        // Sorting list based on second element:
+        std::sort(possiblePeaks.begin(), possiblePeaks.end(), [](auto &left, auto &right)
+                  { return left.second > right.second; });
+
+        // Looping over all possibilities:
+        for (int i = 0; i < possiblePeaks.size(); i++)
+        {
+            if (!doesDecodingResultExistForSenderId(possiblePeaks[i].first))
+            {
+                return possiblePeaks[i].first;
+            }
+        }
+
+        //If we get here we wern't able to determine any robot id :(
+    }
+
+    return -1;
 }
 
 /// @brief Decode a single bit in the data stream, based on the maximum convolution result.
@@ -878,6 +918,22 @@ int AudioCodec::findDecodingResult(int preamblePeakIndex)
     }
 
     return -1;
+}
+
+/// @brief Check whether there is already decoding in progress for a given sender ID.
+/// @param senderId The possible sender ID.
+/// @return Whether or not decoding is already in progress for the given sender ID.
+bool AudioCodec::doesDecodingResultExistForSenderId(int senderId)
+{
+    for (uint8_t i = 0; i < decodingResults.size(); i++)
+    {
+        if (decodingResults[i].senderId == senderId)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime)
