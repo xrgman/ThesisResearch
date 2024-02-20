@@ -55,7 +55,9 @@ enum AudioCodedMessageType
     ENCODING_TEST = 0,
     LOCALIZATION1 = 1,
     LOCALIZATION2 = 2,
-    LOCALIZATION3 = 3
+    LOCALIZATION3 = 3,
+    WALL = 4,
+    CELL_FOUND = 5
 };
 
 struct AudioCodecResult
@@ -143,6 +145,7 @@ public:
     int getEncodingSize();
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType);
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, chrono::nanoseconds processingTime);
+    void encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t cellId);
 
     void decode(int16_t bit, uint8_t microphoneId);
 

@@ -151,6 +151,10 @@ double AudioCodec::getEncodingDuration()
     return (double)getEncodingSize() / SAMPLE_RATE;
 }
 
+/// @brief Basic encoding definition.
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param messageType The message type, based on this certain data will be added as payload.
 void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType)
 {
     uint8_t dataBits[64];
@@ -170,7 +174,11 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     encode(output, senderId, messageType, dataBits);
 }
 
-// TODO add check for message type!
+/// @brief Encode distance calculation message (WIP).
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param messageType Should be Localization3.
+/// @param processingTime The time it took between sending two messages.
 void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, chrono::nanoseconds processingTime)
 {
     uint8_t dataBits[64];
@@ -189,6 +197,26 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     encode(output, senderId, messageType, dataBits);
 }
 
+/// @brief Encode an I'm in this cell message.
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param cellId Cell id where the robot is currently in (comes from PF).
+void AudioCodec::encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t cellId)
+{
+    uint8_t dataBits[64];
+
+    //Encoding cell ID in message:
+    uint32ToBits(cellId, dataBits);
+
+    //Perform the actual encoding.
+    encode(output, senderId, CELL_FOUND, dataBits);
+}
+
+/// @brief The encoding function, does the actual encoding.
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param messageType The message type.
+/// @param dataBits Data bits to be added as payload, should be 64 bits in size.
 void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits)
 {
     const uint16_t dataLength = getNumberOfBits();
@@ -265,6 +293,8 @@ void AudioCodec::encodePreamble(double *output, bool flipped)
     }
 }
 
+#pragma region OLD_CODE
+
 void AudioCodec::bitToChirpOld(double *output, uint8_t bit, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration)
 {
     // Calculate duration per sub chirp:
@@ -302,6 +332,8 @@ void AudioCodec::bitsToChirpOld(double *output, uint8_t *bits, int numberOfBits,
         bitToChirpOld(&output[i * SYMBOL_BITS], bit, symbolsForBit, numberOfSubChirps, durationPerBit);
     }
 }
+
+#pragma endregion
 
 /// @brief Encode a bit into a chirp signal (1 = up, 0 = down)
 /// @param output The output buffer.
@@ -870,7 +902,7 @@ int AudioCodec::decodeSenderId(const double *window, const int windowSize)
             }
         }
 
-        //If we get here we wern't able to determine any robot id :(
+        // If we get here we wern't able to determine any robot id :(
     }
 
     return -1;

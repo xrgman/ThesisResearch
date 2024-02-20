@@ -16,7 +16,14 @@
   <li><s>Create message protocol (chirp) between robots via audio</s></li>
   <li><s>Determine DOA of received chirp<</s></li>
   <li>Add the I've seen a wall message type functionality</li>
-  <li>Add the I'm in this cell message type functionality</li>
+  <ol type="1">
+      <li>Sends distance to wall.</li>
+      <li>Sends orientation of wall with respect to north.</li>
+  </ol>
+  <li><s>Add the I'm in this cell message type functionality</s></li>
+   <ol type="1">
+      <li><s>Sends cell the robot is in.</s></li>
+  </ol>
   <li>Implement simple wall detection</li>
   <li>Implement driving up untill wall (north, south, east, west) and sending message functionality</li>
   <li>Add the ability to process wall message and update particle filter based on it</li>
@@ -58,6 +65,7 @@
   <ol type="1">
       <li>Based on the DOA of the message, a lot of cells can be elimanted and convergence should be achieved.</li>
   </ol>
+  <li>Upon driving keep updating particles and processing messages and sending out I'm in this cell messages.</li>
 </ol>
 
 ## Assumptions:
