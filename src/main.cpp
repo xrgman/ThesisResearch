@@ -92,6 +92,19 @@ void dataDecodedCallback(AudioCodecResult result)
 
         cout << "Processing time was: " << processingTime.count() << "ns\n";
     }
+    else if (result.messageType == CELL_FOUND)
+    {
+        uint32_t cellId = bitsToUint32(result.decodedData);
+
+        cout << "Robot " << result.senderId << " has localized itself in cell " << cellId << endl;
+    }
+    else if (result.messageType == WALL)
+    {
+        double wallAngle = (double)bitsToUint32(&result.decodedData[0]) / 1000;
+        double wallDistance = (double)bitsToUint32(&result.decodedData[32]) / 1000;
+
+        cout << "Robot " << result.senderId << " has seen a wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
+    }
     else
     {
         cout << "Received message type not yet implemented!";
@@ -310,7 +323,9 @@ void encodeMessageForAudio(const char *filename, int robotId)
     fillArrayWithZeros(codedAudioData, size);
 
     // Encode the message:
-    audioCodec.encode(codedAudioData, robotId, ENCODING_TEST);
+    // audioCodec.encode(codedAudioData, robotId, ENCODING_TEST);
+    //audioCodec.encodeCellMessage(codedAudioData, robotId, 6969);
+    audioCodec.encodeWallMessage(codedAudioData, ROBOT_ID, 90.0, 12.56);
 
     // Write data to file:
     writeWavFile(filename, codedAudioData, size, SAMPLE_RATE, 16, 1);
@@ -324,7 +339,9 @@ void encodeMessageForAudio(const char *filename, int robotId)
     // Walk over a window (LENGTH == PREAMBLE) and if preamble is found start gathering X bytes and then send it through the codec I guess
 }
 
-void decodeMessageConvolution(const char *filename)
+/// @brief Decode a WAV file, using the decoding algorithm.
+/// @param filename Name of the file containing the encoded message.
+void decodeWavFile(const char *filename)
 {
     const int frames_per_buffer = 4410;
 
@@ -366,7 +383,8 @@ void decodeMessageConvolution(const char *filename)
     cout << "Done decoding WAV file!\n";
 }
 
-void decodingLiveConvolution()
+/// @brief Start running the decoding on live data received from the microphones.
+void decodingLive()
 {
     cout << "Live decoding started!\n";
 
@@ -703,7 +721,7 @@ void handleKeyboardInput()
 
                 cout << "Starting decoding of file " << filename << endl;
 
-                decodeMessageConvolution(filename);
+                decodeWavFile(filename);
 
                 continue;
             }
@@ -713,7 +731,7 @@ void handleKeyboardInput()
             {
                 cout << "Starting live decoding.\n";
 
-                decodingLiveConvolution();
+                decodingLive();
 
                 continue;
             }
@@ -780,7 +798,7 @@ void handleKeyboardInput()
                 continue;
             }
 
-            // Send multiple signal messages:
+            // Send robot is in cell message:
             if (words[0] == "sc")
             {
                 int cellId = stoi(words[1]);
@@ -789,6 +807,25 @@ void handleKeyboardInput()
 
                 // Encode the message:
                 audioCodec.encodeCellMessage(codedAudioData, ROBOT_ID, cellId);
+
+                // Output message to speaker:
+                outputMessageToSpeaker(codedAudioData, size);
+
+                cout << "Done playing message.\n";
+
+                continue;
+            }
+
+            // Send robot has detected wall message:
+            if (words[0] == "sw")
+            {
+                double wallAngle = stod(words[1]); //In degrees rounded
+                double wallDistance = stod(words[2]); //In cm rounded
+
+                cout << "Sending robot detected wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
+
+                // Encode the message:
+                audioCodec.encodeWallMessage(codedAudioData, ROBOT_ID, wallAngle, wallDistance);
 
                 // Output message to speaker:
                 outputMessageToSpeaker(codedAudioData, size);
@@ -884,6 +921,8 @@ int main()
     }
 
     audioHelper.signalBatchProcessed();
+    encodeMessageForAudio("encoding_cell_test.wav", ROBOT_ID);
+    decodeWavFile("encoding_cell_test.wav");
 
     // decodeMessageConvolution("../recordings/convolution/los/200cm_180deg_10.wav");
 
@@ -893,22 +932,10 @@ int main()
     // openAndPlayWavFile("../src/song2.wav");
     //   loadParticleFilter();
 
-    // for (int i = 0; i < ROBOTS_COUNT; i++)
-    // {
-    //     audioCodec.generateConvolutionFields(i);
-
-    //     std::string filename = "../recordings/convolution/encoding" + std::to_string(i) + ".wav";
-
-    //     encodeMessageForAudio(filename.c_str(), i);
-    // }
-
     // encodeMessageForAudio("../recordings/convolution/encoding0.wav", ROBOT_ID);
 
     // recordToWavFile("TestOpname.wav", 5);
 
-    // decodeMessageForAudio("../recordings/los/50cm_90deg.wav");
-    // decodeMessageConvolution("../recordings/convolution/overlapped_test.wav");
-    // // decodingLiveConvolution();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();

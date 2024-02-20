@@ -14,11 +14,11 @@
   <li><s>Encode message data in the form of audio</s></li>
   <li><s>Filter out messages from own speaker</s></li>
   <li><s>Create message protocol (chirp) between robots via audio</s></li>
-  <li><s>Determine DOA of received chirp<</s></li>
-  <li>Add the I've seen a wall message type functionality</li>
+  <li><s>Determine DOA of received chirp</s></li>
+  <li><s>Add the I've seen a wall message type functionality</s></li>
   <ol type="1">
-      <li>Sends distance to wall.</li>
-      <li>Sends orientation of wall with respect to north.</li>
+      <li><s>Sends distance to wall.</s></li>
+      <li><s>Sends orientation of wall with respect to north.</s></li>
   </ol>
   <li><s>Add the I'm in this cell message type functionality</s></li>
    <ol type="1">
@@ -73,6 +73,7 @@
   <li>IMU implementation is out of scope and we assume we can just get the current orientation of the robot.</li>
   <li>Driving functionality is implemented, but during the evaluation robot will be picked up and moved for more accurate evaluation and to make sure driving won't be a bottleneck.</li>
   <li>Wall detection is assumed to be possible (mention a ref to paper in thesis), advanced will not be implemented as we will simply tell the robot the wall is x cm away for evaluation purposes.</li>
+  <li>Angle of wall and distance to wall have 3 decimals.</li>
 </ol>
 
 

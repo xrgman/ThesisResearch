@@ -205,11 +205,33 @@ void AudioCodec::encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t c
 {
     uint8_t dataBits[64];
 
-    //Encoding cell ID in message:
+    // Encoding cell ID in message:
     uint32ToBits(cellId, dataBits);
 
-    //Perform the actual encoding.
+    // Perform the actual encoding.
     encode(output, senderId, CELL_FOUND, dataBits);
+}
+
+/// @brief Encode an I've seen a wall message.
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param wallAngle Angle of the wall, with respect to north.
+/// @param wallDistance Distance to the wall in cm.
+void AudioCodec::encodeWallMessage(int16_t *output, uint8_t senderId, double wallAngle, double wallDistance)
+{
+    //Converting wall angle and distance to uint32_t, presving 3 decimals:
+    uint32_t wallAngleConverted = wallAngle * 1000;
+    uint32_t wallDistanceConverted = wallDistance * 1000;
+    uint8_t dataBits[64];
+
+    //Encoding wall angle into message:
+    uint32ToBits(wallAngleConverted, dataBits);
+
+    //Encode wall distance into message:
+    uint32ToBits(wallDistanceConverted, &dataBits[32]);
+
+    // Perform the actual encoding.
+    encode(output, senderId, WALL, dataBits);
 }
 
 /// @brief The encoding function, does the actual encoding.
@@ -1003,10 +1025,7 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::syste
         performDistanceTracking(decodingEndTime);
 
         // Return data to callback:
-        if (decodingResult.messageType == ENCODING_TEST || decodingResult.messageType == LOCALIZATION1)
-        {
-            data_decoded_callback(decodingResult);
-        }
+        data_decoded_callback(decodingResult);
     }
     else
     {

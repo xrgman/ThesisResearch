@@ -146,6 +146,7 @@ public:
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType);
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, chrono::nanoseconds processingTime);
     void encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t cellId);
+    void encodeWallMessage(int16_t *output, uint8_t senderId, double wallAngle, double wallDistance);
 
     void decode(int16_t bit, uint8_t microphoneId);
 
