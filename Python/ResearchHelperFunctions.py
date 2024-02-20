@@ -7,16 +7,16 @@ def generate_flipped_symbols(encoder, original_symbols):
     flipped_symbols = []
 
     for i in range(0, len(original_symbols), 2):
-        symbols = original_symbols[i:i+2]
+        symbols = original_symbols[i:i + 2]
 
         bit0 = np.flip(encoder.convert_bit_to_chrirp(symbols, 0, no_window=False, blank_space=False,
-                                                    T=encoder.T - encoder.blank_space_time,
-                                                    minimal_sub_chirp_duration=encoder.minimal_sub_chirp_duration))
+                                                     T=encoder.T - encoder.blank_space_time,
+                                                     minimal_sub_chirp_duration=encoder.minimal_sub_chirp_duration))
 
         bit1 = np.flip(encoder.convert_bit_to_chrirp(symbols, 1, no_window=False,
-                                                   blank_space=False,
-                                                   T=encoder.T - encoder.blank_space_time,
-                                                   minimal_sub_chirp_duration=encoder.minimal_sub_chirp_duration))
+                                                     blank_space=False,
+                                                     T=encoder.T - encoder.blank_space_time,
+                                                     minimal_sub_chirp_duration=encoder.minimal_sub_chirp_duration))
 
         flipped_symbols.append(bit0)
         flipped_symbols.append(bit1)
@@ -102,7 +102,7 @@ def contains_preamble(frame_data, original_preamble, own_signal_cutoff):
     # This threshold seems to work fine
     preamble_min_peak = 8 * np.mean(conv_data)
 
-    # GUESS FOR NOW, IF THERE IS AN ITEM THAT IS LIKE 4 TIMES BIGGER THEN PEAK?
+    # GUESS FOR NOW, IF THERE IS AN ITEM THAT IS LIKE 4 TIMES BIGGER THAN PEAK?
     max_peak = np.max(conv_data)
 
     if max_peak > own_signal_cutoff:
@@ -114,7 +114,7 @@ def contains_preamble(frame_data, original_preamble, own_signal_cutoff):
         max_peak_index = np.argmax(conv_data)
 
         # Finding other possible peaks:
-        possible_peaks = [x for x in possible_peaks if np.abs(max_peak_index - x[0]) >= 1000]
+        possible_peaks = [x for x in possible_peaks if np.abs(max_peak_index - x[0]) > 1000]
 
         possible_peaks.append((max_peak_index, max_peak))
         possible_peaks.sort()
@@ -127,9 +127,9 @@ def contains_preamble(frame_data, original_preamble, own_signal_cutoff):
         while idx < len(possible_peaks):
             if previous_index >= 0 and np.abs(possible_peaks[previous_index][0] - possible_peaks[idx][0]) < 100:
                 if max_value > 0 and max_value < possible_peaks[idx][1]:
-                    possible_peaks.pop(previous_index)
-
                     max_value = possible_peaks[idx][1]
+
+                    possible_peaks.pop(previous_index)
                 else:
                     possible_peaks.pop(idx)
             else:
@@ -157,17 +157,39 @@ def decode_bit(frame_data, flipped_bits):
     return bit
 
 
-def determine_robot_id(frame_data, flipped_identifiers):
+def determine_robot_id(frame_data, flipped_identifiers, decoding_results):
     conv_data = get_conv_results(frame_data, flipped_identifiers)
 
     max_conv_peaks = []
+    robot_id = -1
 
     for i in range(len(conv_data)):
         max_conv_peaks.append(np.max(conv_data[i]))
 
-    # Maybe add a threshold?
+    # mean_peak = np.mean(max_conv_peaks)
+    #
+    # max_conv_peaks = [x if x > mean_peak else 0 for x in max_conv_peaks]
 
-    return np.argmax(max_conv_peaks)
+    # For false preamble this is usually true, extra way of filtering them out:
+    if np.max(conv_data) > 0.2:
+        # Finding max peak and all peaks within 10% of that and return them sorted:
+        # TODO check if we want to increase to 20%
+        max_peak = np.max(max_conv_peaks)
+
+        possible_max_peaks = [(i, x) for i, x in enumerate(max_conv_peaks) if np.abs(max_peak - x) < 0.2 * max_peak]
+
+        sorted_max_peaks = sorted(possible_max_peaks, key=lambda x: x[1], reverse=True)
+
+        for x, possible_robot_id in enumerate(sorted_max_peaks):
+            # Check if there isn't another one processing with same id:
+            if not does_decoding_result_exist_for_robot_id(decoding_results, possible_robot_id[0]):
+                robot_id = possible_robot_id[0]
+                break
+
+        if robot_id < 0:
+            print("Unable to find suitable robot id :(")
+
+    return robot_id
 
 
 def find_decoding_result_idx(decoding_results, preamble_index):
@@ -179,4 +201,9 @@ def find_decoding_result_idx(decoding_results, preamble_index):
     return -1
 
 
+def does_decoding_result_exist_for_robot_id(decoding_results, sender_id):
+    for i in range(len(decoding_results)):
+        if decoding_results[i].sender_id == sender_id:
+            return True
 
+    return False

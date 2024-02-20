@@ -34,7 +34,7 @@ T_preamble = PREAMBLE_BITS / SAMPLE_RATE
 
 # Chirp detection variables:
 fftFrameSize = PREAMBLE_BITS * 2
-fftHopSize = int(PREAMBLE_BITS)
+fftHopSize = int(PREAMBLE_BITS/2)
 
 # Buffer variables:
 receivedBuffer = np.zeros((NUM_CHANNELS, fftFrameSize))
@@ -167,6 +167,7 @@ def decode(bit, channelId, original_preamble):
     global fftFrameSize, fftHopSize
     global decoding_store
     global correct_preambles_detected, decoding_cycles_success
+    global preamble_peaks
 
     # Saving bit in buffer:
     receivedBuffer[channelId][receivedWritePosition[channelId] % fftFrameSize] = bit
@@ -225,6 +226,7 @@ def decode(bit, channelId, original_preamble):
             if channelId == 0:
                 decoding_results[decoding_results_idx].decoding_bits_position = preamble_peak_index + (PREAMBLE_BITS // 2)
 
+
             # Saving preamble detection position in result:
             # TODO not update this if value is simply overwritten with a new one:
             decoding_results[decoding_results_idx].preamble_detection_cnt += 1
@@ -245,6 +247,9 @@ def decode(bit, channelId, original_preamble):
     while decoding_result_idx < len(decoding_results):
         decoding_bits_position = decoding_results[decoding_result_idx].decoding_bits_position
 
+        if decoding_bits_position == 1602236:
+            t=190
+
         # TODO: Cleanup until not possible anymore, so make a while loop
         if channelId == 0 and decoding_bits_position + SYMBOL_BITS <= receivedWritePosition[channelId]:
             # Create a symbol frame consisting of 304 bits:
@@ -254,10 +259,21 @@ def decode(bit, channelId, original_preamble):
                 bit_frame[z] = receivedBuffer[channelId][(decoding_bits_position + z) % fftFrameSize]
 
             if decoding_results[decoding_result_idx].sender_id < 0:
-                r_id = determine_robot_id(bit_frame, identifiers_flipped)
+                robot_id = determine_robot_id(bit_frame, identifiers_flipped, decoding_results)
 
-                decoding_results[decoding_result_idx].sender_id = r_id
+                # Case 0: No valid robot ID found, so stopping decoding:
+                if robot_id < 0:
+                    # Only for python remove preamble detection (in C we can simply remove the object from list):
+                    preamble_peaks = [x for x in preamble_peaks if x != decoding_results[decoding_result_idx].preamble_detection_position[0]]
+                    correct_preambles_detected -= 1
 
+                    # Removing decoding result:
+                    decoding_results.pop(decoding_result_idx)
+
+                    continue
+
+                # Case 1: Normal list, process all and find most likely:
+                decoding_results[decoding_result_idx].sender_id = robot_id
                 decoding_results[decoding_result_idx].decoding_bits_position += SYMBOL_BITS
 
                 continue
@@ -295,10 +311,11 @@ for i in range(UNDER_SAMPLING_SIZE):
 
 
 result = []
+result_bits = []
 failed = 0
 
-for z in range(10):
-    if z == 1:
+for z in range(100):
+    if z == 25:
         va = 10
 
     # ENCODING:
@@ -314,7 +331,7 @@ for z in range(10):
         for i in range(NUM_ROBOTS):
             encoded_message = encode_message(SAMPLE_RATE, PREAMBLE_BITS, SYMBOL_BITS, START_FREQ_PREAMBLE,
                                                STOP_FREQ_PREAMBLE,
-                                               START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS, i)
+                                               START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS, i, 0.1)
 
             encoded_filename = 'Audio_files/encoding' + str(i) + '_test.wav'
             encoded_filenames.append(encoded_filename)
@@ -335,9 +352,11 @@ for z in range(10):
         for i in range(0, len(data_normalized)):
             decode(data_normalized[i], 0, preamble_undersampled)
 
+    #Results are bad now because I removed > 100 constraint leading to false detections. But this was necessary for actual recorded data :)
     result.append(correct_preambles_detected)
+    result_bits.append(decoding_cycles_success)
 
-    if correct_preambles_detected != NUM_ROBOTS:
+    if correct_preambles_detected < NUM_ROBOTS:
         failed += 1
 
     decoding_cycles_success = 0
@@ -345,7 +364,8 @@ for z in range(10):
     preamble_peaks.clear()
 
 
-print("Runs failed: " + str(failed))
+print("Preambles: " + str(result))
+print("Decoding: " + str(result_bits))
 
 print("Successfull runs: " + str(decoding_cycles_success) + ", successfull preambles: " + str(correct_preambles_detected) + " out of " + str(NUM_ROBOTS))
 
