@@ -10,9 +10,11 @@
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int totalNumberRobots, int robotId)
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int totalNumberRobots, int robotId, bool printCodedBits, bool filterOwnSource)
 {
     this->totalNumberRobots = totalNumberRobots;
+    this->printCodedBits = printCodedBits;
+    this->filterOwnSource = filterOwnSource;
     this->data_decoded_callback = data_decoded_callback;
     this->volume = 1.0;
     this->frequencyPairPreamble.startFrequency = START_FREQ_PREAMBLE;
@@ -227,15 +229,15 @@ void AudioCodec::encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t c
 /// @param wallDistance Distance to the wall in cm.
 void AudioCodec::encodeWallMessage(int16_t *output, uint8_t senderId, double wallAngle, double wallDistance)
 {
-    //Converting wall angle and distance to uint32_t, presving 3 decimals:
+    // Converting wall angle and distance to uint32_t, presving 3 decimals:
     uint32_t wallAngleConverted = wallAngle * 1000;
     uint32_t wallDistanceConverted = wallDistance * 1000;
     uint8_t dataBits[64];
 
-    //Encoding wall angle into message:
+    // Encoding wall angle into message:
     uint32ToBits(wallAngleConverted, dataBits);
 
-    //Encode wall distance into message:
+    // Encode wall distance into message:
     uint32ToBits(wallDistanceConverted, &dataBits[32]);
 
     // Perform the actual encoding.
@@ -277,14 +279,16 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
         data[dataLength - 8 + i] = 1;
     }
 
-#ifdef PRINT_CODED_BITS
-    for (int i = 0; i < dataLength; i++)
+    // Printing encoded bits if required:
+    if (printCodedBits)
     {
-        cout << unsigned(data[i]) << " ";
-    }
+        for (int i = 0; i < dataLength; i++)
+        {
+            cout << unsigned(data[i]) << " ";
+        }
 
-    cout << endl;
-#endif
+        cout << endl;
+    }
 
     // 2. Prepare the output buffer:
     double outputBuffer[outputLength];
@@ -755,13 +759,11 @@ vector<int> AudioCodec::containsPreamble(const double *window, const int windowS
     // 3. Find the maximum peak:
     double maxPeak = *max_element(convolutionData, convolutionData + windowSize);
 
-// 3.5 Check if peak is not from own send message:
-#ifdef CHECK_FOR_OWN_SIGNAL
-    if (max_peak > PREAMBLE_CONVOLUTION_CUTOFF)
+    // 3.5 Check if peak is not from own send message:
+    if (filterOwnSource && maxPeak > PREAMBLE_CONVOLUTION_CUTOFF)
     {
         return vector<int>();
     }
-#endif
 
     // cout << "Max peak: " << maxPeak << ", Min peak: " << preamble_min_peak << ", Statement:" << (maxPeak > preamble_min_peak * 4 ? "True" : "False") << endl;
 
@@ -1000,14 +1002,16 @@ bool AudioCodec::doesDecodingResultExistForSenderId(int senderId)
 
 void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime)
 {
-#ifdef PRINT_CODED_BITS
-    for (int i = 0; i < getNumberOfBits(); i++)
+    // Printing decoded bits if required:
+    if (printCodedBits)
     {
-        cout << unsigned(decodingResult.decodedBits[i]) << " ";
-    }
+        for (int i = 0; i < getNumberOfBits(); i++)
+        {
+            cout << unsigned(decodingResult.decodedBits[i]) << " ";
+        }
 
-    cout << endl;
-#endif
+        cout << endl;
+    }
 
     // Decoding CRC and checking if message was received successfully:
     uint8_t crcInMessage = bitsToUint8(&decodingResult.decodedBits[getNumberOfBits() - 8]);

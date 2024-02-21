@@ -125,7 +125,7 @@ struct AudioCodecFrequencyPair
 class AudioCodec
 {
 public:
-    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int totalNumberRobots, int robotId);
+    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int totalNumberRobots, int robotId, bool printCodedBits, bool filterOwnSource);
 
     ~AudioCodec()
     {
@@ -165,6 +165,7 @@ public:
 
 private:
     int totalNumberRobots;
+    bool printCodedBits, filterOwnSource;
     double volume;
     AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairOwnUp, frequencyPairOwnDown;
     AudioCodecFrequencyPair frequencyPairsOwn[2];

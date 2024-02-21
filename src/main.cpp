@@ -30,7 +30,7 @@ AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw);
 ParticleFilter particleFilter;
 MapRenderer mapRenderer;
 
-AudioCodec audioCodec(dataDecodedCallback, config.totalNumberRobots, config.robotId);
+AudioCodec audioCodec(dataDecodedCallback, config.totalNumberRobots, config.robotId, config.printBitsEncoding, config.filterOwnSource);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool liveDecoding = true;
