@@ -215,6 +215,9 @@ void AudioCodec::encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t c
 {
     uint8_t dataBits[64];
 
+    //Preparing array:
+    fillArrayWithZeros(dataBits, 64);
+
     // Encoding cell ID in message:
     uint32ToBits(cellId, dataBits);
 

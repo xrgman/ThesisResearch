@@ -59,8 +59,8 @@ void dataDecodedCallback(AudioCodecResult result)
     auto decodingStop = chrono::high_resolution_clock::now();
     auto ms_int = chrono::duration_cast<chrono::milliseconds>(decodingStop - decodingStart);
 
-    cout << "Decoding data took: " << ms_int.count() << "ms\n";
-
+    //cout << "Decoding data took: " << ms_int.count() << "ms\n";
+    cout << "Sender ID: " << result.senderId << endl;
     // Showing direction of arrival:
     cout << "DOA: " << result.doa << " degrees\n";
 
@@ -925,8 +925,8 @@ int main()
     }
 
     audioHelper.signalBatchProcessed();
-    encodeMessageForAudio("encoding_cell_test.wav", config.robotId);
-    decodeWavFile("encoding_cell_test.wav");
+    // encodeMessageForAudio("encoding_cell_test.wav", config.robotId);
+    // decodeWavFile("encoding_cell_test.wav");
 
     // decodeMessageConvolution("../recordings/convolution/los/200cm_180deg_10.wav");
 
