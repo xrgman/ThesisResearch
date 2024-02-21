@@ -23,8 +23,6 @@ T positive_modulo(T val, T mod) {
 
 #define DIAMETER_WHEEL 12 //12CM
 
-#define ROBOTS_COUNT 8 //Use 2 when decoding the audio files
-
 #define LOCALIZATION_INTERVAL_SECONDS 1.0
 
 #endif

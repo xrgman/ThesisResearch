@@ -38,7 +38,7 @@ void AudioCodec::generateConvolutionFields(int robotId)
 
     // Determining frequency range for specific robot ID:
     double totalBandwidth = STOP_FREQ_BITS - START_FREQ_BITS;
-    double bandwidthRobot = totalBandwidth / ROBOTS_COUNT;
+    double bandwidthRobot = totalBandwidth / totalNumberRobots;
 
     double startFrequency = START_FREQ_BITS + (robotId * bandwidthRobot);
     double stopFrequency = startFrequency + bandwidthRobot;
@@ -70,9 +70,12 @@ void AudioCodec::generateConvolutionFields(int robotId)
 
     // reverse(bit0OldFlipped, bit0OldFlipped + SYMBOL_BITS);
     // reverse(bit1OldFlipped, bit1OldFlipped + SYMBOL_BITS);
+    senderIdsFlipped = new double *[totalNumberRobots];
+    bit0Flipped = new double *[totalNumberRobots];
+    bit1Flipped = new double *[totalNumberRobots];
 
     // Create sender ID flipped:
-    for (uint8_t i = 0; i < ROBOTS_COUNT; i++)
+    for (uint8_t i = 0; i < totalNumberRobots; i++)
     {
         AudioCodecFrequencyPair frequencies_up = {
             START_FREQ_BITS + (i * bandwidthRobot),
@@ -85,6 +88,10 @@ void AudioCodec::generateConvolutionFields(int robotId)
         AudioCodecFrequencyPair frequencies[2] = {
             frequencies_down,
             frequencies_up};
+
+        senderIdsFlipped[i] = new double[SYMBOL_BITS];
+        bit0Flipped[i] = new double[SYMBOL_BITS];
+        bit1Flipped[i] = new double[SYMBOL_BITS];
 
         encodeSenderId(senderIdsFlipped[i], frequencies_up, true);
 
@@ -884,10 +891,10 @@ void AudioCodec::getConvolutionResults(const double *data, const double *symbolD
 /// @return The ID of the sender.
 int AudioCodec::decodeSenderId(const double *window, const int windowSize)
 {
-    double maxConvolutionResults[ROBOTS_COUNT];
+    double maxConvolutionResults[totalNumberRobots];
     double convolutionData[SYMBOL_BITS];
 
-    for (uint8_t i = 0; i < ROBOTS_COUNT; i++)
+    for (uint8_t i = 0; i < totalNumberRobots; i++)
     {
         // Performing convolution:
         getConvolutionResults(window, senderIdsFlipped[i], SYMBOL_BITS, convolutionData, fftConfigStoreConvBit, fftConfigStoreHilBit);
@@ -896,7 +903,7 @@ int AudioCodec::decodeSenderId(const double *window, const int windowSize)
         maxConvolutionResults[i] = *max_element(convolutionData, convolutionData + SYMBOL_BITS);
     }
 
-    double maxConvolutionPeak = *max_element(maxConvolutionResults, maxConvolutionResults + ROBOTS_COUNT);
+    double maxConvolutionPeak = *max_element(maxConvolutionResults, maxConvolutionResults + totalNumberRobots);
 
     // False preamble detection have no real high convolution peaks:
     if (maxConvolutionPeak > 0.15) // Try 0.2, or 0.1 for safety
@@ -904,7 +911,7 @@ int AudioCodec::decodeSenderId(const double *window, const int windowSize)
         vector<pair<int, double>> possiblePeaks;
 
         // Finding convolution peaks that are closeby:
-        for (int i = 0; i < ROBOTS_COUNT; i++)
+        for (int i = 0; i < totalNumberRobots; i++)
         {
             if (abs(maxConvolutionPeak - maxConvolutionResults[i]) < 0.2 * maxConvolutionPeak)
             {

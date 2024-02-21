@@ -82,3 +82,9 @@ sudo apt-get install libsdl2-dev
 sudo apt-get install libsdl2-ttf-dev
 sudo apt-get install libboost-all-dev
 sudo apt-get install libgnuplot-iostream-dev
+
+### Stop tracking changes to config:
+git update-index --assume-unchanged src/config.json
+
+### Start tracking changes to config:
+git update-index --no-assume-unchanged src/config.json

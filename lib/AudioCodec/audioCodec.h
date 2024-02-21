@@ -140,6 +140,17 @@ public:
         free(fftConfigStoreConvPre.fftConfigInv);
         free(fftConfigStoreConvBit.fftConfig);
         free(fftConfigStoreConvBit.fftConfigInv);
+
+        //Dealocate memory:
+        for (int i = 0; i < totalNumberRobots; i++) {
+            delete[] senderIdsFlipped[i];
+            delete[] bit0Flipped[i];
+            delete[] bit1Flipped[i];
+        }
+
+        delete[] senderIdsFlipped;
+        delete[] bit0Flipped;
+        delete[] bit1Flipped;
     }
 
     int getEncodingSize();
@@ -198,9 +209,12 @@ private:
 
     AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS]; // Here the different sub frequencies of the bits 0 and 1 are stored.
     double originalPreambleFlipped[UNDER_SAMPLING_BITS];
-    double bit0Flipped[ROBOTS_COUNT][SYMBOL_BITS];
-    double bit1Flipped[ROBOTS_COUNT][SYMBOL_BITS];
-    double senderIdsFlipped[ROBOTS_COUNT][SYMBOL_BITS];
+    // double bit0Flipped[ROBOTS_COUNT][SYMBOL_BITS];
+    // double bit1Flipped[ROBOTS_COUNT][SYMBOL_BITS];
+    // double senderIdsFlipped[ROBOTS_COUNT][SYMBOL_BITS];
+    double **bit0Flipped;
+    double **bit1Flipped;
+    double **senderIdsFlipped;
 
     // Decoding stores:
     AudioCodecDecoding decodingStore[NUM_CHANNELS];
