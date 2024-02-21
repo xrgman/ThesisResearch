@@ -37,5 +37,6 @@ build
 
 Python/Audio_files/
 
-config.json
+# Ignore changes to the config file:
+src/config.json
 
