@@ -1,7 +1,6 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "main.h"
 #include <chrono>
 #include <vector>
 #include <map>

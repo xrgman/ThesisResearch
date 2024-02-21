@@ -1,0 +1,10 @@
+{
+    "robot_id": 4,
+    "total_number_of_robots": 8,
+    "sample_rate": 22050,
+    "num_channels_raw": 8,
+    "num_channels": 6,
+    
+    "filter_own_source": false,
+    "print_bits_encoding": false
+}

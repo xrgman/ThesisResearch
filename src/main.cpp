@@ -15,18 +15,22 @@
 #include "particleFilter.h"
 #include "mapRenderer.h"
 #include "audioCodec.h"
+#include "config.h"
 
 using namespace std;
+
+//Loading config file:
+Config config = Config::LoadConfig("../src/config.json");
 
 // Func defs:
 void dataDecodedCallback(AudioCodecResult result);
 
-AudioHelper audioHelper(SAMPLE_RATE, 16, NUM_CHANNELS_RAW);
+AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw);
 
 ParticleFilter particleFilter;
 MapRenderer mapRenderer;
 
-AudioCodec audioCodec(dataDecodedCallback);
+AudioCodec audioCodec(dataDecodedCallback, config.totalNumberRobots, config.robotId);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool liveDecoding = true;
@@ -228,7 +232,7 @@ void recordToWavFile(const char *filename, const int seconds)
     vector<int16_t> dataToWrite;
     int iteration = 0;
 
-    while ((iteration * FRAMES_PER_BUFFER) < (SAMPLE_RATE * seconds))
+    while ((iteration * FRAMES_PER_BUFFER) < (config.sampleRate * seconds))
     {
         // Checking if new data is available:
         if (!audioHelper.readNextBatch())
@@ -251,7 +255,7 @@ void recordToWavFile(const char *filename, const int seconds)
         // Preparing data to be written:
         for (int sample = 0; sample < FRAMES_PER_BUFFER; sample++)
         {
-            for (int channel = 0; channel < NUM_CHANNELS; channel++)
+            for (int channel = 0; channel < config.numChannels; channel++)
             {
                 uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
                 int16_t *channelData = audioHelper.audioData[channelIdx];
@@ -325,10 +329,10 @@ void encodeMessageForAudio(const char *filename, int robotId)
     // Encode the message:
     // audioCodec.encode(codedAudioData, robotId, ENCODING_TEST);
     //audioCodec.encodeCellMessage(codedAudioData, robotId, 6969);
-    audioCodec.encodeWallMessage(codedAudioData, ROBOT_ID, 90.0, 12.56);
+    audioCodec.encodeWallMessage(codedAudioData, robotId, 90.0, 12.56);
 
     // Write data to file:
-    writeWavFile(filename, codedAudioData, size, SAMPLE_RATE, 16, 1);
+    writeWavFile(filename, codedAudioData, size, config.sampleRate, 16, 1);
 
     cout << "Successfully encoded message into file: " << filename << endl;
 
@@ -406,7 +410,7 @@ void decodingLive()
         // auto t1 = chrono::high_resolution_clock::now();
 
         //  Looping over all microphones:
-        for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
+        for (uint8_t channel = 0; channel < config.numChannels; channel++)
         {
             uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
             int16_t *channelData = audioHelper.audioData[channelIdx];
@@ -455,7 +459,7 @@ void sendDistanceMessage()
     bool keepWaiting = true;
 
     // Encode the first message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION1);
+    audioCodec.encode(codedAudioData, config.robotId, LOCALIZATION1);
 
     // Send the first message:
     outputMessageToSpeaker(codedAudioData, size);
@@ -523,7 +527,7 @@ void sendMessageAndRecord(const char *filename)
     int16_t codedAudioData[size];
 
     // Encode the message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
+    audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
 
     // Creating vector for recording:
     vector<int16_t> dataRead;
@@ -533,7 +537,7 @@ void sendMessageAndRecord(const char *filename)
     int dataWriteIteration = 0;
     int dataWritePosition = 0;
 
-    while ((iteration * FRAMES_PER_BUFFER) < (SAMPLE_RATE * seconds))
+    while ((iteration * FRAMES_PER_BUFFER) < (config.sampleRate * seconds))
     {
         // Checking if new data is available:
         if (audioHelper.readNextBatch())
@@ -543,7 +547,7 @@ void sendMessageAndRecord(const char *filename)
             // Preparing data to be written:
             for (int sample = 0; sample < FRAMES_PER_BUFFER; sample++)
             {
-                for (int channel = 0; channel < NUM_CHANNELS; channel++)
+                for (int channel = 0; channel < config.numChannels; channel++)
                 {
                     uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
                     int16_t *channelData = audioHelper.audioData[channelIdx];
@@ -579,7 +583,7 @@ void sendMessageAndRecord(const char *filename)
     }
 
     // Write data to file:
-    writeWavFile(filename, dataRead.data(), dataRead.size(), SAMPLE_RATE, 16, NUM_CHANNELS);
+    writeWavFile(filename, dataRead.data(), dataRead.size(), config.sampleRate, 16, config.numChannels);
 
     cout << "Successfully send message and written recording to wav file '" << filename << "'\n";
 }
@@ -625,7 +629,7 @@ void processFileWoDistance(const char *filename)
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
         for (int i = 0; i < bytesRead; i += 1)
         {
-            audioCodec.decode(audioData[i], i % NUM_CHANNELS);
+            audioCodec.decode(audioData[i], i % config.numChannels);
         }
     }
 
@@ -709,7 +713,7 @@ void handleKeyboardInput()
 
                 cout << "Starting encoding to file " << filename << endl;
 
-                encodeMessageForAudio(filename, ROBOT_ID);
+                encodeMessageForAudio(filename, config.robotId);
 
                 continue;
             }
@@ -764,7 +768,7 @@ void handleKeyboardInput()
                 cout << "Sending one signal message.";
 
                 // Encode the message:
-                audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
+                audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
 
                 // Output message to speaker:
                 outputMessageToSpeaker(codedAudioData, size);
@@ -782,7 +786,7 @@ void handleKeyboardInput()
                 cout << "Sending " << amount << " messages.\n";
 
                 // Encode the message:
-                audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
+                audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
 
                 // Sending amount number of messages:
                 for (int i = 0; i < amount; i++)
@@ -806,7 +810,7 @@ void handleKeyboardInput()
                 cout << "Sending robot localized in cell " << cellId << "\n";
 
                 // Encode the message:
-                audioCodec.encodeCellMessage(codedAudioData, ROBOT_ID, cellId);
+                audioCodec.encodeCellMessage(codedAudioData, config.robotId, cellId);
 
                 // Output message to speaker:
                 outputMessageToSpeaker(codedAudioData, size);
@@ -825,7 +829,7 @@ void handleKeyboardInput()
                 cout << "Sending robot detected wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
 
                 // Encode the message:
-                audioCodec.encodeWallMessage(codedAudioData, ROBOT_ID, wallAngle, wallDistance);
+                audioCodec.encodeWallMessage(codedAudioData, config.robotId, wallAngle, wallDistance);
 
                 // Output message to speaker:
                 outputMessageToSpeaker(codedAudioData, size);
@@ -921,7 +925,7 @@ int main()
     }
 
     audioHelper.signalBatchProcessed();
-    encodeMessageForAudio("encoding_cell_test.wav", ROBOT_ID);
+    encodeMessageForAudio("encoding_cell_test.wav", config.robotId);
     decodeWavFile("encoding_cell_test.wav");
 
     // decodeMessageConvolution("../recordings/convolution/los/200cm_180deg_10.wav");

@@ -10,8 +10,9 @@
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int totalNumberRobots, int robotId)
 {
+    this->totalNumberRobots = totalNumberRobots;
     this->data_decoded_callback = data_decoded_callback;
     this->volume = 1.0;
     this->frequencyPairPreamble.startFrequency = START_FREQ_PREAMBLE;
@@ -24,7 +25,7 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
         localiztionStore[i].reset();
     }
 
-    generateConvolutionFields(ROBOT_ID);
+    generateConvolutionFields(robotId);
 
     fillArrayWithZeros(numberOfReceivedBits, NUM_CHANNELS);
     fillArrayWithZeros(startReadingPosition, NUM_CHANNELS);
@@ -61,14 +62,14 @@ void AudioCodec::generateConvolutionFields(int robotId)
     }
 
     // Create encoding symbols
-    generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS, ROBOT_ID);
+    // generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS, robotId);
 
-    // Create flipped decoding symbols:
-    bitToChirpOld(bit0OldFlipped, 0, symbols[0], NUMBER_OF_SUB_CHIRPS, durationPerBit);
-    bitToChirpOld(bit1OldFlipped, 1, symbols[1], NUMBER_OF_SUB_CHIRPS, durationPerBit);
+    // // Create flipped decoding symbols:
+    // bitToChirpOld(bit0OldFlipped, 0, symbols[0], NUMBER_OF_SUB_CHIRPS, durationPerBit);
+    // bitToChirpOld(bit1OldFlipped, 1, symbols[1], NUMBER_OF_SUB_CHIRPS, durationPerBit);
 
-    reverse(bit0OldFlipped, bit0OldFlipped + SYMBOL_BITS);
-    reverse(bit1OldFlipped, bit1OldFlipped + SYMBOL_BITS);
+    // reverse(bit0OldFlipped, bit0OldFlipped + SYMBOL_BITS);
+    // reverse(bit1OldFlipped, bit1OldFlipped + SYMBOL_BITS);
 
     // Create sender ID flipped:
     for (uint8_t i = 0; i < ROBOTS_COUNT; i++)
