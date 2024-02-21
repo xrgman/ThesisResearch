@@ -55,7 +55,9 @@ enum AudioCodedMessageType
     ENCODING_TEST = 0,
     LOCALIZATION1 = 1,
     LOCALIZATION2 = 2,
-    LOCALIZATION3 = 3
+    LOCALIZATION3 = 3,
+    WALL = 4,
+    CELL_FOUND = 5
 };
 
 struct AudioCodecResult
@@ -123,7 +125,7 @@ struct AudioCodecFrequencyPair
 class AudioCodec
 {
 public:
-    AudioCodec(void (*data_decoded_callback)(AudioCodecResult));
+    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int totalNumberRobots, int robotId, bool printCodedBits, bool filterOwnSource);
 
     ~AudioCodec()
     {
@@ -138,17 +140,32 @@ public:
         free(fftConfigStoreConvPre.fftConfigInv);
         free(fftConfigStoreConvBit.fftConfig);
         free(fftConfigStoreConvBit.fftConfigInv);
+
+        //Dealocate memory:
+        for (int i = 0; i < totalNumberRobots; i++) {
+            delete[] senderIdsFlipped[i];
+            delete[] bit0Flipped[i];
+            delete[] bit1Flipped[i];
+        }
+
+        delete[] senderIdsFlipped;
+        delete[] bit0Flipped;
+        delete[] bit1Flipped;
     }
 
     int getEncodingSize();
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType);
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, chrono::nanoseconds processingTime);
+    void encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t cellId);
+    void encodeWallMessage(int16_t *output, uint8_t senderId, double wallAngle, double wallDistance);
 
     void decode(int16_t bit, uint8_t microphoneId);
 
     void generateConvolutionFields(int robotId);
 
 private:
+    int totalNumberRobots;
+    bool printCodedBits, filterOwnSource;
     double volume;
     AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairOwnUp, frequencyPairOwnDown;
     AudioCodecFrequencyPair frequencyPairsOwn[2];
@@ -193,9 +210,12 @@ private:
 
     AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS]; // Here the different sub frequencies of the bits 0 and 1 are stored.
     double originalPreambleFlipped[UNDER_SAMPLING_BITS];
-    double bit0Flipped[ROBOTS_COUNT][SYMBOL_BITS];
-    double bit1Flipped[ROBOTS_COUNT][SYMBOL_BITS];
-    double senderIdsFlipped[ROBOTS_COUNT][SYMBOL_BITS];
+    // double bit0Flipped[ROBOTS_COUNT][SYMBOL_BITS];
+    // double bit1Flipped[ROBOTS_COUNT][SYMBOL_BITS];
+    // double senderIdsFlipped[ROBOTS_COUNT][SYMBOL_BITS];
+    double **bit0Flipped;
+    double **bit1Flipped;
+    double **senderIdsFlipped;
 
     // Decoding stores:
     AudioCodecDecoding decodingStore[NUM_CHANNELS];
@@ -215,6 +235,7 @@ private:
     int decodeBit(const double *window, const int windowSize, int senderId);
 
     int findDecodingResult(int preamblePeakIndex);
+    bool doesDecodingResultExistForSenderId(int senderId);
 
     void completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime);
     void performDistanceTracking(chrono::system_clock::time_point decodingEndTime);

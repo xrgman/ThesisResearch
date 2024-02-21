@@ -15,18 +15,22 @@
 #include "particleFilter.h"
 #include "mapRenderer.h"
 #include "audioCodec.h"
+#include "config.h"
 
 using namespace std;
+
+//Loading config file:
+Config config = Config::LoadConfig("../src/config.json");
 
 // Func defs:
 void dataDecodedCallback(AudioCodecResult result);
 
-AudioHelper audioHelper(SAMPLE_RATE, 16, NUM_CHANNELS_RAW);
+AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw);
 
 ParticleFilter particleFilter;
 MapRenderer mapRenderer;
 
-AudioCodec audioCodec(dataDecodedCallback);
+AudioCodec audioCodec(dataDecodedCallback, config.totalNumberRobots, config.robotId, config.printBitsEncoding, config.filterOwnSource);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool liveDecoding = true;
@@ -55,8 +59,8 @@ void dataDecodedCallback(AudioCodecResult result)
     auto decodingStop = chrono::high_resolution_clock::now();
     auto ms_int = chrono::duration_cast<chrono::milliseconds>(decodingStop - decodingStart);
 
-    cout << "Decoding data took: " << ms_int.count() << "ms\n";
-
+    //cout << "Decoding data took: " << ms_int.count() << "ms\n";
+    cout << "Sender ID: " << result.senderId << endl;
     // Showing direction of arrival:
     cout << "DOA: " << result.doa << " degrees\n";
 
@@ -92,6 +96,19 @@ void dataDecodedCallback(AudioCodecResult result)
 
         cout << "Processing time was: " << processingTime.count() << "ns\n";
     }
+    else if (result.messageType == CELL_FOUND)
+    {
+        uint32_t cellId = bitsToUint32(result.decodedData);
+
+        cout << "Robot " << result.senderId << " has localized itself in cell " << cellId << endl;
+    }
+    else if (result.messageType == WALL)
+    {
+        double wallAngle = (double)bitsToUint32(&result.decodedData[0]) / 1000;
+        double wallDistance = (double)bitsToUint32(&result.decodedData[32]) / 1000;
+
+        cout << "Robot " << result.senderId << " has seen a wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
+    }
     else
     {
         cout << "Received message type not yet implemented!";
@@ -102,6 +119,34 @@ void dataDecodedCallback(AudioCodecResult result)
     decodingStart = chrono::high_resolution_clock::now();
 
     cout << endl;
+}
+
+/// @brief Function that outputs an array of encoded data to the speaker.
+/// @param codedAudioData Array containing the encoded data.
+/// @param size Size of the encoded data.
+void outputMessageToSpeaker(const int16_t *codedAudioData, const int size)
+{
+    int bytesWritten = 0;
+
+    // Reading successfull, so playing it:
+    while (bytesWritten < size)
+    {
+        // Waiting for batch to be written:
+        if (!audioHelper.writeNextBatch())
+        {
+            continue;
+        }
+
+        // Writing to helper:
+        if (!audioHelper.writeBytes(&codedAudioData[bytesWritten], FRAMES_PER_BUFFER))
+        {
+            break;
+        }
+
+        bytesWritten += FRAMES_PER_BUFFER;
+    }
+
+    audioHelper.clearBuffers();
 }
 
 /// @brief Around 40cm is travel distance of one wheel rotation
@@ -182,50 +227,12 @@ void openAndPlayWavFile(const char *filename)
     cout << "Done playing WAV file!\n";
 }
 
-void playSingleMessage()
-{
-    // Create array and fill it with zeros:
-    int size = audioCodec.getEncodingSize();
-    int16_t codedAudioData[size];
-
-    // Encode the message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
-
-    int bytesWritten = 0;
-
-    // Reading successfull, so playing it:
-    while (bytesWritten < size)
-    {
-        // Waiting for batch to be written:
-        if (!audioHelper.writeNextBatch())
-        {
-            usleep(1);
-
-            continue;
-        }
-
-        // Writing to helper:
-        if (!audioHelper.writeBytes(&codedAudioData[bytesWritten], FRAMES_PER_BUFFER))
-        {
-            // cout << "Something went"
-
-            break;
-        }
-
-        bytesWritten += FRAMES_PER_BUFFER;
-    }
-
-    audioHelper.clearBuffers();
-
-    cout << "Done playing message.\n";
-}
-
 void recordToWavFile(const char *filename, const int seconds)
 {
     vector<int16_t> dataToWrite;
     int iteration = 0;
 
-    while ((iteration * FRAMES_PER_BUFFER) < (SAMPLE_RATE * seconds))
+    while ((iteration * FRAMES_PER_BUFFER) < (config.sampleRate * seconds))
     {
         // Checking if new data is available:
         if (!audioHelper.readNextBatch())
@@ -248,7 +255,7 @@ void recordToWavFile(const char *filename, const int seconds)
         // Preparing data to be written:
         for (int sample = 0; sample < FRAMES_PER_BUFFER; sample++)
         {
-            for (int channel = 0; channel < NUM_CHANNELS; channel++)
+            for (int channel = 0; channel < config.numChannels; channel++)
             {
                 uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
                 int16_t *channelData = audioHelper.audioData[channelIdx];
@@ -320,10 +327,12 @@ void encodeMessageForAudio(const char *filename, int robotId)
     fillArrayWithZeros(codedAudioData, size);
 
     // Encode the message:
-    audioCodec.encode(codedAudioData, robotId, ENCODING_TEST);
+    // audioCodec.encode(codedAudioData, robotId, ENCODING_TEST);
+    //audioCodec.encodeCellMessage(codedAudioData, robotId, 6969);
+    audioCodec.encodeWallMessage(codedAudioData, robotId, 90.0, 12.56);
 
     // Write data to file:
-    writeWavFile(filename, codedAudioData, size, SAMPLE_RATE, 16, 1);
+    writeWavFile(filename, codedAudioData, size, config.sampleRate, 16, 1);
 
     cout << "Successfully encoded message into file: " << filename << endl;
 
@@ -334,7 +343,9 @@ void encodeMessageForAudio(const char *filename, int robotId)
     // Walk over a window (LENGTH == PREAMBLE) and if preamble is found start gathering X bytes and then send it through the codec I guess
 }
 
-void decodeMessageConvolution(const char *filename)
+/// @brief Decode a WAV file, using the decoding algorithm.
+/// @param filename Name of the file containing the encoded message.
+void decodeWavFile(const char *filename)
 {
     const int frames_per_buffer = 4410;
 
@@ -376,7 +387,8 @@ void decodeMessageConvolution(const char *filename)
     cout << "Done decoding WAV file!\n";
 }
 
-void decodingLiveConvolution()
+/// @brief Start running the decoding on live data received from the microphones.
+void decodingLive()
 {
     cout << "Live decoding started!\n";
 
@@ -398,7 +410,7 @@ void decodingLiveConvolution()
         // auto t1 = chrono::high_resolution_clock::now();
 
         //  Looping over all microphones:
-        for (uint8_t channel = 0; channel < NUM_CHANNELS; channel++)
+        for (uint8_t channel = 0; channel < config.numChannels; channel++)
         {
             uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
             int16_t *channelData = audioHelper.audioData[channelIdx];
@@ -443,30 +455,14 @@ void decodingLiveConvolution()
 void sendDistanceMessage()
 {
     int size = audioCodec.getEncodingSize();
-
+    int16_t codedAudioData[size];
     bool keepWaiting = true;
 
-    int16_t codedAudioData[size];
-
     // Encode the first message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION1);
+    audioCodec.encode(codedAudioData, config.robotId, LOCALIZATION1);
 
     // Send the first message:
-    for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
-    {
-        if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
-        {
-            cout << "Something went wrong when trying to send encoded message.\n";
-
-            return;
-        }
-
-        // Waiting for batch to be written:
-        while (!audioHelper.writeNextBatch())
-        {
-            usleep(1);
-        }
-    }
+    outputMessageToSpeaker(codedAudioData, size);
 
     while (!audioHelper.allDataWritten())
         ;
@@ -488,21 +484,7 @@ void sendDistanceMessage()
     }
 
     // Send the second message (same data as first one):
-    for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
-    {
-        if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
-        {
-            cout << "Something went wrong when trying to send encoded message.\n";
-
-            return;
-        }
-
-        // Waiting for batch to be written:
-        while (!audioHelper.writeNextBatch())
-        {
-            usleep(1);
-        }
-    }
+    outputMessageToSpeaker(codedAudioData, size);
 
     while (!audioHelper.allDataWritten())
         ;
@@ -531,21 +513,7 @@ void sendDistanceMessage()
     // audioCodec.encode(codedAudioData, ROBOT_ID, LOCALIZATION3, processingTime);
 
     // Send the thirth message:
-    for (int i = 0; i < size; i += FRAMES_PER_BUFFER)
-    {
-        if (!audioHelper.writeBytes(&codedAudioData[i], FRAMES_PER_BUFFER))
-        {
-            // cout << "Something went wrong when trying to send encoded message.\n";
-
-            return;
-        }
-
-        // Waiting for batch to be written:
-        while (!audioHelper.writeNextBatch())
-        {
-            usleep(1);
-        }
-    }
+    outputMessageToSpeaker(codedAudioData, size);
 
     cout << "Successfully send out the three localization chirps.\n";
 }
@@ -559,7 +527,7 @@ void sendMessageAndRecord(const char *filename)
     int16_t codedAudioData[size];
 
     // Encode the message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
+    audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
 
     // Creating vector for recording:
     vector<int16_t> dataRead;
@@ -569,7 +537,7 @@ void sendMessageAndRecord(const char *filename)
     int dataWriteIteration = 0;
     int dataWritePosition = 0;
 
-    while ((iteration * FRAMES_PER_BUFFER) < (SAMPLE_RATE * seconds))
+    while ((iteration * FRAMES_PER_BUFFER) < (config.sampleRate * seconds))
     {
         // Checking if new data is available:
         if (audioHelper.readNextBatch())
@@ -579,7 +547,7 @@ void sendMessageAndRecord(const char *filename)
             // Preparing data to be written:
             for (int sample = 0; sample < FRAMES_PER_BUFFER; sample++)
             {
-                for (int channel = 0; channel < NUM_CHANNELS; channel++)
+                for (int channel = 0; channel < config.numChannels; channel++)
                 {
                     uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
                     int16_t *channelData = audioHelper.audioData[channelIdx];
@@ -615,7 +583,7 @@ void sendMessageAndRecord(const char *filename)
     }
 
     // Write data to file:
-    writeWavFile(filename, dataRead.data(), dataRead.size(), SAMPLE_RATE, 16, NUM_CHANNELS);
+    writeWavFile(filename, dataRead.data(), dataRead.size(), config.sampleRate, 16, config.numChannels);
 
     cout << "Successfully send message and written recording to wav file '" << filename << "'\n";
 }
@@ -661,7 +629,7 @@ void processFileWoDistance(const char *filename)
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
         for (int i = 0; i < bytesRead; i += 1)
         {
-            audioCodec.decode(audioData[i], i % NUM_CHANNELS);
+            audioCodec.decode(audioData[i], i % config.numChannels);
         }
     }
 
@@ -674,48 +642,6 @@ void processFileWoDistance(const char *filename)
     cout << "Done processing WAV file!\n";
 }
 
-void sendMessages(int count)
-{
-    // Create array and fill it with zeros:
-    int size = audioCodec.getEncodingSize();
-    int16_t codedAudioData[size];
-
-    // Encode the message:
-    audioCodec.encode(codedAudioData, ROBOT_ID, ENCODING_TEST);
-
-    for (int i = 0; i < count; i++)
-    {
-        int bytesWritten = 0;
-
-        // Reading successfull, so playing it:
-        while (bytesWritten < size)
-        {
-            // Waiting for batch to be written:
-            if (!audioHelper.writeNextBatch())
-            {
-                //usleep(1);
-
-                continue;
-            }
-
-            // Writing to helper:
-            if (!audioHelper.writeBytes(&codedAudioData[bytesWritten], FRAMES_PER_BUFFER))
-            {
-                break;
-            }
-
-            bytesWritten += FRAMES_PER_BUFFER;
-        }
-
-        audioHelper.clearBuffers();
-    }
-    
-    //Waiting 10ms for next:
-    usleep(10000);
-
-    cout << "Done sending messages!\n";
-}
-
 void handleKeyboardInput()
 {
     bool keepProcessing = true;
@@ -724,6 +650,10 @@ void handleKeyboardInput()
     struct pollfd fd;
     fd.fd = STDIN_FILENO;
     fd.events = POLLIN;
+
+    // Create array that can store encoded data:
+    int size = audioCodec.getEncodingSize();
+    int16_t codedAudioData[size];
 
     while (keepProcessing)
     {
@@ -783,7 +713,7 @@ void handleKeyboardInput()
 
                 cout << "Starting encoding to file " << filename << endl;
 
-                encodeMessageForAudio(filename, ROBOT_ID);
+                encodeMessageForAudio(filename, config.robotId);
 
                 continue;
             }
@@ -795,7 +725,7 @@ void handleKeyboardInput()
 
                 cout << "Starting decoding of file " << filename << endl;
 
-                decodeMessageConvolution(filename);
+                decodeWavFile(filename);
 
                 continue;
             }
@@ -805,7 +735,7 @@ void handleKeyboardInput()
             {
                 cout << "Starting live decoding.\n";
 
-                decodingLiveConvolution();
+                decodingLive();
 
                 continue;
             }
@@ -837,7 +767,13 @@ void handleKeyboardInput()
             {
                 cout << "Sending one signal message.";
 
-                playSingleMessage();
+                // Encode the message:
+                audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
+
+                // Output message to speaker:
+                outputMessageToSpeaker(codedAudioData, size);
+
+                cout << "Done playing message.\n";
 
                 continue;
             }
@@ -849,7 +785,56 @@ void handleKeyboardInput()
 
                 cout << "Sending " << amount << " messages.\n";
 
-                sendMessages(amount);
+                // Encode the message:
+                audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
+
+                // Sending amount number of messages:
+                for (int i = 0; i < amount; i++)
+                {
+                    outputMessageToSpeaker(codedAudioData, size);
+
+                    // Waiting 10ms for next:
+                    usleep(10000);
+                }
+
+                cout << "Done sending messages!\n";
+
+                continue;
+            }
+
+            // Send robot is in cell message:
+            if (words[0] == "sc")
+            {
+                int cellId = stoi(words[1]);
+
+                cout << "Sending robot localized in cell " << cellId << "\n";
+
+                // Encode the message:
+                audioCodec.encodeCellMessage(codedAudioData, config.robotId, cellId);
+
+                // Output message to speaker:
+                outputMessageToSpeaker(codedAudioData, size);
+
+                cout << "Done playing message.\n";
+
+                continue;
+            }
+
+            // Send robot has detected wall message:
+            if (words[0] == "sw")
+            {
+                double wallAngle = stod(words[1]); //In degrees rounded
+                double wallDistance = stod(words[2]); //In cm rounded
+
+                cout << "Sending robot detected wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
+
+                // Encode the message:
+                audioCodec.encodeWallMessage(codedAudioData, config.robotId, wallAngle, wallDistance);
+
+                // Output message to speaker:
+                outputMessageToSpeaker(codedAudioData, size);
+
+                cout << "Done playing message.\n";
 
                 continue;
             }
@@ -940,8 +925,10 @@ int main()
     }
 
     audioHelper.signalBatchProcessed();
+    // encodeMessageForAudio("encoding_cell_test.wav", config.robotId);
+    // decodeWavFile("encoding_cell_test.wav");
 
-    decodeMessageConvolution("../recordings/convolution/los/200cm_180deg_10.wav");
+    // decodeMessageConvolution("../recordings/convolution/los/200cm_180deg_10.wav");
 
     handleKeyboardInput();
     //  decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
@@ -949,22 +936,10 @@ int main()
     // openAndPlayWavFile("../src/song2.wav");
     //   loadParticleFilter();
 
-    // for (int i = 0; i < ROBOTS_COUNT; i++)
-    // {
-    //     audioCodec.generateConvolutionFields(i);
-
-    //     std::string filename = "../recordings/convolution/encoding" + std::to_string(i) + ".wav";
-
-    //     encodeMessageForAudio(filename.c_str(), i);
-    // }
-
     // encodeMessageForAudio("../recordings/convolution/encoding0.wav", ROBOT_ID);
 
     // recordToWavFile("TestOpname.wav", 5);
 
-    // decodeMessageForAudio("../recordings/los/50cm_90deg.wav");
-    // decodeMessageConvolution("../recordings/convolution/overlapped_test.wav");
-    // // decodingLiveConvolution();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();

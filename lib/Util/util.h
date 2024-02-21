@@ -1,7 +1,6 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "main.h"
 #include <chrono>
 #include <vector>
 #include <map>
@@ -44,6 +43,8 @@ int getNextPowerOf2(int value);
 void uint8ToBits(uint8_t value, uint8_t bits[8]);
 uint8_t bitsToUint8(const uint8_t bits[8]);
 void uint8CollectionToBits(uint8_t *array, const int size, uint8_t *bits);
+void uint32ToBits(uint32_t value, uint8_t bits[32]);
+uint32_t bitsToUint32(const uint8_t bits[32]);
 void nanosecondsToBits(chrono::nanoseconds nanoseconds, uint8_t bits[64]);
 chrono::nanoseconds bitsToNanoseconds(uint8_t bits[64]);
 void stringToBits(const char *data, int size, uint8_t *bits);

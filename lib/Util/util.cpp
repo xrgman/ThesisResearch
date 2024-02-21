@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
+#include <cmath>
 
 //*************************************************
 //******** Collection helpers *********************
@@ -337,7 +338,6 @@ void setValues(uint8_t *array, const int startIdx, const int stopIdx, const uint
     }
 }
 
-
 //*************************************************
 //******** Type changers  *************************
 //*************************************************
@@ -355,7 +355,7 @@ int16_t doubleToInt16(double value)
 /// @return Double value.
 double int16ToDouble(int16_t value)
 {
-    return static_cast<double>(value) / INT16_MAX_TYPED;
+    return static_cast<double>(value) / INT16_MAX;
 }
 
 /// @brief Given a specific value, find the next power of 2.
@@ -406,6 +406,32 @@ void uint8CollectionToBits(uint8_t *array, const int size, uint8_t *bits)
     {
         uint8ToBits(array[j], &bits[j * 8]);
     }
+}
+
+/// @brief Transform an uint32_t value into an array of 32 bits.
+/// @param value Value to be transformed into bits.
+/// @param bits Bit representation of the value.
+void uint32ToBits(uint32_t value, uint8_t bits[32])
+{
+    for (uint8_t i = 0; i < 32; i++)
+    {
+        bits[31 - i] = (value & (1U << i)) != 0;
+    }
+}
+
+/// @brief Transform an array of 32 bits into 4 bytes.
+/// @param bits Input array of bits, representing four bytes.
+/// @return The bytes represented by the bits.
+uint32_t bitsToUint32(const uint8_t bits[32])
+{
+    uint32_t value = 0;
+
+    for (int i = 0; i < 32; ++i)
+    {
+        value |= (bits[i] ? (1U << (31 - i)) : 0);
+    }
+
+    return value;
 }
 
 /// @brief Transform an chrono nanoseconds object into an array of 64 bits.

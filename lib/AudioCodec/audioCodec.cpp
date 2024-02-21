@@ -10,8 +10,11 @@
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int totalNumberRobots, int robotId, bool printCodedBits, bool filterOwnSource)
 {
+    this->totalNumberRobots = totalNumberRobots;
+    this->printCodedBits = printCodedBits;
+    this->filterOwnSource = filterOwnSource;
     this->data_decoded_callback = data_decoded_callback;
     this->volume = 1.0;
     this->frequencyPairPreamble.startFrequency = START_FREQ_PREAMBLE;
@@ -24,7 +27,7 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult))
         localiztionStore[i].reset();
     }
 
-    generateConvolutionFields(ROBOT_ID);
+    generateConvolutionFields(robotId);
 
     fillArrayWithZeros(numberOfReceivedBits, NUM_CHANNELS);
     fillArrayWithZeros(startReadingPosition, NUM_CHANNELS);
@@ -37,7 +40,7 @@ void AudioCodec::generateConvolutionFields(int robotId)
 
     // Determining frequency range for specific robot ID:
     double totalBandwidth = STOP_FREQ_BITS - START_FREQ_BITS;
-    double bandwidthRobot = totalBandwidth / ROBOTS_COUNT;
+    double bandwidthRobot = totalBandwidth / totalNumberRobots;
 
     double startFrequency = START_FREQ_BITS + (robotId * bandwidthRobot);
     double stopFrequency = startFrequency + bandwidthRobot;
@@ -61,17 +64,20 @@ void AudioCodec::generateConvolutionFields(int robotId)
     }
 
     // Create encoding symbols
-    generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS, ROBOT_ID);
+    // generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS, robotId);
 
-     // Create flipped decoding symbols:
-    bitToChirpOld(bit0OldFlipped, 0, symbols[0], NUMBER_OF_SUB_CHIRPS, durationPerBit);
-    bitToChirpOld(bit1OldFlipped, 1, symbols[1], NUMBER_OF_SUB_CHIRPS, durationPerBit);
+    // // Create flipped decoding symbols:
+    // bitToChirpOld(bit0OldFlipped, 0, symbols[0], NUMBER_OF_SUB_CHIRPS, durationPerBit);
+    // bitToChirpOld(bit1OldFlipped, 1, symbols[1], NUMBER_OF_SUB_CHIRPS, durationPerBit);
 
-    reverse(bit0OldFlipped, bit0OldFlipped + SYMBOL_BITS);
-    reverse(bit1OldFlipped, bit1OldFlipped + SYMBOL_BITS);
+    // reverse(bit0OldFlipped, bit0OldFlipped + SYMBOL_BITS);
+    // reverse(bit1OldFlipped, bit1OldFlipped + SYMBOL_BITS);
+    senderIdsFlipped = new double *[totalNumberRobots];
+    bit0Flipped = new double *[totalNumberRobots];
+    bit1Flipped = new double *[totalNumberRobots];
 
     // Create sender ID flipped:
-    for (uint8_t i = 0; i < ROBOTS_COUNT; i++)
+    for (uint8_t i = 0; i < totalNumberRobots; i++)
     {
         AudioCodecFrequencyPair frequencies_up = {
             START_FREQ_BITS + (i * bandwidthRobot),
@@ -84,6 +90,10 @@ void AudioCodec::generateConvolutionFields(int robotId)
         AudioCodecFrequencyPair frequencies[2] = {
             frequencies_down,
             frequencies_up};
+
+        senderIdsFlipped[i] = new double[SYMBOL_BITS];
+        bit0Flipped[i] = new double[SYMBOL_BITS];
+        bit1Flipped[i] = new double[SYMBOL_BITS];
 
         encodeSenderId(senderIdsFlipped[i], frequencies_up, true);
 
@@ -151,6 +161,10 @@ double AudioCodec::getEncodingDuration()
     return (double)getEncodingSize() / SAMPLE_RATE;
 }
 
+/// @brief Basic encoding definition.
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param messageType The message type, based on this certain data will be added as payload.
 void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType)
 {
     uint8_t dataBits[64];
@@ -170,7 +184,11 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     encode(output, senderId, messageType, dataBits);
 }
 
-// TODO add check for message type!
+/// @brief Encode distance calculation message (WIP).
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param messageType Should be Localization3.
+/// @param processingTime The time it took between sending two messages.
 void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, chrono::nanoseconds processingTime)
 {
     uint8_t dataBits[64];
@@ -189,6 +207,51 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     encode(output, senderId, messageType, dataBits);
 }
 
+/// @brief Encode an I'm in this cell message.
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param cellId Cell id where the robot is currently in (comes from PF).
+void AudioCodec::encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t cellId)
+{
+    uint8_t dataBits[64];
+
+    //Preparing array:
+    fillArrayWithZeros(dataBits, 64);
+
+    // Encoding cell ID in message:
+    uint32ToBits(cellId, dataBits);
+
+    // Perform the actual encoding.
+    encode(output, senderId, CELL_FOUND, dataBits);
+}
+
+/// @brief Encode an I've seen a wall message.
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param wallAngle Angle of the wall, with respect to north.
+/// @param wallDistance Distance to the wall in cm.
+void AudioCodec::encodeWallMessage(int16_t *output, uint8_t senderId, double wallAngle, double wallDistance)
+{
+    // Converting wall angle and distance to uint32_t, presving 3 decimals:
+    uint32_t wallAngleConverted = wallAngle * 1000;
+    uint32_t wallDistanceConverted = wallDistance * 1000;
+    uint8_t dataBits[64];
+
+    // Encoding wall angle into message:
+    uint32ToBits(wallAngleConverted, dataBits);
+
+    // Encode wall distance into message:
+    uint32ToBits(wallDistanceConverted, &dataBits[32]);
+
+    // Perform the actual encoding.
+    encode(output, senderId, WALL, dataBits);
+}
+
+/// @brief The encoding function, does the actual encoding.
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param messageType The message type.
+/// @param dataBits Data bits to be added as payload, should be 64 bits in size.
 void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits)
 {
     const uint16_t dataLength = getNumberOfBits();
@@ -210,22 +273,25 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     // Calculate and add CRC (excluding padding):
     // uint8_t crc = calculateCRC(&data[0], dataLength - 8);
     // uint8ToBits(crc, &data[dataLength - 8]);
-     uint8_t crc = calculateCRC(&data[0], dataLength - 16);
+    uint8_t crc = calculateCRC(&data[0], dataLength - 16);
     uint8ToBits(crc, &data[dataLength - 16]);
 
-    //Adding padding of 1's
-    for (uint8_t i = 0; i < 8; i ++) {
+    // Adding padding of 1's
+    for (uint8_t i = 0; i < 8; i++)
+    {
         data[dataLength - 8 + i] = 1;
     }
 
-#ifdef PRINT_CODED_BITS
-    for (int i = 0; i < dataLength; i++)
+    // Printing encoded bits if required:
+    if (printCodedBits)
     {
-        cout << unsigned(data[i]) << " ";
-    }
+        for (int i = 0; i < dataLength; i++)
+        {
+            cout << unsigned(data[i]) << " ";
+        }
 
-    cout << endl;
-#endif
+        cout << endl;
+    }
 
     // 2. Prepare the output buffer:
     double outputBuffer[outputLength];
@@ -241,7 +307,7 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
 
     // 5. Encode the data:
     encodeBits(&outputBuffer[preambleLength + SYMBOL_BITS], data, dataLength);
-    //bitsToChirpOld(&outputBuffer[preambleLength + SYMBOL_BITS], data, dataLength, symbols, NUMBER_OF_SUB_CHIRPS);
+    // bitsToChirpOld(&outputBuffer[preambleLength + SYMBOL_BITS], data, dataLength, symbols, NUMBER_OF_SUB_CHIRPS);
 
     // 6. Convert outputBuffer to int16:
     for (int i = 0; i < outputLength; i++)
@@ -264,7 +330,7 @@ void AudioCodec::encodePreamble(double *output, bool flipped)
     }
 }
 
-
+#pragma region OLD_CODE
 
 void AudioCodec::bitToChirpOld(double *output, uint8_t bit, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration)
 {
@@ -300,10 +366,11 @@ void AudioCodec::bitsToChirpOld(double *output, uint8_t *bits, int numberOfBits,
         int bit = bits[i];
         AudioCodecFrequencyPair *symbolsForBit = symbols[bit];
 
-        bitToChirpOld(&output[i * SYMBOL_BITS], bit, symbolsForBit, numberOfSubChirps, durationPerBit); 
+        bitToChirpOld(&output[i * SYMBOL_BITS], bit, symbolsForBit, numberOfSubChirps, durationPerBit);
     }
 }
 
+#pragma endregion
 
 /// @brief Encode a bit into a chirp signal (1 = up, 0 = down)
 /// @param output The output buffer.
@@ -569,7 +636,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         {
             int preambleIndex = preambleIdxs[i];
 
-            //cout << "Preamble found: " << preambleIndex << endl;
+            // cout << "Preamble found: " << preambleIndex << endl;
 
             // Checking if peak was already found, if not create a new results object:
             int decodingResultIdx = findDecodingResult(preambleIndex);
@@ -596,7 +663,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
             {
                 decodingResults[decodingResultIdx].doa = calculateDOA(decodingResults[decodingResultIdx].preambleDetectionPosition, NUM_CHANNELS);
 
-                //cout << "DOA: " << decodingResults[decodingResultIdx].doa << endl;
+                // cout << "DOA: " << decodingResults[decodingResultIdx].doa << endl;
             }
         }
 
@@ -628,7 +695,17 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 // Decode sender id if not done yet:
                 if (decodingResults[decodingResultIdx].senderId < 0)
                 {
-                    decodingResults[decodingResultIdx].senderId = decodeSenderId(bitFrame, SYMBOL_BITS);
+                    int senderId = decodeSenderId(bitFrame, SYMBOL_BITS);
+
+                    // When no sender ID is found, stop decoding:
+                    if (senderId < 0)
+                    {
+                        decodingResults.erase(decodingResults.begin() + decodingResultIdx);
+
+                        continue;
+                    }
+
+                    decodingResults[decodingResultIdx].senderId = senderId;
                     decodingResults[decodingResultIdx].decodingBitsPosition += SYMBOL_BITS;
 
                     continue;
@@ -680,23 +757,21 @@ vector<int> AudioCodec::containsPreamble(const double *window, const int windowS
 
     // 2. Calculate the minimum peak threshold
     double average = calculateAverage(convolutionData, windowSize);
-    double preamble_min_peak = 2 * average;
+    double preamble_min_peak = 8 * average;
 
     // 3. Find the maximum peak:
     double maxPeak = *max_element(convolutionData, convolutionData + windowSize);
 
-// 3.5 Check if peak is not from own send message:
-#ifdef CHECK_FOR_OWN_SIGNAL
-    if (max_peak > PREAMBLE_CONVOLUTION_CUTOFF)
+    // 3.5 Check if peak is not from own send message:
+    if (filterOwnSource && maxPeak > PREAMBLE_CONVOLUTION_CUTOFF)
     {
         return vector<int>();
     }
-#endif
 
     // cout << "Max peak: " << maxPeak << ", Min peak: " << preamble_min_peak << ", Statement:" << (maxPeak > preamble_min_peak * 4 ? "True" : "False") << endl;
 
     // 4. Check if the maximum peak exceeds 100 (to prevent false preamble detection) and the threshold:
-    if (maxPeak > preamble_min_peak * 8) // maxPeak > 100 &&
+    if (maxPeak > preamble_min_peak) // maxPeak > 100 &&
     {
         int maxPeakIndex = findMaxIndex(convolutionData, windowSize);
 
@@ -705,7 +780,7 @@ vector<int> AudioCodec::containsPreamble(const double *window, const int windowS
 
         for (int i = 0; i < windowSize; i++)
         {
-            if (convolutionData[i] > preamble_min_peak * 8 && abs(maxPeakIndex - i) > MINIMUM_DISTANCE_PREAMBLE_PEAKS) // convolutionData[i] > 100 REmoved this to make it work with recordings.
+            if (convolutionData[i] > preamble_min_peak && abs(maxPeakIndex - i) > MINIMUM_DISTANCE_PREAMBLE_PEAKS) // convolutionData[i] > 100 REmoved this to make it work with recordings.
             {
                 possiblePeaks[i] = convolutionData[i];
             }
@@ -821,10 +896,10 @@ void AudioCodec::getConvolutionResults(const double *data, const double *symbolD
 /// @return The ID of the sender.
 int AudioCodec::decodeSenderId(const double *window, const int windowSize)
 {
-    double maxConvolutionResults[ROBOTS_COUNT];
+    double maxConvolutionResults[totalNumberRobots];
     double convolutionData[SYMBOL_BITS];
 
-    for (uint8_t i = 0; i < ROBOTS_COUNT; i++)
+    for (uint8_t i = 0; i < totalNumberRobots; i++)
     {
         // Performing convolution:
         getConvolutionResults(window, senderIdsFlipped[i], SYMBOL_BITS, convolutionData, fftConfigStoreConvBit, fftConfigStoreHilBit);
@@ -833,7 +908,39 @@ int AudioCodec::decodeSenderId(const double *window, const int windowSize)
         maxConvolutionResults[i] = *max_element(convolutionData, convolutionData + SYMBOL_BITS);
     }
 
-    return findMaxIndex(maxConvolutionResults, ROBOTS_COUNT);
+    double maxConvolutionPeak = *max_element(maxConvolutionResults, maxConvolutionResults + totalNumberRobots);
+
+    // False preamble detection have no real high convolution peaks:
+    if (maxConvolutionPeak > 0.15) // Try 0.2, or 0.1 for safety
+    {
+        vector<pair<int, double>> possiblePeaks;
+
+        // Finding convolution peaks that are closeby:
+        for (int i = 0; i < totalNumberRobots; i++)
+        {
+            if (abs(maxConvolutionPeak - maxConvolutionResults[i]) < 0.2 * maxConvolutionPeak)
+            {
+                possiblePeaks.push_back({i, maxConvolutionResults[i]});
+            }
+        }
+
+        // Sorting list based on second element:
+        std::sort(possiblePeaks.begin(), possiblePeaks.end(), [](auto &left, auto &right)
+                  { return left.second > right.second; });
+
+        // Looping over all possibilities:
+        for (int i = 0; i < possiblePeaks.size(); i++)
+        {
+            if (!doesDecodingResultExistForSenderId(possiblePeaks[i].first))
+            {
+                return possiblePeaks[i].first;
+            }
+        }
+
+        // If we get here we wern't able to determine any robot id :(
+    }
+
+    return -1;
 }
 
 /// @brief Decode a single bit in the data stream, based on the maximum convolution result.
@@ -880,16 +987,34 @@ int AudioCodec::findDecodingResult(int preamblePeakIndex)
     return -1;
 }
 
-void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime)
+/// @brief Check whether there is already decoding in progress for a given sender ID.
+/// @param senderId The possible sender ID.
+/// @return Whether or not decoding is already in progress for the given sender ID.
+bool AudioCodec::doesDecodingResultExistForSenderId(int senderId)
 {
-#ifdef PRINT_CODED_BITS
-    for (int i = 0; i < getNumberOfBits(); i++)
+    for (uint8_t i = 0; i < decodingResults.size(); i++)
     {
-        cout << unsigned(decodingResult.decodedBits[i]) << " ";
+        if (decodingResults[i].senderId == senderId)
+        {
+            return true;
+        }
     }
 
-    cout << endl;
-#endif
+    return false;
+}
+
+void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime)
+{
+    // Printing decoded bits if required:
+    if (printCodedBits)
+    {
+        for (int i = 0; i < getNumberOfBits(); i++)
+        {
+            cout << unsigned(decodingResult.decodedBits[i]) << " ";
+        }
+
+        cout << endl;
+    }
 
     // Decoding CRC and checking if message was received successfully:
     uint8_t crcInMessage = bitsToUint8(&decodingResult.decodedBits[getNumberOfBits() - 8]);
@@ -915,10 +1040,7 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::syste
         performDistanceTracking(decodingEndTime);
 
         // Return data to callback:
-        if (decodingResult.messageType == ENCODING_TEST || decodingResult.messageType == LOCALIZATION1)
-        {
-            data_decoded_callback(decodingResult);
-        }
+        data_decoded_callback(decodingResult);
     }
     else
     {
