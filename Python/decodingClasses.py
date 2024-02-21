@@ -1,5 +1,5 @@
 from enum import IntEnum
-from collections import Counter
+
 
 SAMPLE_RATE = 22050
 NUM_CHANNELS = 6
@@ -12,7 +12,9 @@ class AudioCodedMessageType(IntEnum):
     ENCODING_TEST = 0,  # You may need to adjust this enum based on your actual enumeration
     LOCALIZATION1 = 1,
     LOCALIZATION2 = 2,
-    LOCALIZATION3 = 3
+    LOCALIZATION3 = 3,
+    WALL = 4,
+    CELL_FOUND = 5
 
 
 class AudioCodecResult:
@@ -50,8 +52,4 @@ class AudioCodecDecoding:
         self.signal_energy_storage = []
 
 
-def most_occuring_element(input_list):
-    counter = Counter(input_list)
-    most_common_element = counter.most_common(1)[0][0]
 
-    return most_common_element

@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.signal import oaconvolve, hilbert
 from typing import List
+from Original_code.BitManipulation import frombits
+from collections import Counter
 
 
 def generate_flipped_symbols(encoder, original_symbols):
@@ -28,6 +30,8 @@ def generate_flipped_symbols(encoder, original_symbols):
 def bits_to_uint8t(bits):
     return int(''.join(map(str, bits)), 2)
 
+def bits_to_uint32t(bits):
+    return int(''.join(map(str, bits)), 2)
 
 # Transform an uint8_t value into bits:
 def uint_to_bits(value) -> List[int]:
@@ -36,6 +40,21 @@ def uint_to_bits(value) -> List[int]:
         bits.append((value >> i) & 1)
 
     return bits[-8:]
+
+
+def uint32_to_bits(value) -> List[int]:
+    bits = [0] * 8
+    for i in range(7, -1, -1):
+        bits.append((value >> i) & 1)
+
+    return bits[-32:]
+
+
+def most_occuring_element(input_list):
+    counter = Counter(input_list)
+    most_common_element = counter.most_common(1)[0][0]
+
+    return most_common_element
 
 
 # Calculate bit-wise CRC value over a series of bits:
@@ -144,6 +163,51 @@ def contains_preamble(frame_data, original_preamble, own_signal_cutoff):
     return []
 
 
+def is_preamble_detected(decoding_store, channel_id, new_peak_detected: bool, min_distance_between_peaks):
+    preamble_peak_index = -1
+    possible_peaks = []
+
+    preamble_positions_storage = decoding_store[channel_id].preamble_position_storage
+    num_peaks_in_storage = len(preamble_positions_storage)
+
+    # First option 1 item and no other preambles detected:
+    if num_peaks_in_storage == 1 and not new_peak_detected:
+        #preamble_peak_index = preamble_positions_storage[0]
+        possible_peaks.append(preamble_positions_storage[0])
+
+        decoding_store[channel_id].preamble_position_storage.clear()
+    # Second option more than one preamble found in consecutive runs:
+    elif num_peaks_in_storage > 1:
+
+        # Check if two consecutive items are far apart:
+        idx = 0
+
+        while idx < len(decoding_store[channel_id].preamble_position_storage) - 1:
+            if np.abs(preamble_positions_storage[idx] - preamble_positions_storage[idx + 1]) > min_distance_between_peaks:
+               # Take all possible peaks up until index
+               possible_peak_values = preamble_positions_storage[:idx + 1]
+
+               # Selecting the most occurring peak:
+               # preamble_peak_index = most_occuring_element(possible_peak_values)
+               possible_peaks.append(most_occuring_element(possible_peak_values))
+
+               # Removing these values from the list:
+               decoding_store[channel_id].preamble_position_storage = preamble_positions_storage[idx + 1:]
+
+               preamble_positions_storage = decoding_store[channel_id].preamble_position_storage
+            else:
+                idx+=1
+
+
+        # If no peak has been found, it probably means all in storage are close together. So we clean the list:
+        # If not definitive most occuring element can be found we should pick the one that is also been seen by other microphones:
+        if len(possible_peaks) <= 0 and not new_peak_detected:
+
+            possible_peaks.append(most_occuring_element(preamble_positions_storage))
+            decoding_store[channel_id].preamble_position_storage.clear()
+
+    return possible_peaks
+
 # Decode a bit, based on a data frame:
 def decode_bit(frame_data, flipped_bits):
     # Performing convolution for both symbols:
@@ -171,7 +235,7 @@ def determine_robot_id(frame_data, flipped_identifiers, decoding_results):
     # max_conv_peaks = [x if x > mean_peak else 0 for x in max_conv_peaks]
 
     # For false preamble this is usually true, extra way of filtering them out:
-    if np.max(conv_data) > 0.2: # Maybe 0.2 test
+    if np.max(conv_data) > 0.15: # Maybe 0.2 test
         # Finding max peak and all peaks within 10% of that and return them sorted:
         # TODO check if we want to increase to 20%
         max_peak = np.max(max_conv_peaks)
@@ -207,3 +271,44 @@ def does_decoding_result_exist_for_robot_id(decoding_results, sender_id):
             return True
 
     return False
+
+
+def calculate_ber(original_bits, received_bits):
+    wrong_bits = 0
+
+    for i, bit in enumerate(received_bits):
+        if bit != original_bits[i]:
+            wrong_bits += 1
+
+    return wrong_bits / len(original_bits)
+
+
+def finish_decoding(decoding_result):
+    # Checking CRC:
+    crc_in_message = bits_to_uint8t(decoding_result.decoded_bits[-8:])
+    crc_calculated = calculate_crc(decoding_result.decoded_bits[0:-8])
+
+    if crc_in_message == crc_calculated:
+        # Decoding message ID:
+        decoding_result.message_type = bits_to_uint8t(decoding_result.decoded_bits[0: 8])
+
+        # Putting message data in the correct spot:
+        decoding_result.decoded_data = decoding_result.decoded_bits[8: 72]
+
+        if decoding_result.message_type == 0 :
+            embedded_text = frombits(decoding_result.decoded_data)
+
+            print("Received from " + str(decoding_result.sender_id) + ": " + str(embedded_text))
+
+        if decoding_result.message_type == 5:
+            cell_id = bits_to_uint32t(decoding_result.decoded_bits[8: 40])
+            print("Robot " + str(decoding_result.sender_id) + " has localized itself in cell " + str(cell_id))
+
+        print("DOA: " + str(decoding_result.doa))
+
+        return True, decoding_result.doa
+
+    else:
+        print("CRC mismatch, dropping message!\n")
+
+        return False, decoding_result.doa

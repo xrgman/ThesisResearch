@@ -1,19 +1,19 @@
 import numpy as np
 from Original_code.OChirpEncode import OChirpEncode
 from Original_code.BitManipulation import frombits
-from decodingClasses import AudioCodecResult, AudioCodecDecoding, most_occuring_element, DECODING_BITS_COUNT, \
+from decodingClasses import AudioCodecResult, AudioCodecDecoding, DECODING_BITS_COUNT, \
     DECODING_DATA_BITS, AudioCodedMessageType
 from matplotlib import pyplot as plt
 from scipy.io.wavfile import read
 from ResearchHelperFunctions import bits_to_uint8t, calculate_crc, calculate_energy, add_noise, contains_preamble, \
-    decode_bit, generate_flipped_symbols, determine_robot_id, find_decoding_result_idx, does_decoding_result_exist_for_robot_id
+    decode_bit, generate_flipped_symbols, determine_robot_id, find_decoding_result_idx, finish_decoding, is_preamble_detected, calculate_ber
 from ResearchEncoding import encode_message, get_encoded_bits_flipped, get_data_for_encoding, get_encoded_identifiers_flipped, encode_preamble
 from GenerateMultipleSourceMessages import generate_overlapped
 from determineDOA2 import determine_doa
 from scipy.io.wavfile import write
 from typing import List
 
-NUM_ROBOTS = 2
+NUM_ROBOTS = 8
 
 # Project settings:
 SAMPLE_RATE = 22050
@@ -66,108 +66,14 @@ encode = False
 bits_flipped = get_encoded_bits_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
 identifiers_flipped = get_encoded_identifiers_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
 
-filename = 'Audio_files/300cm_180deg_100.wav'
+filename = 'Audio_files/test_cells_10.wav'
 
 # Set SNR:
 useSNR = False
 SNRdB = -9
 
 
-def finish_decoding(decoding_result):
-    # Checking CRC:
-    crc_in_message = bits_to_uint8t(decoding_result.decoded_bits[-8:])
-    crc_calculated = calculate_crc(decoding_result.decoded_bits[0:-8])
 
-    # for bit in decoding_result.decoded_bits:
-    #     print(str(bit) + " ", end='')
-
-    original_bits = get_data_for_encoding()
-    wrong_bits = 0
-
-    for i, bit in enumerate(decoding_result.decoded_bits):
-        if bit != original_bits[i]:
-            wrong_bits += 1
-
-    ber = wrong_bits / len(original_bits)
-    print("BER: " + str(ber))
-
-    ber_collection.append(ber)
-    doa_collection.append(decoding_result.doa)
-
-    if crc_in_message == crc_calculated:
-        # Decoding message ID:
-        decoding_result.message_type = bits_to_uint8t(decoding_result.decoded_bits[0: 8])
-
-        # Putting message data in the correct spot:
-        decoding_result.decoded_data = decoding_result.decoded_bits[8: 72]
-
-        if decoding_result.message_type == 0:
-            embedded_text = frombits(decoding_result.decoded_data)
-
-            print("Received: " + str(embedded_text))
-            print("DOA: " + str(decoding_result.doa))
-
-        # Perform distance calculation:
-        # distance = calculate_distance(decoding_result)
-
-
-        return True
-
-    else:
-        print("CRC mismatch, dropping message!\n")
-
-        return False
-
-    # Resetting everything:
-
-    # for z in range(num_channels):
-    #     decoding_store[z].reset()
-
-
-def is_preamble_detected(channelId, new_peak_detected: bool):
-    preamble_peak_index = -1
-    possible_peaks = []
-
-    preamble_positions_storage = decoding_store[channelId].preamble_position_storage
-    num_peaks_in_storage = len(preamble_positions_storage)
-
-    # First option 1 item and no other preambles detected:
-    if num_peaks_in_storage == 1 and not new_peak_detected:
-        #preamble_peak_index = preamble_positions_storage[0]
-        possible_peaks.append(preamble_positions_storage[0])
-
-        decoding_store[channelId].preamble_position_storage.clear()
-    # Second option more than one preamble found in consecutive runs:
-    elif num_peaks_in_storage > 1:
-
-        # Check if two consecutive items are far apart:
-        idx = 0
-
-        while idx < len(decoding_store[channelId].preamble_position_storage) - 1:
-            if np.abs(preamble_positions_storage[idx] - preamble_positions_storage[idx + 1]) > MIN_DISTANCE_BETWEEN_PREAMBLE_PEAKS:
-               # Take all possible peaks up until index
-               possible_peak_values = preamble_positions_storage[:idx + 1]
-
-               # Selecting the most occurring peak:
-               # preamble_peak_index = most_occuring_element(possible_peak_values)
-               possible_peaks.append(most_occuring_element(possible_peak_values))
-
-               # Removing these values from the list:
-               decoding_store[channelId].preamble_position_storage = preamble_positions_storage[idx + 1:]
-
-               preamble_positions_storage = decoding_store[channelId].preamble_position_storage
-            else:
-                idx+=1
-
-
-        # If no peak has been found, it probably means all in storage are close together. So we clean the list:
-        # If not definitive most occuring element can be found we should pick the one that is also been seen by other microphones:
-        if len(possible_peaks) <= 0 and not new_peak_detected:
-
-            possible_peaks.append(most_occuring_element(preamble_positions_storage))
-            decoding_store[channelId].preamble_position_storage.clear()
-
-    return possible_peaks
 
 
 def decode(bit, channelId, original_preamble):
@@ -215,7 +121,7 @@ def decode(bit, channelId, original_preamble):
             new_peak = True
 
         # Checking if a preamble is detected:
-        preamble_peak_indexes = is_preamble_detected(channelId, new_peak)
+        preamble_peak_indexes = is_preamble_detected(decoding_store, channelId, new_peak, MIN_DISTANCE_BETWEEN_PREAMBLE_PEAKS)
 
         for a, preamble_peak_index in enumerate(preamble_peak_indexes):
             # Checking if decoding result already exist, if so use it:
@@ -293,7 +199,18 @@ def decode(bit, channelId, original_preamble):
 
             # When enough symbols are received, process result:
             if decoding_results[decoding_result_idx].decoded_bits_cnt >= DECODING_BITS_COUNT:
-                if finish_decoding(decoding_results[decoding_result_idx]):
+                decoding_success, doa = finish_decoding(decoding_results[decoding_result_idx])
+
+                original_bits = get_data_for_encoding()
+                ber = calculate_ber(original_bits, decoding_results[decoding_result_idx].decoded_bits)
+
+                print("BER: " + str(ber))
+
+                # Storing DOA and BER:
+                doa_collection.append(doa)
+                ber_collection.append(ber)
+
+                if decoding_success:
                     decoding_cycles_success += 1
 
                 decoding_results.pop(decoding_result_idx)
