@@ -1,6 +1,7 @@
 from typing import List
 
 import numpy as np
+import os
 from scipy.io.wavfile import read
 
 from ResearchEncoding import get_encoded_bits_flipped, get_data_for_encoding, get_encoded_identifiers_flipped, \
@@ -9,8 +10,10 @@ from ResearchHelperFunctions import add_noise, contains_preamble, \
     decode_bit, determine_robot_id, find_decoding_result_idx, finish_decoding, is_preamble_detected, calculate_ber
 from decodingClasses import AudioCodecResult, AudioCodecDecoding, DECODING_BITS_COUNT
 from determineDOA2 import determine_doa
+import matplotlib.pyplot as plt
 
 
+NUM_ROBOTS = 2 # TODO: back to 8
 
 # Project settings:
 SAMPLE_RATE = 22050
@@ -25,7 +28,7 @@ START_FREQ_BITS = 6500
 STOP_FREQ_BITS = 10500
 
 MIN_DISTANCE_BETWEEN_PREAMBLE_PEAKS = 1000
-PREAMBLE_CONVOLUTION_CUTOFF = 9999999999  # 400 # Set to realy high when processing a file that is generated and not recorded
+PREAMBLE_CONVOLUTION_CUTOFF = 9999999999  # 400
 
 T = SYMBOL_BITS / SAMPLE_RATE
 T_preamble = PREAMBLE_BITS / SAMPLE_RATE
@@ -58,18 +61,9 @@ UNDER_SAMPLING_SIZE = int(PREAMBLE_BITS / UNDER_SAMPLING_DIVISOR)
 
 correct_preambles_detected = 0
 
-encode = False
-NUM_ROBOTS = 12
-
 bits_flipped = get_encoded_bits_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS, NUM_ROBOTS)
 identifiers_flipped = get_encoded_identifiers_flipped(SAMPLE_RATE, SYMBOL_BITS, START_FREQ_BITS, STOP_FREQ_BITS,
                                                       NUM_ROBOTS)
-
-filename = 'Audio_files/12robot_1signal.wav'
-
-# Set SNR:
-useSNR = False
-SNRdB = -9
 
 
 def decode(bit, channel_id, original_preamble):
@@ -217,7 +211,6 @@ def decode(bit, channel_id, original_preamble):
         else:
             decoding_result_idx += 1
 
-
 # Grabbing original preamble data and it's under sampled equivalent:
 preamble = np.flip(encode_preamble(SAMPLE_RATE, T_preamble, PREAMBLE_BITS, START_FREQ_PREAMBLE, STOP_FREQ_PREAMBLE))
 preamble_undersampled = np.empty((1, UNDER_SAMPLING_SIZE))
@@ -225,27 +218,99 @@ preamble_undersampled = np.empty((1, UNDER_SAMPLING_SIZE))
 for i in range(UNDER_SAMPLING_SIZE):
     preamble_undersampled[0][i] = preamble[i * UNDER_SAMPLING_DIVISOR]
 
-# Decoding part:
-for j in range(0, decoding_cycles):
-    # Open, read, and decode file bit by bit:
-    fs, data_int16 = read(filename)
-    data_normalized = data_int16.astype(np.double) / np.iinfo(np.int16).max
+# Finding all files in base folder:
+base_folder = 'Audio_files/distance'
+files = os.listdir(base_folder)
 
-    # Add noise to the signal if required:
-    if useSNR:
-        data_normalized = add_noise(np.array(data_normalized), SNRdB)
+average_ber_collection = []
 
-    for i in range(0, len(data_normalized)):
-        for channel in range(0, NUM_CHANNELS):
-            decode(data_normalized[i][channel], channel, preamble_undersampled)
+# for file_name in files:
+#     distance = file_name.split('_')[0]
+#     situation = file_name.split('_')[1]
+#
+#     #Open, read, and decode file bit by bit:
+#     fs, data_int16 = read(base_folder + "/" + file_name)
+#     data_normalized = data_int16.astype(np.double) / np.iinfo(np.int16).max
+#
+#     for i in range(0, len(data_normalized)):
+#         for channel in range(0, NUM_CHANNELS):
+#             decode(data_normalized[i][channel], channel, preamble_undersampled)
+#
+#     average_ber = np.average(ber_collection)
+#     average_ber *= 100
+#
+#     average_ber_collection.append((distance, situation, 50))
+#
+#     # Resetting everything for next file:
+#     correct_preambles_detected = 0
+#     decoding_cycles_success = 0
+#     preamble_peaks.clear()
+#     ber_collection.clear()
+#     doa_collection.clear()
+#
+# average_ber_collection.sort()
 
-print(
-    "Successfull runs: " + str(decoding_cycles_success) + ", successfull preambles: " + str(correct_preambles_detected))
+average_ber_collection.append(('100cm', 'los', 12))
+average_ber_collection.append(('100cm', 'nlos', 69))
+average_ber_collection.append(('100cm', 'rev', 98))
+average_ber_collection.append(('200cm', 'los', 4))
+average_ber_collection.append(('200cm', 'nlos', 65))
+average_ber_collection.append(('200cm', 'rev', 43))
+average_ber_collection.append(('250cm', 'los', 4))
+average_ber_collection.append(('250cm', 'nlos', 65))
+average_ber_collection.append(('250cm', 'rev', 43))
+# average_ber_collection.append(('250cm', 'los', 23))
 
-unique_preamble_peaks = list(set(preamble_peaks))
+# Group data by the first item in the tuple
+grouped_data = {}
+for item in average_ber_collection:
+    group = item[1]
+    if group not in grouped_data:
+        grouped_data[group] = []
+    grouped_data[group].append(item)
 
-unique_preamble_peaks.sort()
+# Extract x-axis labels (second item in each tuple)
+labels = sorted(set(item[0] for item in average_ber_collection))
 
-print("Peaks found: " + str(unique_preamble_peaks))
-print("Doa's found: " + str(doa_collection))
-print("Average BER: " + str(np.average(ber_collection) * 100) + "%")
+# Calculate the width for each group
+num_groups = len(grouped_data)
+bar_width = 0.1
+group_width = bar_width * num_groups
+
+# Generate positions for each group of bars
+#x = np.arange(len(labels))
+x = np.arange(len(labels)) - (group_width / 2) + (bar_width / 2)
+
+# Create a bar plot for each group
+for i, (group, items) in enumerate(grouped_data.items()):
+    values = [x[2] for x in items if x[1] == group]
+
+
+    plt.bar(x - (group_width / 3) +  i * bar_width, values, width=bar_width, label=f'{group}')
+
+
+# Create a bar plot for each group
+# for group, items in grouped_data.items():
+#     names = [item[0] for item in items]
+#     values = [item[2] for item in items]
+#
+#     plt.bar(names, values, label=f'{group}')
+
+# Add labels and legend
+plt.xlabel('Names')
+plt.ylabel('Values')
+plt.title('Bar Plot Grouped by First Item')
+plt.xticks(x, labels)
+plt.legend()
+plt.tight_layout()
+
+# Show plot
+plt.show()
+
+test = 10
+
+
+
+
+
+
