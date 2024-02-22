@@ -215,7 +215,7 @@ void AudioCodec::encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t c
 {
     uint8_t dataBits[64];
 
-    //Preparing array:
+    // Preparing array:
     fillArrayWithZeros(dataBits, 64);
 
     // Encoding cell ID in message:
@@ -378,8 +378,34 @@ void AudioCodec::bitsToChirpOld(double *output, uint8_t *bits, int numberOfBits,
 /// @param flipped Whether to flip the data in the output buffer for convolution.
 void AudioCodec::encodeBit(double *output, uint8_t bit, AudioCodecFrequencyPair *frequencies, bool flipped)
 {
-    // Determining which frequency pair to use based on the bit to encode:
-    encodeChirp(output, bit == 0 ? frequencies[0] : frequencies[1], SYMBOL_BITS);
+    // // Determining which frequency pair to use based on the bit to encode:
+    // encodeChirp(output, bit == 0 ? frequencies[0] : frequencies[1], SYMBOL_BITS);
+
+    // // Flip the signal, if its needed for convolution:
+    // if (flipped)
+    // {
+    //     reverse(output, output + SYMBOL_BITS);
+    // }
+
+    int subChirpOrder[4] = {
+        bit == 0 ? 0 : 7,
+        bit == 0 ? 6 : 1,
+        bit == 0 ? 2 : 5,
+        bit == 0 ? 4 : 3
+    };   
+
+    double bandwidthPerSubChirp = (frequencies[1].stopFrequency - frequencies[1].startFrequency) / 8;
+    int sizePerSubChirp = SYMBOL_BITS / 4;
+
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        AudioCodecFrequencyPair frequencyPair = {
+            (bit == 0 && i % 2 == 1) || (bit == 1 && i % 2 == 0) ? frequencies[1].startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp) : (frequencies[1].startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp,
+            (bit == 0 && i % 2 == 1) || (bit == 1 && i % 2 == 0) ? (frequencies[1].startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp : frequencies[1].startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp),
+        };
+
+        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp);
+    }
 
     // Flip the signal, if its needed for convolution:
     if (flipped)

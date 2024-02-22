@@ -19,7 +19,7 @@
 
 using namespace std;
 
-//Loading config file:
+// Loading config file:
 Config config = Config::LoadConfig("../src/config.json");
 
 // Func defs:
@@ -59,7 +59,7 @@ void dataDecodedCallback(AudioCodecResult result)
     auto decodingStop = chrono::high_resolution_clock::now();
     auto ms_int = chrono::duration_cast<chrono::milliseconds>(decodingStop - decodingStart);
 
-    //cout << "Decoding data took: " << ms_int.count() << "ms\n";
+    // cout << "Decoding data took: " << ms_int.count() << "ms\n";
     cout << "Sender ID: " << result.senderId << endl;
     // Showing direction of arrival:
     cout << "DOA: " << result.doa << " degrees\n";
@@ -101,6 +101,9 @@ void dataDecodedCallback(AudioCodecResult result)
         uint32_t cellId = bitsToUint32(result.decodedData);
 
         cout << "Robot " << result.senderId << " has localized itself in cell " << cellId << endl;
+
+        // Updating particle filter:
+        particleFilter.processCellDetectedOther(cellId);
     }
     else if (result.messageType == WALL)
     {
@@ -108,6 +111,9 @@ void dataDecodedCallback(AudioCodecResult result)
         double wallDistance = (double)bitsToUint32(&result.decodedData[32]) / 1000;
 
         cout << "Robot " << result.senderId << " has seen a wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
+
+        // Updating particle filter:
+        particleFilter.processWallDetectedOther(wallAngle, wallDistance);
     }
     else
     {
@@ -275,13 +281,13 @@ void recordToWavFile(const char *filename, const int seconds)
     cout << "Successfully written " << seconds << " seconds to wav file '" << filename << "'\n";
 }
 
-void loadParticleFilter()
+void loadParticleFilter(bool initializeMapRenderer)
 {
-    // const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
-    // const uint8_t scale = 1;
+    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    const uint8_t scale = 1;
 
-    const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
-    const uint8_t scale = 3;
+    // const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
+    // const uint8_t scale = 3;
 
     if (!particleFilter.loadMap(filenameMap))
     {
@@ -297,24 +303,10 @@ void loadParticleFilter()
     particleFilter.initializeParticlesUniformly();
 
     // Initialize map renderer:
-    mapRenderer.initialize(particleFilter.getMapData(), scale);
-
-    // bool done = false;
-
-    // while (!done)
-    // {
-    //     // Update map:
-    //     if (!mapRenderer.updateMap(particleFilter.getParticles(), particleFilter.getNumberOfParticles(), particleFilter.getSelectedCellIdx()))
-    //     {
-    //         done = true;
-    //     }
-
-    //     // Processing keyboard presses:
-    //     processKeyBoard();
-    // }
-
-    // // Cleanup renderer:
-    // mapRenderer.stop();
+    if (initializeMapRenderer)
+    {
+        mapRenderer.initialize(particleFilter.getMapData(), scale);
+    }
 }
 
 void encodeMessageForAudio(const char *filename, int robotId)
@@ -328,7 +320,7 @@ void encodeMessageForAudio(const char *filename, int robotId)
 
     // Encode the message:
     // audioCodec.encode(codedAudioData, robotId, ENCODING_TEST);
-    //audioCodec.encodeCellMessage(codedAudioData, robotId, 6969);
+    // audioCodec.encodeCellMessage(codedAudioData, robotId, 6969);
     audioCodec.encodeWallMessage(codedAudioData, robotId, 90.0, 12.56);
 
     // Write data to file:
@@ -823,8 +815,8 @@ void handleKeyboardInput()
             // Send robot has detected wall message:
             if (words[0] == "sw")
             {
-                double wallAngle = stod(words[1]); //In degrees rounded
-                double wallDistance = stod(words[2]); //In cm rounded
+                double wallAngle = stod(words[1]);    // In degrees
+                double wallDistance = stod(words[2]); // In cm
 
                 cout << "Sending robot detected wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
 
@@ -840,24 +832,53 @@ void handleKeyboardInput()
             }
 
             // Start particle filer:
-            if (words[0] == "sp")
+            if (words[0] == "pfs")
             {
+                bool doNotInitializeMapRenderer = false;
+
+                if (words.size() > 1)
+                {
+                    doNotInitializeMapRenderer = words[1] == "true";
+                }
 
                 cout << "Starting particle filter.\n";
 
-                loadParticleFilter();
+                loadParticleFilter(!doNotInitializeMapRenderer);
 
                 continue;
             }
 
             // Sending messages and recording to wav file simultanious.
-            if (words[0] == "pf")
+            if (words[0] == "pfpf")
             {
                 const char *filename = words[1].c_str();
 
                 cout << "Processing file " << filename << ".\n";
 
                 processFileWoDistance(filename);
+
+                continue;
+            }
+
+            // Reset particle filteR:
+            if (words[0] == "pfr")
+            {
+                cout << "Resetting particle filter.\n";
+
+                particleFilter.initializeParticlesUniformly();
+
+                continue;
+            }
+
+            // Particle filte update based on detected wall:
+            if (words[0] == "pfwd")
+            {
+                double wallAngle = stod(words[1]);    // In degrees
+                double wallDistance = stod(words[2]); // In cm
+
+                cout << "Processing fact that robot has seen a wall at " << wallAngle << " degrees and " << wallDistance << " cm\n";
+
+                particleFilter.processWallDetected(wallAngle, wallDistance);
 
                 continue;
             }
@@ -939,7 +960,6 @@ int main()
     // encodeMessageForAudio("../recordings/convolution/encoding0.wav", ROBOT_ID);
 
     // recordToWavFile("TestOpname.wav", 5);
-
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();

@@ -28,6 +28,9 @@ public:
 
     void processMessage(double distance, double angle, double robotAngle);
     void processMovement(double distance, int angle);
+    void processWallDetected(double wallAngle, double wallDistance);
+    void processWallDetectedOther(double wallAngle, double wallDistance);
+    void processCellDetectedOther(int cellId);
 
     MapData* getMapData();
     int getSelectedCellIdx();
@@ -44,10 +47,10 @@ private:
     std::default_random_engine generator;
     std::normal_distribution<double> normal_distribution;
 
-    void calculateMovementAlongAxis(double distance, int angle, double &movementX, double &movementY);
+    void calculateMovementAlongAxis(double distance, int angle, int &movementX, int &movementY);
     void calculateGaussianNoise(int &noise, double threshold);
     bool isCoordinateAllowed(int xCoordinate, int yCoordinate, int& cellIdx);
-    bool didParticleTravelThroughWall(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate);
+    bool didParticleTravelThroughWall(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate, double wallAngle = -1);
 
     void processNewParticleLocations(const int correctParticleIdxs[], const int incorrectParticleIdxs[], int nrOfCorrectParticles, int nrOfIncorrectParticles, double distance, int* particlesPerCell);
     void normalizeParticleWeights();

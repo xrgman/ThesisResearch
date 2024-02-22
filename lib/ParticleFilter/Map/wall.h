@@ -12,6 +12,7 @@ class Wall
 {
 public:
     int id;
+    double orientation;
     int startX;
     int startY;
     int stopX;

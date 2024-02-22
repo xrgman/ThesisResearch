@@ -1,7 +1,7 @@
 {
     "map_name": "My room",
     "number_of_cells": 9,
-    "number_of_walls": 19, 
+    "number_of_walls": 23, 
     "number_of_doors": 2,
     "cells": [
         {
@@ -71,6 +71,7 @@
     "walls": [
         {
             "id": 0,
+            "orientation": 0.0,
             "startX": 70,
             "startY": 0,
             "stopX": 488,
@@ -78,6 +79,7 @@
         },
         {
             "id": 1,
+            "orientation": 90.0,
             "startX": 479,
             "startY": 0,
             "stopX": 488,
@@ -85,6 +87,7 @@
         },
         {
             "id": 2,
+            "orientation": 0.0,
             "startX": 479,
             "startY": 123,
             "stopX": 556,
@@ -92,6 +95,7 @@
         },
         {
             "id": 3,
+            "orientation": 90.0,
             "startX": 547,
             "startY": 123,
             "stopX": 556,
@@ -99,6 +103,7 @@
         },
         {
             "id": 4,
+            "orientation": 180.0,
             "startX": 0,
             "startY": 842,
             "stopX": 556,
@@ -106,13 +111,15 @@
         },
         {
             "id": 5,
+            "orientation": 270.0,
             "startX": 0,
             "startY": 615,
             "stopX": 9,
             "stopY": 851
         },
         {
-            "id": 6,
+            "id": 6, 
+            "orientation": 0.0,
             "startX": 0,
             "startY": 615,
             "stopX": 233,
@@ -120,83 +127,127 @@
         },
         {
             "id": 7,
-            "startX": 224,
+            "orientation": 270.0,
+            "startX": 229,
             "startY": 607,
             "stopX": 233,
             "stopY": 624
         },
         {
             "id": 8,
+            "orientation": 90.0,
             "startX": 224,
-            "startY": 180,
+            "startY": 607,
+            "stopX": 229,
+            "stopY": 624
+        },
+        {
+            "id": 9,
+            "orientation": 270.0,
+            "startX": 224,
+            "startY": 184,
             "stopX": 233,
             "stopY": 516
         },
         {
-            "id": 9,
+            "id": 10,
+            "orientation": 90.0,
+            "startX": 224,
+            "startY": 184,
+            "stopX": 233,
+            "stopY": 516
+        },
+        {
+            "id": 11,
+            "orientation": 180.0,
             "startX": 70,
             "startY": 180,
             "stopX": 233,
             "stopY": 189
         },
         {
-            "id": 10,
+            "id": 12,
+            "orientation": 270.0,
             "startX": 70,
             "startY": 0,
             "stopX": 79,
-            "stopY": 189
+            "stopY": 185
         },
         {
-            "id": 11,
+            "id": 13,
+            "orientation": 180.0,
             "startX": 114,
             "startY": 612,
             "stopX": 233,
             "stopY": 621
         },
         {
-            "id": 12,
+            "id": 14,
+            "orientation": 270.0,
             "startX": 114,
             "startY": 390,
             "stopX": 123,
             "stopY": 621
         },
         {
-            "id": 13,
+            "id": 15,
+            "orientation": 180.0,
             "startX": 114,
             "startY": 390,
             "stopX": 128,
             "stopY": 399
         },
         {
-            "id": 14,
+            "id": 16,
+            "orientation": 0.0,
+            "startX": 114,
+            "startY": 390,
+            "stopX": 128,
+            "stopY": 399
+        },
+        {
+            "id": 17,
+            "orientation": -180.0,
             "startX": 219,
             "startY": 390,
             "stopX": 233,
             "stopY": 399
         },
         {
-            "id": 15,
+            "id": 18,
+            "orientation": 0.0,
+            "startX": 219,
+            "startY": 390,
+            "stopX": 233,
+            "stopY": 399
+        },
+        {
+            "id": 19,
+            "orientation": 270.0,
             "startX": 114,
             "startY": 307,
             "stopX": 123,
             "stopY": 399
         },
         {
-            "id": 16,
+            "id": 20,
+            "orientation": 180.0,
             "startX": 0,
             "startY": 307,
             "stopX": 123,
             "stopY": 316
         },
         {
-            "id": 17,
+            "id": 21,
+            "orientation": 270.0,
             "startX": 0,
             "startY": 180,
             "stopX": 9,
             "stopY": 316
         },
         {
-            "id": 18,
+            "id": 22,
+            "orientation": 0.0,
             "startX": 0,
             "startY": 180,
             "stopX": 233,

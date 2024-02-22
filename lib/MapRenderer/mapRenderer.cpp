@@ -190,6 +190,8 @@ void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scal
             (int)std::ceil(wall.getWidth() / scale),
             (int)std::ceil(wall.getHeight() / scale)};
         SDL_RenderFillRect(renderer, &rect);
+
+        //writeTextCenterRect(renderer, font, {0, 136, 17}, std::to_string((int)wall.orientation).c_str(), rect);
     }
 
     // Drawing all cells:

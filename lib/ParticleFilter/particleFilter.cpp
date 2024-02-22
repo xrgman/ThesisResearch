@@ -129,13 +129,13 @@ void ParticleFilter::processMessage(double distance, double angle, double robotA
         std::cerr << "No particles found, make sure to initialize before processing any movement.\n";
 
         return;
-    } 
+    }
 
     // 1. Adjust the angle to match the orientation of the map (YAW of robot).
     angle = positive_modulo((angle + robotAngle), 360.0);
 
     // 2. Calculate movement along the x and y axis:
-    double movementX, movementY;
+    int movementX, movementY;
 
     calculateMovementAlongAxis(distance, angle, movementX, movementY);
 
@@ -159,7 +159,7 @@ void ParticleFilter::processMessage(double distance, double angle, double robotA
         Particle &particle = particles[i];
 
         // Calculate noise:
-        calculateGaussianNoise(noise1, distance); //Maybe alter the threshold here
+        calculateGaussianNoise(noise1, distance); // Maybe alter the threshold here
         calculateGaussianNoise(noise2, distance);
 
         // Calculating new x and y coordinates:
@@ -210,7 +210,7 @@ void ParticleFilter::processMovement(double distance, int angle)
     int noise1, noise2;
 
     // Calculate movement along the x and y axis:
-    double movementX, movementY;
+    int movementX, movementY;
 
     calculateMovementAlongAxis(distance, angle, movementX, movementY);
 
@@ -283,6 +283,99 @@ void ParticleFilter::processMovement(double distance, int angle)
     determineLocalizationCell(particlesPerCell);
 }
 
+/// @brief Update particles based on the fact that the current robot has detected a wall at a given angle and distance.
+/// @brief Removes all particles that are currently not within a valid range to such a wall.
+/// @param wallAngle Angle of the wall, relative to true north.
+/// @param wallDistance Distance from the robot to the wall.
+void ParticleFilter::processWallDetected(double wallAngle, double wallDistance)
+{
+    // Cant we simply move particles the distance and angle and then check if they intersected a wall?
+    // Do something with noise in distance and angle, since could be off.
+    mapData.getWalls();
+
+    // 0. Checking if particle filter has been initialized:
+    if (particlesInArray <= 0)
+    {
+        std::cerr << "No particles found, make sure to initialize the particle filter.\n";
+
+        return;
+    }
+
+    // 1. Increasing distance to account for wrong measurement accuracy:
+
+    // 2. Calculate movement along the x and y axis:
+    int movementX, movementY;
+
+    calculateMovementAlongAxis(wallDistance, wallAngle, movementX, movementY);
+
+
+
+    // Clear selected cell:
+    selectedCellIdx = -1;
+
+    std::vector<int> correctParticleIdxs;
+    std::vector<int> incorrectParticleIdxs;
+    const double weigthAddition = (double)1 / NUMBER_OF_PARTICLES;
+
+    // Keeping track of nr of particles in cell:
+    int particlesPerCell[mapData.getNumberOfCells()];
+    int noise1, noise2;
+    int cellIdx;
+
+    fillArrayWithZeros(particlesPerCell, mapData.getNumberOfCells());
+
+    // Looping over all particles and check their position:
+    for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
+    {
+        Particle &particle = particles[i];
+
+        // Calculate noise:
+        // calculateGaussianNoise(noise1, distance); // Maybe alter the threshold here
+        // calculateGaussianNoise(noise2, distance);
+
+        // Calculating new x and y coordinates:
+        int newXCoordinate = particle.getXCoordinate() + movementX;
+        int newYCoordinate = particle.getYcoordinate() + movementY;
+
+        // Checking if new coordinates are allowed and that the particle has not travelled through any walls:
+        // TODO: this is the key point to determine if a particle is actually correct.
+        if (didParticleTravelThroughWall(particle.getXCoordinate(), particle.getYcoordinate(), newXCoordinate, newYCoordinate, wallAngle))
+        {
+            // Update weight of the particle:
+            particle.updateWeight(particle.getWeight() + weigthAddition);
+
+            // Marking particle as correct:
+            correctParticleIdxs.push_back(i);
+
+            // Marking the cell the particle is in:
+            if (cellIdx >= 0)
+            {
+                particlesPerCell[cellIdx]++;
+            }
+        }
+        else
+        {
+            incorrectParticleIdxs.push_back(i);
+        }
+    }
+
+    std::cout << "In total " << incorrectParticleIdxs.size() << " particles are out of bound and " << correctParticleIdxs.size() << " are ok.\n";
+
+    // Process new particle locations:
+    processNewParticleLocations(correctParticleIdxs.data(), incorrectParticleIdxs.data(), correctParticleIdxs.size(), incorrectParticleIdxs.size(),  wallDistance, particlesPerCell);
+
+    // Select cell with most particles in it:
+    determineLocalizationCell(particlesPerCell);
+}
+
+void ParticleFilter::processWallDetectedOther(double wallAngle, double wallDistance)
+{
+}
+
+void ParticleFilter::processCellDetectedOther(int cellId)
+{
+}
+
 /// @brief Get the currently selected cell, based on the position of the particles.
 /// @return Id of the selected cell.
 int ParticleFilter::getSelectedCellIdx()
@@ -299,10 +392,10 @@ int ParticleFilter::getSelectedCellIdx()
 /// @param angle Angle at which the distance was travelled (in degrees).
 /// @param movementX Movement along the X-axis.
 /// @param movementY Movement along the Y-axis.
-void ParticleFilter::calculateMovementAlongAxis(double distance, int angle, double &movementX, double &movementY)
+void ParticleFilter::calculateMovementAlongAxis(double distance, int angle, int &movementX, int &movementY)
 {
-    movementX = distance * sin((double)angle * M_PI / 180.0);
-    movementY = -(distance * cos((double)angle * M_PI / 180.0));
+    movementX = round(distance * sin((double)angle * M_PI / 180.0));
+    movementY = round(-(distance * cos((double)angle * M_PI / 180.0)));
 }
 
 /// @brief Generate some gaussian noise to be added to new coordinates.
@@ -346,7 +439,7 @@ bool ParticleFilter::isCoordinateAllowed(int xCoordinate, int yCoordinate, int &
 /// @param newXcoordinate The new X coordinate of the particle.
 /// @param newYCoordinate The new Y coordinate of the particle.
 /// @return Whether or not any walls are intersected.
-bool ParticleFilter::didParticleTravelThroughWall(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate)
+bool ParticleFilter::didParticleTravelThroughWall(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate, double wallAngle)
 {
     Line line = {originalXCoordinate, originalYCoordinate, newXcoordinate, newYCoordinate};
 
@@ -354,6 +447,15 @@ bool ParticleFilter::didParticleTravelThroughWall(int originalXCoordinate, int o
     for (int i = 0; i < mapData.getNumberOfWalls(); i++)
     {
         Wall wall = mapData.getWalls()[i];
+
+        // Only check walls in a certain angle range:
+        if (wallAngle > 0)
+        {
+            if (wallAngle - 20 > wall.orientation > wallAngle + 20)
+            {
+                continue;
+            }
+        }
 
         if (wall.isIntersectedBy(line))
         {
@@ -373,7 +475,7 @@ bool ParticleFilter::didParticleTravelThroughWall(int originalXCoordinate, int o
 /// @param particlesPerCell Reference to array containing the number of particles per cell, this is updated here with cells of the out-of-bound particles.
 void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[], const int incorrectParticleIdxs[], int nrOfCorrectParticles, int nrOfIncorrectParticles, double threshold, int *particlesPerCell)
 {
-    int cellIdx;
+    int cellIdxChosenParticle, cellIdx;
 
     // If all particles are out of bounds, do nothing for now:
     if (nrOfIncorrectParticles == NUMBER_OF_PARTICLES || nrOfCorrectParticles == 0)
@@ -409,9 +511,12 @@ void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[]
 
         Particle chosenParticle = particles[correctParticleIdxs[correctParticleIdx]];
 
+        //Grabbning current cell of chosen particle:
+        isCoordinateAllowed(chosenParticle.getXCoordinate(), chosenParticle.getYcoordinate(), cellIdxChosenParticle);
+
         // Create new coordinates for the particle, that are allowed:
         int noise1, noise2;
-        int newXCoordinate, newYcoordinate;
+        int newXCoordinate, newYCoordinate;
 
         do
         {
@@ -419,11 +524,11 @@ void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[]
             calculateGaussianNoise(noise2, threshold);
 
             newXCoordinate = chosenParticle.getXCoordinate() + noise1;
-            newYcoordinate = chosenParticle.getYcoordinate() + noise2;
-        } while (!isCoordinateAllowed(newXCoordinate, newYcoordinate, cellIdx));
+            newYCoordinate = chosenParticle.getYcoordinate() + noise2;
+        } while (!isCoordinateAllowed(newXCoordinate, newYCoordinate, cellIdx) || cellIdxChosenParticle != cellIdx);
 
         // Save new coordinates in the particle:
-        particle.updateCoordinates(newXCoordinate, newYcoordinate);
+        particle.updateCoordinates(newXCoordinate, newYCoordinate);
 
         // Reset weight of incorrect particle:
         particle.updateWeight((double)1 / NUMBER_OF_PARTICLES);

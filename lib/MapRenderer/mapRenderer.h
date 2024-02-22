@@ -7,14 +7,17 @@
 #include "Map/mapData.h"
 #include "particle.h"
 
-#define WINDOW_WIDTH 1280//600//1280
-#define WINDOW_HEIGHT 720//900//720 
+// #define WINDOW_WIDTH 1280//600//1280
+// #define WINDOW_HEIGHT 720//900//720 
+
+#define WINDOW_WIDTH 600//1280
+#define WINDOW_HEIGHT 900//720 
 
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 30
 
 #define FONT_PATH "/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf"
-#define FONT_SIZE 18
+#define FONT_SIZE 28
 
 class MapRenderer
 {
