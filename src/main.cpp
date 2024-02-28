@@ -6,6 +6,7 @@
 #include <cmath>
 #include <string>
 #include <poll.h>
+#include <thread>
 
 #include "main.h"
 #include "wavHelper.h"
@@ -139,7 +140,7 @@ void dataDecodedCallback(AudioCodecResult result)
             // Saving time:
             chrono::time_point responseReceived = chrono::high_resolution_clock::now();
 
-            //Calculating time difference:
+            // Calculating time difference:
             auto timeDifference = chrono::duration_cast<chrono::milliseconds>(localizationBroadcastSend - responseReceived);
 
             double distance = 343 * timeDifference.count();
@@ -720,6 +721,7 @@ void handleKeyboardInput()
             if (words[0] == "q" || words[0] == "Q")
             {
                 keepProcessing = false;
+                liveDecoding = false;
 
                 continue;
             }
@@ -808,7 +810,7 @@ void handleKeyboardInput()
             // Send a signal message:
             if (words[0] == "s" || words[0] == "S")
             {
-                cout << "Sending one signal message.";
+                cout << "Sending one signal message.\n";
 
                 // Encode the message:
                 audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
@@ -971,6 +973,8 @@ void handleKeyboardInput()
         {
             audioHelper.signalBatchProcessed();
         }
+
+        usleep(1);
     }
 
     // Clearing map renderer:
@@ -1016,12 +1020,13 @@ int main()
     }
 
     audioHelper.signalBatchProcessed();
-    // encodeMessageForAudio("encoding_cell_test.wav", config.robotId);
-    // decodeWavFile("encoding_cell_test.wav");
 
-    // decodeMessageConvolution("../recordings/convolution/los/200cm_180deg_10.wav");
+    // Starting decoding thread in the background:
+    thread decodingThread(decodingLive);
 
+    // Running keyboard input function:
     handleKeyboardInput();
+
     //  decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
 
     // openAndPlayWavFile("../src/song2.wav");
@@ -1030,6 +1035,8 @@ int main()
     // encodeMessageForAudio("../recordings/convolution/encoding0.wav", ROBOT_ID);
 
     // recordToWavFile("TestOpname.wav", 5);
+
+    decodingThread.join();
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();
