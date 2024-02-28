@@ -256,6 +256,36 @@ void AudioCodec::encodeWallMessage(int16_t *output, uint8_t senderId, double wal
     encode(output, senderId, WALL, dataBits);
 }
 
+/// @brief Encode broadcast message requesting localization response from others.
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+void AudioCodec::encodeLocalizeMessage(int16_t *output, uint8_t senderId)
+{
+    uint8_t dataBits[64];
+
+    fillArrayWithZeros(dataBits, 64);
+
+    // Perform the actual encoding.
+    encode(output, senderId, LOCALIZE, dataBits);
+}
+
+/// @brief Encode the response to the localization message, ment for the receiver ID robot.
+/// @param output The array to store the encoded data in.
+/// @param senderId The ID of the sender.
+/// @param receiverId The ID of the receiver.
+void AudioCodec::encodeLocalizeResponseMessage(int16_t *output, uint8_t senderId, uint8_t receiverId)
+{
+    uint8_t dataBits[64];
+
+    fillArrayWithZeros(dataBits, 64);
+
+    // Encode the receiver id:
+    uint8ToBits(receiverId, dataBits);
+
+    // Perform the actual encoding.
+    encode(output, senderId, LOCALIZE_RESPONSE, dataBits);
+}
+
 /// @brief The encoding function, does the actual encoding.
 /// @param output The array to store the encoded data in.
 /// @param senderId The ID of the sender.

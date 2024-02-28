@@ -24,6 +24,7 @@ Config config = Config::LoadConfig("../src/config.json");
 
 // Func defs:
 void dataDecodedCallback(AudioCodecResult result);
+void sendLocalizationResponse(int receiverId);
 
 AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw);
 
@@ -38,6 +39,13 @@ bool liveDecoding = true;
 // Distance to be used as long as we can't calculate it from the actual received message:
 bool processDecodedDataToPf = true; // TODO: set to false
 double currentProcessingDistance = 0;
+
+// Fields in use for distance tracking:
+chrono::time_point localizationBroadcastSend = chrono::high_resolution_clock::now();
+
+double distanceToOtherRobots[12];
+
+// Some sort of array storing distance or response received times?
 
 /// @brief This function is called when the program is suddenly terminated (ctrl + c)
 ///         It makes sure that everything is freed and closed properly.
@@ -114,6 +122,33 @@ void dataDecodedCallback(AudioCodecResult result)
 
         // Updating particle filter:
         particleFilter.processWallDetectedOther(wallAngle, wallDistance);
+    }
+    else if (result.messageType == LOCALIZE)
+    {
+        cout << "Robot " << result.senderId << " has requested a localization response. \nSending localization response....\n";
+
+        sendLocalizationResponse(result.senderId);
+    }
+    else if (result.messageType == LOCALIZE_RESPONSE)
+    {
+        // Decoding receiver ID and checking if message was meant for me:
+        uint8_t receiverId = bitsToUint8(result.decodedData);
+
+        if (receiverId == config.robotId)
+        {
+            // Saving time:
+            chrono::time_point responseReceived = chrono::high_resolution_clock::now();
+
+            //Calculating time difference:
+            auto timeDifference = chrono::duration_cast<chrono::milliseconds>(localizationBroadcastSend - responseReceived);
+
+            double distance = 343 * timeDifference.count();
+
+            cout << "Distance to robot " << result.senderId << " is " << distance << " cm.\n";
+
+            // Saving calculated distance:
+            distanceToOtherRobots[result.senderId] = distance;
+        }
     }
     else
     {
@@ -510,6 +545,22 @@ void sendDistanceMessage()
     cout << "Successfully send out the three localization chirps.\n";
 }
 
+/// @brief Send localization response to a specific robot.
+/// @param receiverId The id of the robot that the message is meant for.
+void sendLocalizationResponse(int receiverId)
+{
+    int size = audioCodec.getEncodingSize();
+    int16_t codedAudioData[size];
+
+    // Encode the message:
+    audioCodec.encodeLocalizeResponseMessage(codedAudioData, config.robotId, receiverId);
+
+    // Output message to speaker:
+    outputMessageToSpeaker(codedAudioData, size);
+
+    cout << "Localization response send!\n";
+}
+
 /// @brief Send out an encoded message, while simultaniously recording data to a WAV file.
 /// @param filename Filename of the WAV file.
 void sendMessageAndRecord(const char *filename)
@@ -825,6 +876,25 @@ void handleKeyboardInput()
 
                 // Output message to speaker:
                 outputMessageToSpeaker(codedAudioData, size);
+
+                cout << "Done playing message.\n";
+
+                continue;
+            }
+
+            // send localization message:
+            if (words[0] == "sl")
+            {
+                cout << "Sending robot localization message.\n";
+
+                // Encode the message:
+                audioCodec.encodeLocalizeMessage(codedAudioData, config.robotId);
+
+                // Output message to speaker:
+                outputMessageToSpeaker(codedAudioData, size);
+
+                // Saving sending time:
+                localizationBroadcastSend = chrono::high_resolution_clock::now();
 
                 cout << "Done playing message.\n";
 

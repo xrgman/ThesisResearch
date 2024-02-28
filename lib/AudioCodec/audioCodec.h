@@ -57,7 +57,9 @@ enum AudioCodedMessageType
     LOCALIZATION2 = 2,
     LOCALIZATION3 = 3,
     WALL = 4,
-    CELL_FOUND = 5
+    CELL_FOUND = 5,
+    LOCALIZE = 6,
+    LOCALIZE_RESPONSE = 7
 };
 
 struct AudioCodecResult
@@ -158,6 +160,8 @@ public:
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, chrono::nanoseconds processingTime);
     void encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t cellId);
     void encodeWallMessage(int16_t *output, uint8_t senderId, double wallAngle, double wallDistance);
+    void encodeLocalizeMessage(int16_t *output, uint8_t senderId);
+    void encodeLocalizeResponseMessage(int16_t *output, uint8_t senderId, uint8_t receiverId);
 
     void decode(int16_t bit, uint8_t microphoneId);
 
