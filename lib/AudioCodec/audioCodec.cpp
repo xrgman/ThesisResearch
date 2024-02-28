@@ -102,6 +102,15 @@ void AudioCodec::generateConvolutionFields(int robotId)
         encodeBit(bit1Flipped[i], 1, frequencies, true);
     }
 
+    double test1[320];
+    double test2[320];
+
+    for (int i = 0; i < 320; i++)
+    {
+        test1[i] = bit0Flipped[1][i];
+        test2[i] = bit1Flipped[1][i];
+    }
+
     // Calculate optimal FFT values (foud using python):
     int convolvePreambleN = getNextPowerOf2(UNDER_SAMPLING_BITS * 2 - 1); // 8192; // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
     int convolveBitN = getNextPowerOf2(SYMBOL_BITS * 2 - 1);              // 640;                                               // getNextPowerOf2(SYMBOL_BITS * 2 - 1); //640
@@ -321,7 +330,7 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
 /// @param flipped Whether to flip the data in the output buffer for convolution.
 void AudioCodec::encodePreamble(double *output, bool flipped)
 {
-    encodeChirp(output, frequencyPairPreamble, PREAMBLE_BITS);
+    encodeChirp(output, frequencyPairPreamble, PREAMBLE_BITS, KAISER_WINDOW_BETA);
 
     // Flip the signal, if its needed for convolution:
     if (flipped)
@@ -387,25 +396,64 @@ void AudioCodec::encodeBit(double *output, uint8_t bit, AudioCodecFrequencyPair 
     //     reverse(output, output + SYMBOL_BITS);
     // }
 
-    int subChirpOrder[4] = {
-        bit == 0 ? 0 : 7,
-        bit == 0 ? 6 : 1,
-        bit == 0 ? 2 : 5,
-        bit == 0 ? 4 : 3
-    };   
-
-    double bandwidthPerSubChirp = (frequencies[1].stopFrequency - frequencies[1].startFrequency) / 8;
-    int sizePerSubChirp = SYMBOL_BITS / 4;
-
-    for (uint8_t i = 0; i < 4; i++)
+    if (bit == 1)
     {
-        AudioCodecFrequencyPair frequencyPair = {
-            (bit == 0 && i % 2 == 1) || (bit == 1 && i % 2 == 0) ? frequencies[1].startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp) : (frequencies[1].startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp,
-            (bit == 0 && i % 2 == 1) || (bit == 1 && i % 2 == 0) ? (frequencies[1].startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp : frequencies[1].startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp),
-        };
-
-        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp);
+        encodeChirp(output, frequencies[1], SYMBOL_BITS, 2);
     }
+    else
+    {
+        encodeChirp(output, frequencies[0], SYMBOL_BITS, 2);
+        // int sizePerSubChirp = SYMBOL_BITS / 2;
+        // double bandwidthPerSubChirp = (frequencies[1].stopFrequency - frequencies[1].startFrequency) / 2;
+
+        // AudioCodecFrequencyPair frequencyPair = {
+        //     frequencies[1].startFrequency + bandwidthPerSubChirp,
+        //     frequencies[1].startFrequency};
+
+        // generateChirp(&output[0 * sizePerSubChirp], frequencyPair, sizePerSubChirp);
+
+        // frequencyPair = {
+        //     frequencies[1].stopFrequency,
+        //     frequencies[1].startFrequency + bandwidthPerSubChirp};
+
+        // generateChirp(&output[1 * sizePerSubChirp], frequencyPair, sizePerSubChirp);
+
+        // for (int j = 0; j < SYMBOL_BITS; j++)
+        // {
+        //     // Apply volume:
+        //     output[j] *= volume;
+
+        //     // Apply kaiser window:
+        //     output[j] = applyKaiserWindow(output[j], SYMBOL_BITS, j, KAISER_WINDOW_BETA);
+        // }
+    }
+
+    // int subChirpOrder[4] = {
+    //     bit == 0 ? 0 : 7,
+    //     bit == 0 ? 6 : 1,
+    //     bit == 0 ? 2 : 5,
+    //     bit == 0 ? 4 : 3};
+
+    // double bandwidthPerSubChirp = (frequencies[1].stopFrequency - frequencies[1].startFrequency) / 8;
+    // int sizePerSubChirp = SYMBOL_BITS / 4;
+
+    // for (uint8_t i = 0; i < 4; i++)
+    // {
+    //     AudioCodecFrequencyPair frequencyPair = {
+    //         frequencies[bit].startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp),
+    //         (frequencies[bit].startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
+
+    //     encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp);
+    // }
+
+    // for (int j = 0; j < SYMBOL_BITS; j++)
+    // {
+    //     // Apply volume:
+    //     output[j] *= volume;
+
+    //     // Apply kaiser window:
+    //     output[j] = applyKaiserWindow(output[j], SYMBOL_BITS, j, KAISER_WINDOW_BETA);
+    // }
 
     // Flip the signal, if its needed for convolution:
     if (flipped)
@@ -446,7 +494,7 @@ void AudioCodec::encodeSenderId(double *output, AudioCodecFrequencyPair frequenc
             (frequencies.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp,
         };
 
-        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp);
+        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, KAISER_WINDOW_BETA);
     }
 
     // Flip the signal, if its needed for convolution:
@@ -460,7 +508,7 @@ void AudioCodec::encodeSenderId(double *output, AudioCodecFrequencyPair frequenc
 /// @param output Output array where the chrip will be placed in.
 /// @param frequencies Object containing the frequencies of the sub chirps.
 /// @param size Samples of the chirp.
-void AudioCodec::encodeChirp(double *output, AudioCodecFrequencyPair frequencies, int size)
+void AudioCodec::encodeChirp(double *output, AudioCodecFrequencyPair frequencies, int size, int kaiserWindowBeta)
 {
     // Generate chirp:
     generateChirp(output, frequencies, size);
@@ -471,8 +519,11 @@ void AudioCodec::encodeChirp(double *output, AudioCodecFrequencyPair frequencies
         // Apply volume:
         output[j] *= volume;
 
-        // Apply kaiser window:
-        output[j] = applyKaiserWindow(output[j], size, j, KAISER_WINDOW_BETA);
+        if (kaiserWindowBeta > 0)
+        {
+            // Apply kaiser window:
+            output[j] = applyKaiserWindow(output[j], size, j, kaiserWindowBeta);
+        }
     }
 }
 

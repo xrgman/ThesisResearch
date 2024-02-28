@@ -188,7 +188,7 @@ private:
     void bitToChirpOld(double *output, uint8_t bit, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration);
     void bitsToChirpOld(double *output, uint8_t *bits, int numberOfBits, AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps);
 
-    void encodeChirp(double *output, AudioCodecFrequencyPair frequencies, int size);
+    void encodeChirp(double *output, AudioCodecFrequencyPair frequencies, int size, int kaiserWindowBeta);
     void generateChirp(double *output, AudioCodecFrequencyPair frequencies, int size);
     double applyKaiserWindow(double value, int totalSize, int i, int beta);
 
