@@ -743,6 +743,23 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         {
             int preambleIndex = preambleIdxs[i];
 
+            // Calculating signal energy:
+            double energyFrame[PREAMBLE_BITS];
+            int startPreamblePosition = preambleIndex - (PREAMBLE_BITS / 2);
+
+            for (int j = 0; j < PREAMBLE_BITS; j++)
+            {
+                frame[j] = decodingBuffer[microphoneId][(startPreamblePosition + j) % DECODING_BUFFER_SIZE];
+            }
+
+            double signalEnergy = calculateSignalEnergy(energyFrame, PREAMBLE_BITS);
+
+            // Checking if its from own source:
+            if (filterOwnSource && signalEnergy > PREAMBLE_SIGNAL_ENERGY_CUTOFF)
+            {
+                continue;
+            }
+
             // cout << "Preamble found: " << preambleIndex << endl;
 
             // Checking if peak was already found, if not create a new results object:
@@ -754,6 +771,9 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
                 decodingResults.push_back(AudioCodecResult());
             }
+
+            // decoding_results[decoding_results_idx].signal_energy[channel_id] = calculate_energy(preamble_frame)
+            decodingResults[decodingResultIdx].signalEnergy[microphoneId] = signalEnergy;
 
             if (microphoneId == 0)
             {
@@ -1400,6 +1420,22 @@ void AudioCodec::createSinWaveFromFreqs(const double *input, double *output, con
 //*************************************************
 //******** General decoding functions *************
 //*************************************************
+
+/// @brief Calculate the signal energy of a given window,
+/// @param window Window possibly containing the preamble.
+/// @param windowSize Size of the window
+/// @return The energy of the signal during the given window.
+double AudioCodec::calculateSignalEnergy(const double *window, const int windowSize)
+{
+    double energy = 0.0;
+
+    for (int i = 0; i < windowSize; i++)
+    {
+        energy += (window[i] * window[i]);
+    }
+
+    return energy;
+}
 
 /// @brief Calulate the DOA of the sound signal based on the different arrival times of the preamble at each microphone.
 /// @param arrivalTimes The arrival times of the signal.

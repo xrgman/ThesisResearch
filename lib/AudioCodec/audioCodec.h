@@ -11,8 +11,8 @@
 #define CHIRP_AMPLITUDE 1.0
 
 #define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source
+#define PREAMBLE_SIGNAL_ENERGY_CUTOFF 1500 //When to assume message is from own source
 #define MINIMUM_DISTANCE_PREAMBLE_PEAKS 1000 //Two peaks should be at least be x samples apart to be considered from different sources.
-
 
 //*** Encoding frequency definitions ***
 #define START_FREQ_PREAMBLE 2500.0//5500.0
@@ -71,6 +71,8 @@ struct AudioCodecResult
 
     int preambleDetectionCnt = 0;
     int preambleDetectionPosition[NUM_CHANNELS];
+
+    double signalEnergy[NUM_CHANNELS];
 
     int decodingBitsPosition = 0;
     uint8_t decodedBitsCnt = 0;
@@ -245,6 +247,7 @@ private:
     void performDistanceTracking(chrono::system_clock::time_point decodingEndTime);
 
     // General decoding functions:
+    double calculateSignalEnergy(const double *window, const int windowSize);
     double calculateDOA(const int *arrivalTimes, const int numChannels);
     double calculateDistance(const int *arrivalTimes, const int size);
 
