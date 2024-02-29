@@ -754,6 +754,8 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
             double signalEnergy = calculateSignalEnergy(energyFrame, PREAMBLE_BITS);
 
+            cout << "Signal energy: " << signalEnergy << endl;
+
             // Checking if its from own source:
             if (filterOwnSource && signalEnergy > PREAMBLE_SIGNAL_ENERGY_CUTOFF)
             {

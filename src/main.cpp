@@ -435,8 +435,6 @@ void decodingLive()
 
         audioHelper.setNextBatchRead();
 
-        // auto t1 = chrono::high_resolution_clock::now();
-
         //  Looping over all microphones:
         for (uint8_t channel = 0; channel < config.numChannels; channel++)
         {
@@ -449,31 +447,6 @@ void decodingLive()
                 audioCodec.decode(channelData[i], channel);
             }
         }
-
-        // auto t2 = chrono::high_resolution_clock::now();
-        // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
-        // durations.push_back(ms_int.count());
-
-        // if (durations.size() > 100)
-        // {
-        //     double maxValue = *max_element(durations.begin(), durations.end());
-
-        //     cout << "Max value: " << maxValue << endl;
-        // }
-
-        // if (durations.size() >= (PREAMBLE_BITS / FRAMES_PER_BUFFER))
-        // {
-        //     double averageDuration = calculateAverage(durations.data(), durations.size());
-
-        //     averageDurations.push_back(averageDuration);
-
-        //     durations.clear();
-        // }
-
-        // if(averageDurations.size() >= 100) {
-        //     double avg = calculateAverage(averageDurations.data(), averageDurations.size());
-        //     cout << "Average duration " << PREAMBLE_BITS << " bytes for all channels = " << avg << " ns\n";
-        // }
 
         audioHelper.signalBatchProcessed();
     }
@@ -701,9 +674,9 @@ void handleKeyboardInput()
 
     while (keepProcessing)
     {
-        int ready = poll(&fd, 1, 0);
+       // int ready = poll(&fd, 1, 0);
 
-        if (ready > 0)
+        if (cin)
         {
             // Reading the newly inputted line by the user:
             getline(cin, input);
@@ -969,10 +942,10 @@ void handleKeyboardInput()
         }
 
         // Marking batch as processed, to overcome spamming the console:
-        if (audioHelper.readNextBatch())
-        {
-            audioHelper.signalBatchProcessed();
-        }
+        // if (audioHelper.readNextBatch())
+        // {
+        //     audioHelper.signalBatchProcessed();
+        // }
 
         usleep(1);
     }
