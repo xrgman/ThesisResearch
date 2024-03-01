@@ -29,13 +29,23 @@ Config Config::LoadConfig(const char *filename)
     {
         json jsonData = json::parse(fileContent);
 
+        // Extracting channels:
+        const json &channelsJson = jsonData["channels"];
+        int channels[channelsJson.size()];
+
+        for (uint8_t i = 0; i < channelsJson.size(); i++)
+        {
+            channels[i] = channelsJson[i];
+        }
+
         return Config(jsonData["robot_id"],
-                    jsonData["total_number_of_robots"],
-                    jsonData["sample_rate"],
-                    jsonData["num_channels_raw"],
-                    jsonData["num_channels"],
-                    jsonData["filter_own_source"],
-                    jsonData["print_bits_encoding"]);
+                      jsonData["total_number_of_robots"],
+                      jsonData["sample_rate"],
+                      jsonData["num_channels_raw"],
+                      jsonData["num_channels"],
+                      jsonData["filter_own_source"],
+                      jsonData["print_bits_encoding"],
+                      channels);
     }
     catch (const json::exception &e)
     {
