@@ -8,6 +8,8 @@
 #include "string.h"
 #include "util.h"
 
+
+
 AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels)
 {
     this->sampleRate = sampleRate;
@@ -22,6 +24,8 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
         this->batchProcessed[i] = true;
     }
 }
+
+
 
 int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
@@ -67,6 +71,10 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     {
         spdlog::error("Batch was not yet processed!");
     }
+    else
+    {
+        // spdlog::info("Batch succesfully processed");
+    }
 
     // Grabbing read data:
     for (int i = 0; i < framesPerBuffer; i++)
@@ -79,7 +87,6 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 
     inputDataAvailable = true;
     setCompleteBatchUnprocessed();
-    // batchProcessed = false;
 
     return paContinue;
 }
@@ -309,6 +316,9 @@ void AudioHelper::setNextBatchRead()
     inputDataAvailable = false;
 }
 
+/// @brief Signal that the batch is successfully processed for the given channels.
+/// @param channels Channels processed.
+/// @param count Number of channels processed.
 void AudioHelper::signalBatchProcessed(const int *channels, int count)
 {
     for (int i = 0; i < count; i++)
@@ -317,9 +327,11 @@ void AudioHelper::signalBatchProcessed(const int *channels, int count)
     }
 }
 
+/// @brief Check if the batch is processed for all channels.
+/// @return Whether or not the batch is processed for all channels.
 bool AudioHelper::isCompleteBatchProcessed()
 {
-    for (int i = 0; i < numChannels; i++)
+    for (int i = 0; i < NUM_CHANNELS; i++)
     {
         if (!batchProcessed[i])
         {
@@ -330,9 +342,10 @@ bool AudioHelper::isCompleteBatchProcessed()
     return true;
 }
 
+/// @brief Mark complete batch as processed.
 void AudioHelper::setCompleteBatchUnprocessed()
 {
-    for (int i = 0; i < numChannels; i++)
+    for (int i = 0; i < NUM_CHANNELS; i++)
     {
         batchProcessed[i] = false;
     }

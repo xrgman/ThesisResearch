@@ -78,7 +78,7 @@
 
 
 ## Installation libraries:
-git clone https://github.com/PortAudio/portaudio/archive/refs/tags/v19.7.0.tar.gz
+git clone https://github.com/PortAudio/portaudio.git
 ./configure && make
 sudo make install
 sudo ln -s /usr/local/lib/libportaudio.so /usr/lib/arm-linux-gnueabihf/libportaudio.so
@@ -87,6 +87,7 @@ sudo apt-get install libsdl2-dev
 sudo apt-get install libsdl2-ttf-dev
 sudo apt-get install libboost-all-dev
 sudo apt-get install libgnuplot-iostream-dev
+sudo apt-get install libspdlog-dev
 
 ### Stop tracking changes to config:
 git update-index --assume-unchanged src/config.json

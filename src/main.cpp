@@ -430,14 +430,12 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
     // Storing copy of channels here:
     std::memcpy(const_cast<int *>(channels), channelsToDecode, numChannelsToDecode * sizeof(int));
 
-    cout << "Live decoding started!\n";
-
     while (keepDecoding)
     {
         // Checking if new data is available:
         if (!audioHelper.readNextBatch())
         {
-            usleep(2);
+            usleep(1);
 
             continue;
         }
@@ -459,13 +457,6 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
                 audioCodec.decode(channelData[i], channelToProcess);
             }
         }
-
-        // auto t2 = chrono::high_resolution_clock::now();
-        // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
-
-        // int tes = ms_int.count();
-
-        // cout << "Processing one buffer took: " << tes << endl;
 
         audioHelper.signalBatchProcessed(channels, numChannelsToDecode);
     }
@@ -1039,11 +1030,11 @@ int main()
         {
             channelsForThread[j] = config.channels[i * channelsPerThread + j];
 
-            // cout << channelsForThread[j] << (j < channelsPerThread - 1 ? ", " : "\n");
+            cout << channelsForThread[j] << (j < channelsPerThread - 1 ? ", " : "\n");
         }
 
         // Firing up the thread:
-        // decodingThreads[i] = thread(decodingThread, channelsForThread, channelsPerThread);
+        decodingThreads[i] = thread(decodingThread, channelsForThread, channelsPerThread);
     }
 
     // Running keyboard input function:
