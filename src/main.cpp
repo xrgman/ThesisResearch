@@ -47,6 +47,8 @@ double currentProcessingDistance = 0;
 const int decodingThreadsCnt = 1;
 thread decodingThreads[decodingThreadsCnt];
 
+vector<AudioCodecResult> decodingResults;
+
 // Fields in use for distance tracking:
 chrono::time_point localizationBroadcastSend = chrono::high_resolution_clock::now();
 
@@ -68,105 +70,100 @@ void sigIntHandler(int signum)
     exit(signum);
 }
 
+/// @brief Callback called from decoding class as soon as a message is sucessfully decoded.
+/// @param result The result of the decoding.
 void dataDecodedCallback(AudioCodecResult result)
 {
-    // Stoping timer and showing processing time:
-    auto decodingStop = chrono::high_resolution_clock::now();
-    auto ms_int = chrono::duration_cast<chrono::milliseconds>(decodingStop - decodingStart);
+    decodingResults.push_back(result);
+}
 
-    // cout << "Decoding data took: " << ms_int.count() << "ms\n";
-    cout << "Sender ID: " << result.senderId << endl;
-    // Showing direction of arrival:
-    cout << "DOA: " << result.doa << " degrees\n";
-
-    // Handling data:
-    if (result.messageType == ENCODING_TEST)
+/// @brief Function that checks if there are decoding results left unprocessed and starts processing them.
+void processDecodingResults()
+{
+    while (decodingResults.size() > 0)
     {
-        char receivcedData[DECODING_DATA_BITS / 8];
+        AudioCodecResult decodingResult = decodingResults[0];
 
-        bitsToString(result.decodedData, DECODING_DATA_BITS, receivcedData);
+        spdlog::info("Message received ({}) from robot {}, at {} degrees", decodingResult.messageType, decodingResult.senderId, decodingResult.doa);
 
-        cout << "Received: " << receivcedData << endl;
-    }
-    else if (result.messageType == LOCALIZATION1)
-    {
-        if (processDecodedDataToPf)
+        // Handling message based on its type:
+        switch (decodingResult.messageType)
         {
-            double distance = currentProcessingDistance;
-            double doa = result.doa;
-
-            cout << "Received message from robot " << result.senderId << " at " << distance << "cm and " << doa << " degrees\n";
-
-            // Passing message information to the particle filter.
-            particleFilter.processMessage(distance, doa, 0);
-        }
-    }
-    else if (result.messageType == LOCALIZATION2)
-    {
-        cout << "Received localization 2 message\n";
-    }
-    else if (result.messageType == LOCALIZATION3)
-    {
-        chrono::nanoseconds processingTime = bitsToNanoseconds(result.decodedData);
-
-        cout << "Processing time was: " << processingTime.count() << "ns\n";
-    }
-    else if (result.messageType == CELL_FOUND)
-    {
-        uint32_t cellId = bitsToUint32(result.decodedData);
-
-        cout << "Robot " << result.senderId << " has localized itself in cell " << cellId << endl;
-
-        // Updating particle filter:
-        particleFilter.processCellDetectedOther(cellId);
-    }
-    else if (result.messageType == WALL)
-    {
-        double wallAngle = (double)bitsToUint32(&result.decodedData[0]) / 1000;
-        double wallDistance = (double)bitsToUint32(&result.decodedData[32]) / 1000;
-
-        cout << "Robot " << result.senderId << " has seen a wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
-
-        // Updating particle filter:
-        particleFilter.processWallDetectedOther(wallAngle, wallDistance);
-    }
-    else if (result.messageType == LOCALIZE)
-    {
-        cout << "Robot " << result.senderId << " has requested a localization response. \nSending localization response....\n";
-
-        sendLocalizationResponse(result.senderId);
-    }
-    else if (result.messageType == LOCALIZE_RESPONSE)
-    {
-        // Decoding receiver ID and checking if message was meant for me:
-        uint8_t receiverId = bitsToUint8(result.decodedData);
-
-        if (receiverId == config.robotId)
+        case ENCODING_TEST:
         {
-            // Saving time:
-            chrono::time_point responseReceived = chrono::high_resolution_clock::now();
+            char receivcedData[(DECODING_DATA_BITS / 8) + 1];
+            receivcedData[(DECODING_DATA_BITS / 8)] = '\0';
 
-            // Calculating time difference:
-            auto timeDifference = chrono::duration_cast<chrono::milliseconds>(localizationBroadcastSend - responseReceived);
+            bitsToString(decodingResult.decodedData, DECODING_DATA_BITS, receivcedData);
 
-            double distance = 343 * timeDifference.count();
+            spdlog::info("Received message: {}", receivcedData);
 
-            cout << "Distance to robot " << result.senderId << " is " << distance << " cm.\n";
-
-            // Saving calculated distance:
-            distanceToOtherRobots[result.senderId] = distance;
+            break;
         }
+        case CELL_FOUND:
+        {
+            uint32_t cellId = bitsToUint32(decodingResult.decodedData);
+            spdlog::info("Robot has localized itself in cell: {},", cellId);
+
+            // Updating particle filter:
+            particleFilter.processCellDetectedOther(cellId);
+
+            break;
+        }
+        case WALL:
+        {
+            double wallAngle = (double)bitsToUint32(&decodingResult.decodedData[0]) / 1000;
+            double wallDistance = (double)bitsToUint32(&decodingResult.decodedData[32]) / 1000;
+
+            spdlog::info("Robot has seen a wall at {} degrees and {} cm.", wallAngle, wallDistance);
+
+            // Updating particle filter:
+            particleFilter.processWallDetectedOther(wallAngle, wallDistance);
+
+            break;
+        }
+        case LOCALIZE:
+        {
+            spdlog::info("Robot has requested a localization response. Sending....");
+
+            // Sending localization response to requester:
+            sendLocalizationResponse(decodingResult.senderId);
+
+            break;
+        }
+        case LOCALIZE_RESPONSE:
+        {
+            // Decoding receiver ID and checking if message was meant for me:
+            uint8_t receiverId = bitsToUint8(decodingResult.decodedData);
+
+            if (receiverId == config.robotId)
+            {
+                // Saving time:
+                chrono::time_point responseReceived = chrono::high_resolution_clock::now();
+
+                // Calculating time difference:
+                auto timeDifference = chrono::duration_cast<chrono::milliseconds>(localizationBroadcastSend - responseReceived);
+
+                // Calculate the actual distance:
+                double distance = 343 * timeDifference.count();
+
+                spdlog::info("Robot is {} cm away.", distance);
+
+                // Saving calculated distance:
+                distanceToOtherRobots[decodingResult.senderId] = distance;
+            }
+
+            break;
+        }
+        default:
+            spdlog::error("Received message type {} not yet implemented!", decodingResult.messageType);
+
+            break;
+        }
+
+        // Removing result from queue:
+        decodingResults.erase(decodingResults.begin());
     }
-    else
-    {
-        cout << "Received message type not yet implemented!";
-    }
-
-    // liveDecoding = false;
-
-    decodingStart = chrono::high_resolution_clock::now();
-
-    cout << endl;
 }
 
 /// @brief Function that outputs an array of encoded data to the speaker.
@@ -684,9 +681,9 @@ void handleKeyboardInput()
 
     while (keepProcessing)
     {
-        // int ready = poll(&fd, 1, 0);
+        int ready = poll(&fd, 1, 0);
 
-        if (cin)
+        if (ready)
         {
             // Reading the newly inputted line by the user:
             getline(cin, input);
@@ -941,6 +938,9 @@ void handleKeyboardInput()
             }
         }
 
+        // Process decoding results:
+        processDecodingResults();
+
         // Keep updating the map, when it's needed:
         if (mapRenderer.isInitialized())
         {
@@ -975,7 +975,8 @@ int main()
     srand(time(NULL));
 
     // Initialize the logger
-    spdlog::set_pattern("[%H:%M:%S.%e] [%l] %v");;
+    spdlog::set_pattern("[%H:%M:%S.%e] [%l] %v");
+    ;
 
     spdlog::info("Logger initialized!");
 
