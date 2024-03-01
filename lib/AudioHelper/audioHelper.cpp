@@ -8,8 +8,6 @@
 #include "string.h"
 #include "util.h"
 
-
-
 AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels)
 {
     this->sampleRate = sampleRate;
@@ -22,10 +20,9 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
     for (int i = 0; i < numChannels; i++)
     {
         this->batchProcessed[i] = true;
+        this->inputDataAvailable[i] = false;
     }
 }
-
-
 
 int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
@@ -85,7 +82,7 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
         }
     }
 
-    inputDataAvailable = true;
+    setCompleteBatchAvailable();
     setCompleteBatchUnprocessed();
 
     return paContinue;
@@ -306,14 +303,32 @@ bool AudioHelper::writeNextBatch()
     return writeNext;
 }
 
-bool AudioHelper::readNextBatch()
+/// @brief Check whether new data is available for the given channels.
+/// @param channels Channels to check for new data.
+/// @param count Number of channels to check.
+/// @return Whether new data is available for all given channels.
+bool AudioHelper::readNextBatch(const int *channels, int count)
 {
-    return inputDataAvailable;
+    for (int i = 0; i < count; i++)
+    {
+        if (!inputDataAvailable[channels[i]])
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
-void AudioHelper::setNextBatchRead()
+/// @brief Mark batch processing started for given channels.
+/// @param channels Channels being processed.
+/// @param count Number of channels being processed.
+void AudioHelper::setNextBatchRead(const int *channels, int count)
 {
-    inputDataAvailable = false;
+    for (int i = 0; i < count; i++)
+    {
+        inputDataAvailable[channels[i]] = false;
+    }
 }
 
 /// @brief Signal that the batch is successfully processed for the given channels.
@@ -348,6 +363,15 @@ void AudioHelper::setCompleteBatchUnprocessed()
     for (int i = 0; i < NUM_CHANNELS; i++)
     {
         batchProcessed[i] = false;
+    }
+}
+
+/// @brief Mark batch available for all channels.
+void AudioHelper::setCompleteBatchAvailable()
+{
+    for (int i = 0; i < NUM_CHANNELS; i++)
+    {
+        inputDataAvailable[i] = true;
     }
 }
 

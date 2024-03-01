@@ -278,20 +278,19 @@ void openAndPlayWavFile(const char *filename)
 void recordToWavFile(const char *filename, const int seconds)
 {
     vector<int16_t> dataToWrite;
-    int channels[6] = {0, 1, 2, 3, 4, 5};
     int iteration = 0;
 
     while ((iteration * FRAMES_PER_BUFFER) < (config.sampleRate * seconds))
     {
         // Checking if new data is available:
-        if (!audioHelper.readNextBatch())
+        if (!audioHelper.readNextBatch(config.channels, 6))
         {
             usleep(1);
 
             continue;
         }
 
-        audioHelper.setNextBatchRead();
+        audioHelper.setNextBatchRead(config.channels, 6);
 
         // Determine order of microphones, only executed once:
         if (!audioHelper.determineMicrophoneOrder())
@@ -313,7 +312,7 @@ void recordToWavFile(const char *filename, const int seconds)
             }
         }
 
-        audioHelper.signalBatchProcessed(channels, 6);
+        audioHelper.signalBatchProcessed(config.channels, 6);
 
         iteration++;
     }
@@ -433,14 +432,14 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
     while (keepDecoding)
     {
         // Checking if new data is available:
-        if (!audioHelper.readNextBatch())
+        if (!audioHelper.readNextBatch(channels, numChannelsToDecode))
         {
             usleep(1);
 
             continue;
         }
 
-        audioHelper.setNextBatchRead();
+        audioHelper.setNextBatchRead(channels, numChannelsToDecode);
 
         // auto t1 = chrono::high_resolution_clock::now();
 
@@ -994,17 +993,13 @@ int main()
         return 0;
     }
 
-    // while(true) {
-    //     usleep(10);
-    // }
-
     // Determining microphone order when first batch is received:
-    while (!audioHelper.readNextBatch())
+    while (!audioHelper.readNextBatch(config.channels, 6))
     {
         usleep(1);
     }
 
-    audioHelper.setNextBatchRead();
+    audioHelper.setNextBatchRead(config.channels, 6);
 
     // Determine order of microphones, only executed once:
     if (!audioHelper.determineMicrophoneOrder())

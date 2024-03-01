@@ -22,8 +22,8 @@ public:
 
     void clearBuffers();
     bool writeNextBatch();
-    bool readNextBatch();
-    void setNextBatchRead();
+    bool readNextBatch(const int *channels, int count);
+    void setNextBatchRead(const int *channels, int count);
     bool allDataWritten();
 
     void signalBatchProcessed(const int *channels, int count);
@@ -50,11 +50,12 @@ private:
     uint8_t emptyBuffers;
 
     bool writeNext;
-    bool inputDataAvailable;
+    bool inputDataAvailable[NUM_CHANNELS];
     bool batchProcessed[NUM_CHANNELS];
 
     bool isCompleteBatchProcessed();
     void setCompleteBatchUnprocessed();
+    void setCompleteBatchAvailable();
 
     uint8_t inputStreamsReceived;
     bool inputStreamReady;
