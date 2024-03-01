@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <cmath>
+#include <spdlog/spdlog.h>
 
 template <typename T>
 

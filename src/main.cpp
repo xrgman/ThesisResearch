@@ -23,6 +23,8 @@ using namespace std;
 // Loading config file:
 Config config = Config::LoadConfig("../src/config.json");
 
+// Logger:
+
 // Func defs:
 void dataDecodedCallback(AudioCodecResult result);
 void sendLocalizationResponse(int receiverId);
@@ -35,11 +37,15 @@ MapRenderer mapRenderer;
 AudioCodec audioCodec(dataDecodedCallback, config.totalNumberRobots, config.robotId, config.printBitsEncoding, config.filterOwnSource);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
-bool liveDecoding = true;
+bool keepDecoding = true;
 
 // Distance to be used as long as we can't calculate it from the actual received message:
 bool processDecodedDataToPf = true; // TODO: set to false
 double currentProcessingDistance = 0;
+
+// Parallel processing of decoding:
+const int decodingThreadsCnt = 1;
+thread decodingThreads[decodingThreadsCnt];
 
 // Fields in use for distance tracking:
 chrono::time_point localizationBroadcastSend = chrono::high_resolution_clock::now();
@@ -272,6 +278,7 @@ void openAndPlayWavFile(const char *filename)
 void recordToWavFile(const char *filename, const int seconds)
 {
     vector<int16_t> dataToWrite;
+    int channels[6] = {0, 1, 2, 3, 4, 5};
     int iteration = 0;
 
     while ((iteration * FRAMES_PER_BUFFER) < (config.sampleRate * seconds))
@@ -306,7 +313,7 @@ void recordToWavFile(const char *filename, const int seconds)
             }
         }
 
-        audioHelper.signalBatchProcessed();
+        audioHelper.signalBatchProcessed(channels, 6);
 
         iteration++;
     }
@@ -416,39 +423,51 @@ void decodeWavFile(const char *filename)
 }
 
 /// @brief Start running the decoding on live data received from the microphones.
-void decodingLive()
+void decodingThread(int *channelsToDecode, int numChannelsToDecode)
 {
+    const int *channels = new int[numChannelsToDecode];
+
+    // Storing copy of channels here:
+    std::memcpy(const_cast<int *>(channels), channelsToDecode, numChannelsToDecode * sizeof(int));
+
     cout << "Live decoding started!\n";
 
-    vector<double> durations;
-    // vector<double> averageDurations;
-
-    while (liveDecoding)
+    while (keepDecoding)
     {
         // Checking if new data is available:
         if (!audioHelper.readNextBatch())
         {
-            usleep(1);
+            usleep(2);
 
             continue;
         }
 
         audioHelper.setNextBatchRead();
 
+        // auto t1 = chrono::high_resolution_clock::now();
+
         //  Looping over all microphones:
-        for (uint8_t channel = 0; channel < config.numChannels; channel++)
+        for (uint8_t channel = 0; channel < numChannelsToDecode; channel++)
         {
-            uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
+            uint8_t channelToProcess = channels[channel];
+            uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channelToProcess];
             int16_t *channelData = audioHelper.audioData[channelIdx];
 
             // Looping over all frames in the buffer:
             for (int i = 0; i < FRAMES_PER_BUFFER; i++)
             {
-                audioCodec.decode(channelData[i], channel);
+                audioCodec.decode(channelData[i], channelToProcess);
             }
         }
 
-        audioHelper.signalBatchProcessed();
+        // auto t2 = chrono::high_resolution_clock::now();
+        // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+
+        // int tes = ms_int.count();
+
+        // cout << "Processing one buffer took: " << tes << endl;
+
+        audioHelper.signalBatchProcessed(channels, numChannelsToDecode);
     }
 }
 
@@ -537,7 +556,7 @@ void sendLocalizationResponse(int receiverId)
 
 /// @brief Send out an encoded message, while simultaniously recording data to a WAV file.
 /// @param filename Filename of the WAV file.
-void sendMessageAndRecord(const char *filename)
+/*void sendMessageAndRecord(const char *filename)
 {
     // Creating message encoded:
     int size = audioCodec.getEncodingSize();
@@ -550,6 +569,7 @@ void sendMessageAndRecord(const char *filename)
     vector<int16_t> dataRead;
     int iteration = 0;
     int seconds = 13;
+    int channels[6] = {0, 1, 2, 3, 4, 5};
 
     int dataWriteIteration = 0;
     int dataWritePosition = 0;
@@ -557,9 +577,9 @@ void sendMessageAndRecord(const char *filename)
     while ((iteration * FRAMES_PER_BUFFER) < (config.sampleRate * seconds))
     {
         // Checking if new data is available:
-        if (audioHelper.readNextBatch())
+        if (audioHelper.readNextBatch(channels, 6))
         {
-            audioHelper.setNextBatchRead();
+            audioHelper.setNextBatchRead(channels, 6);
 
             // Preparing data to be written:
             for (int sample = 0; sample < FRAMES_PER_BUFFER; sample++)
@@ -573,7 +593,7 @@ void sendMessageAndRecord(const char *filename)
                 }
             }
 
-            audioHelper.signalBatchProcessed();
+            audioHelper.signalBatchProcessed(channels, 6);
 
             iteration++;
         }
@@ -603,7 +623,7 @@ void sendMessageAndRecord(const char *filename)
     writeWavFile(filename, dataRead.data(), dataRead.size(), config.sampleRate, 16, config.numChannels);
 
     cout << "Successfully send message and written recording to wav file '" << filename << "'\n";
-}
+}*/
 
 /// @brief Process a file, without performing distance calculation. Instead distance is substracted from the file name.
 /// @param filename Filename of the WAV file.
@@ -674,7 +694,7 @@ void handleKeyboardInput()
 
     while (keepProcessing)
     {
-       // int ready = poll(&fd, 1, 0);
+        // int ready = poll(&fd, 1, 0);
 
         if (cin)
         {
@@ -694,7 +714,7 @@ void handleKeyboardInput()
             if (words[0] == "q" || words[0] == "Q")
             {
                 keepProcessing = false;
-                liveDecoding = false;
+                keepDecoding = false;
 
                 continue;
             }
@@ -753,7 +773,9 @@ void handleKeyboardInput()
             {
                 cout << "Starting live decoding.\n";
 
-                decodingLive();
+                int channels[] = {0, 1, 2, 3, 4, 5};
+
+                decodingThread(channels, 6);
 
                 continue;
             }
@@ -775,7 +797,7 @@ void handleKeyboardInput()
 
                 cout << "Start recording own message to file " << filename << ".\n";
 
-                sendMessageAndRecord(filename);
+                // sendMessageAndRecord(filename);
 
                 continue;
             }
@@ -962,6 +984,11 @@ int main()
     // Preparing random number generator:
     srand(time(NULL));
 
+    // Initialize the logger
+    spdlog::set_pattern("[%H:%M:%S.%e] [%l] %v");;
+
+    spdlog::info("Logger initialized!");
+
     // Killing running tasks:
     audioHelper.stopAndClose(false);
 
@@ -975,6 +1002,10 @@ int main()
 
         return 0;
     }
+
+    // while(true) {
+    //     usleep(10);
+    // }
 
     // Determining microphone order when first batch is received:
     while (!audioHelper.readNextBatch())
@@ -992,24 +1023,37 @@ int main()
         return 0;
     }
 
-    audioHelper.signalBatchProcessed();
+    audioHelper.signalBatchProcessed(config.channels, config.numChannels);
 
-    // Starting decoding thread in the background:
-    thread decodingThread(decodingLive);
+    // Starting decoding threads in the background:
+    int channelsPerThread = config.numChannels / decodingThreadsCnt;
+
+    for (int i = 0; i < decodingThreadsCnt; i++)
+    {
+        // Grabbing channels for thread:
+        int *channelsForThread = new int[channelsPerThread];
+
+        cout << "Starting thread for channels: ";
+
+        for (int j = 0; j < channelsPerThread; j++)
+        {
+            channelsForThread[j] = config.channels[i * channelsPerThread + j];
+
+            // cout << channelsForThread[j] << (j < channelsPerThread - 1 ? ", " : "\n");
+        }
+
+        // Firing up the thread:
+        // decodingThreads[i] = thread(decodingThread, channelsForThread, channelsPerThread);
+    }
 
     // Running keyboard input function:
     handleKeyboardInput();
 
-    //  decodeMessageConvolution("../recordings/convolution/los/250cm_270deg.wav");
-
-    // openAndPlayWavFile("../src/song2.wav");
-    //   loadParticleFilter();
-
-    // encodeMessageForAudio("../recordings/convolution/encoding0.wav", ROBOT_ID);
-
-    // recordToWavFile("TestOpname.wav", 5);
-
-    decodingThread.join();
+    // Waiting for threads to finish:
+    for (int i = 0; i < decodingThreadsCnt; i++)
+    {
+        decodingThreads[i].join();
+    }
 
     audioHelper.clearBuffers();
     audioHelper.stopAndClose();
@@ -1018,5 +1062,3 @@ int main()
 
     return 0;
 }
-
-// Changing sample rate only influences time-domain, not the frequency domain.

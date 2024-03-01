@@ -15,8 +15,12 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
     this->numChannels = numChannels;
 
     this->inputStreamsReceived = 0;
-    this->batchProcessed = true;
     this->emptyBuffers = NUM_BUFFERS;
+
+    for (int i = 0; i < numChannels; i++)
+    {
+        this->batchProcessed[i] = true;
+    }
 }
 
 int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
@@ -57,11 +61,11 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     // We want to put data into the outputbuffer as soon as this one is called.
     int16_t *inputData = (int16_t *)inputData; // Not uint16_t but int16
 
-    bool isBatchProcessed = batchProcessed;
+    bool isBatchProcessed = isCompleteBatchProcessed();
 
     if (!isBatchProcessed && microphonesAreOrdered)
     {
-        cout << "Batch was not yet processed!\n";
+        spdlog::error("Batch was not yet processed!");
     }
 
     // Grabbing read data:
@@ -74,7 +78,8 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     }
 
     inputDataAvailable = true;
-    batchProcessed = false;
+    setCompleteBatchUnprocessed();
+    // batchProcessed = false;
 
     return paContinue;
 }
@@ -304,9 +309,33 @@ void AudioHelper::setNextBatchRead()
     inputDataAvailable = false;
 }
 
-void AudioHelper::signalBatchProcessed()
+void AudioHelper::signalBatchProcessed(const int *channels, int count)
 {
-    batchProcessed = true;
+    for (int i = 0; i < count; i++)
+    {
+        batchProcessed[channels[i]] = true;
+    }
+}
+
+bool AudioHelper::isCompleteBatchProcessed()
+{
+    for (int i = 0; i < numChannels; i++)
+    {
+        if (!batchProcessed[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void AudioHelper::setCompleteBatchUnprocessed()
+{
+    for (int i = 0; i < numChannels; i++)
+    {
+        batchProcessed[i] = false;
+    }
 }
 
 /// @brief Simple method that tells you if all written data has been send to the audio device, based on the number of empty buffers.
@@ -342,7 +371,7 @@ bool AudioHelper::determineMicrophoneOrder()
         // 2. Calulate the average deviation of each channel:
         deviations[channel] = calculateDeviationAverage(channelData, FRAMES_PER_BUFFER, averages[channel]);
 
-        //cout << deviations[channel] << ", ";
+        // cout << deviations[channel] << ", ";
     }
 
     // 3. Finding the two with lowest deviations:

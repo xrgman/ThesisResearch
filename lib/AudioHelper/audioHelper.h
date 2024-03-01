@@ -26,7 +26,7 @@ public:
     void setNextBatchRead();
     bool allDataWritten();
 
-    void signalBatchProcessed();
+    void signalBatchProcessed(const int *channels, int count);
 
     bool determineMicrophoneOrder();
     uint8_t* getMicrophonesOrdered();
@@ -51,7 +51,10 @@ private:
 
     bool writeNext;
     bool inputDataAvailable;
-    bool batchProcessed;
+    bool batchProcessed[NUM_CHANNELS];
+
+    bool isCompleteBatchProcessed();
+    void setCompleteBatchUnprocessed();
 
     uint8_t inputStreamsReceived;
     bool inputStreamReady;

@@ -38,6 +38,17 @@ find_package(Threads REQUIRED)
 # Link pthread library
 find_package(Threads REQUIRED)
 
+# Link spdlog
+find_package(spdlog REQUIRED) 
+
+#Creating executable
+# FetchContent_Declare(
+#     spdlog
+#     GIT_REPOSITORY https://github.com/gabime/spdlog.git
+#     GIT_TAG v1.9.2
+# )
+# FetchContent_MakeAvailable(spdlog) 
+
 #Creating executable
 add_executable(demo src/main.cpp)  
 
@@ -46,6 +57,9 @@ target_include_directories(demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_
  
 # Linking libraries
 target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES} ${Boost_LIBRARIES} ${SDL2_LIBRARIES} ${SDL2_TTF_LIBRARIES} Threads::Threads WavHelper AudioHelper kissfft FFTWrapper Util ParticleFilter nlohmann_json::nlohmann_json MapRenderer AudioCodec Config) 
+target_link_libraries(demo PRIVATE spdlog::spdlog)
+
+
 
 # Copy gnuplot-iostream.h to the build directory
 #configure_file(src/gnuplot-iostream.h ${CMAKE_CURRENT_BINARY_DIR}/gnuplot-iostream.h COPYONLY)
