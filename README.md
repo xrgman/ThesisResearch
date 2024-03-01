@@ -78,6 +78,11 @@
 
 
 ## Installation libraries:
+git clone https://github.com/PortAudio/portaudio/archive/refs/tags/v19.7.0.tar.gz
+./configure && make
+sudo make install
+sudo ln -s /usr/local/lib/libportaudio.so /usr/lib/arm-linux-gnueabihf/libportaudio.so
+
 sudo apt-get install libsdl2-dev
 sudo apt-get install libsdl2-ttf-dev
 sudo apt-get install libboost-all-dev

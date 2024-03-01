@@ -1259,7 +1259,7 @@ void AudioCodec::performDistanceTracking(chrono::system_clock::time_point decodi
 /// @param fft_plan_inv FFT plan inverse (With same size as arrays).
 void AudioCodec::fftConvolve(const double *in1, const double *in2, const int size, double *output, FFTConfigStore fftConfigStore)
 {
-    auto t1 = chrono::high_resolution_clock::now();
+    //auto t1 = chrono::high_resolution_clock::now();
 
     int originalN = size * 2 - 1;
 
@@ -1297,10 +1297,10 @@ void AudioCodec::fftConvolve(const double *in1, const double *in2, const int siz
         output[i] = cx_result[start + i].r;
     }
 
-    auto t2 = chrono::high_resolution_clock::now();
-    chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+    // auto t2 = chrono::high_resolution_clock::now();
+    // chrono::nanoseconds ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-    int tes = ms_int.count();
+    // int tes = ms_int.count();
 
     // cout << "FFT convolve (" << fftConfigStore.N << ") took: " << ms_int.count() << "ns\n";
 }

@@ -11,7 +11,7 @@
 #define CHIRP_AMPLITUDE 1.0
 
 #define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source
-#define PREAMBLE_SIGNAL_ENERGY_CUTOFF 1000 //When to assume message is from own source
+#define PREAMBLE_SIGNAL_ENERGY_CUTOFF 400 //When to assume message is from own source
 #define MINIMUM_DISTANCE_PREAMBLE_PEAKS 1000 //Two peaks should be at least be x samples apart to be considered from different sources.
 
 //*** Encoding frequency definitions ***
