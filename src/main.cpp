@@ -81,8 +81,9 @@ void processDecodingResults()
     while (decodingResults.size() > 0)
     {
         AudioCodecResult decodingResult = decodingResults[0];
+        double averageSignalEnergy = calculateAverage(decodingResult.signalEnergy, config.numChannels);
 
-        spdlog::info("Message received ({}) from robot {}, at {} degrees", decodingResult.messageType, decodingResult.senderId, decodingResult.doa);
+        spdlog::info("Message received ({}) from robot {} at {} degrees with signal energy: {}", decodingResult.messageType, decodingResult.senderId, decodingResult.doa, averageSignalEnergy);
 
         // Handling message based on its type:
         switch (decodingResult.messageType)
@@ -391,9 +392,6 @@ void decodeWavFile(const char *filename)
         return;
     }
 
-    // Initialize the FFT:
-    initializeFFT(PREAMBLE_BITS, STFT_WINDOW_SIZE);
-
     // Start timer:
     decodingStart = chrono::high_resolution_clock::now();
 
@@ -638,9 +636,6 @@ void processFileWoDistance(const char *filename)
 
         return;
     }
-
-    // Initialize the FFT:
-    initializeFFT(PREAMBLE_BITS, STFT_WINDOW_SIZE);
 
     // Start timer:
     decodingStart = chrono::high_resolution_clock::now();

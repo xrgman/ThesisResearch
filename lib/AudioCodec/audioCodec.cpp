@@ -680,24 +680,6 @@ static vector<double> durations;
 
 void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 {
-    // int siz = 9;
-    // double test[siz] = {10, 20, 30, 40, 50, 60, 70, 80, 90};
-    // kiss_fft_cpx out[siz];
-    // int N = siz;
-
-    // kiss_fft_cfg fftConfTemp = kiss_fft_alloc(N, 0, nullptr, nullptr);
-    // kiss_fft_cfg fftConfTempInv = kiss_fft_alloc(N, 1, nullptr, nullptr);
-
-    // FFTConfigStore configStore = {siz,
-    //                               N,
-    //                               fftConfTemp,
-    //                               fftConfTempInv};
-
-    // hilbert(test, out, siz, configStore);
-
-    // free(fftConfTemp);
-    // free(fftConfTempInv);
-
     // Converting received value to double between -1 and 1:
     double value = int16ToDouble(bit);
 
@@ -1321,7 +1303,7 @@ void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size, FF
     kiss_fft_cpx fftInput[size];
 
     // Perform FFT :
-    performFFT(fftConfigStore.fftConfig, input, fftInput, size);
+    performFFT(fftConfigStore.fftConfig, input, fftInput, size, false);
 
     // 2. Create vector h, whose elements h(i) have value: 1 for i = 0, (n/2) | 2 for i = 1, 2, … , (n/2)-1 | 0 for i = (n/2)+1, … , n
     // for (int i = 1; i < (double)fftConfigStore.N / 2; i++)
