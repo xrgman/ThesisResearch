@@ -754,7 +754,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
             double signalEnergy = calculateSignalEnergy(energyFrame, PREAMBLE_BITS);
 
-            cout << "Signal energy: " << signalEnergy << endl;
+            //cout << "Signal energy: " << signalEnergy << endl;
 
             // Checking if its from own source:
             if (filterOwnSource && signalEnergy > PREAMBLE_SIGNAL_ENERGY_CUTOFF)
@@ -853,9 +853,9 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits() - 8)
                 {
                     // Save decoding time:
-                    chrono::time_point decodingDoneTime = chrono::high_resolution_clock::now();
+                    decodingResults[decodingResultIdx].decodingDoneTime = chrono::high_resolution_clock::now();
 
-                    completeDecoding(decodingResults[decodingResultIdx], decodingDoneTime);
+                    completeDecoding(decodingResults[decodingResultIdx]);
 
                     // Removing decoding result from the list:
                     decodingResults.erase(decodingResults.begin() + decodingResultIdx);
@@ -1132,7 +1132,7 @@ bool AudioCodec::doesDecodingResultExistForSenderId(int senderId)
     return false;
 }
 
-void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime)
+void AudioCodec::completeDecoding(AudioCodecResult decodingResult)
 {
     // Printing decoded bits if required:
     if (printCodedBits)
@@ -1166,7 +1166,7 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult, chrono::syste
         }
 
         // Handle distance calculation:
-        performDistanceTracking(decodingEndTime);
+        //performDistanceTracking(decodingEndTime);
 
         // Return data to callback:
         data_decoded_callback(decodingResult);
@@ -1518,4 +1518,6 @@ double AudioCodec::calculateDistance(const int *arrivalTimes, const int size)
     // I think we can assume processing times, but the only problem is that that only holds on an actual microcontroller or FGPA, not a Pi since multiple other processes are running in the background which screws things up :()
 
     // Distance = c * TDOA / 2 (just comething I found)
+
+    return 1.0;
 }

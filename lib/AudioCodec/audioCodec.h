@@ -81,6 +81,8 @@ struct AudioCodecResult
     // Stores the actual decoded data:
     uint8_t decodedData[DECODING_DATA_BITS];
 
+    std::chrono::high_resolution_clock::time_point decodingDoneTime;
+
     void reset()
     {
         senderId = -1;
@@ -243,7 +245,7 @@ private:
     int findDecodingResult(int preamblePeakIndex);
     bool doesDecodingResultExistForSenderId(int senderId);
 
-    void completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime);
+    void completeDecoding(AudioCodecResult decodingResult);
     void performDistanceTracking(chrono::system_clock::time_point decodingEndTime);
 
     // General decoding functions:

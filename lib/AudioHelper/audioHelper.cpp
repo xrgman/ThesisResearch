@@ -68,10 +68,6 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     {
         spdlog::error("Batch was not yet processed!");
     }
-    else
-    {
-        // spdlog::info("Batch succesfully processed");
-    }
 
     // Grabbing read data:
     for (int i = 0; i < framesPerBuffer; i++)

@@ -23,8 +23,6 @@ using namespace std;
 // Loading config file:
 Config config = Config::LoadConfig("../src/config.json");
 
-// Logger:
-
 // Func defs:
 void dataDecodedCallback(AudioCodecResult result);
 void sendLocalizationResponse(int receiverId);
@@ -44,7 +42,7 @@ bool processDecodedDataToPf = true; // TODO: set to false
 double currentProcessingDistance = 0;
 
 // Parallel processing of decoding:
-const int decodingThreadsCnt = 1;
+const int decodingThreadsCnt = 2;
 thread decodingThreads[decodingThreadsCnt];
 
 vector<AudioCodecResult> decodingResults;
@@ -139,10 +137,13 @@ void processDecodingResults()
             if (receiverId == config.robotId)
             {
                 // Saving time:
-                chrono::time_point responseReceived = chrono::high_resolution_clock::now();
+                //chrono::time_point responseReceived = chrono::high_resolution_clock::now();
 
-                // Calculating time difference:
-                auto timeDifference = chrono::duration_cast<chrono::milliseconds>(localizationBroadcastSend - responseReceived);
+                // Removing time it took to reach this point:
+                //auto timeDifference = chrono::duration_cast<chrono::milliseconds>(responseReceived - decodingResult.decodingDoneTime);
+
+                //Removing time from start of sending message:
+                auto timeDifference = chrono::duration_cast<chrono::milliseconds>(decodingResult.decodingDoneTime - localizationBroadcastSend);
 
                 // Calculate the actual distance:
                 double distance = 343 * timeDifference.count();
@@ -670,7 +671,7 @@ void handleKeyboardInput()
 {
     bool keepProcessing = true;
     string input;
-
+ 
     struct pollfd fd;
     fd.fd = STDIN_FILENO;
     fd.events = POLLIN;
@@ -976,8 +977,6 @@ int main()
 
     // Initialize the logger
     spdlog::set_pattern("[%H:%M:%S.%e] [%l] %v");
-    ;
-
     spdlog::info("Logger initialized!");
 
     // Killing running tasks:
