@@ -25,7 +25,7 @@
 #define PREAMBLE_BITS 8192 //Was 4096
 #define PREAMBLE_DURATION (double)PREAMBLE_BITS / SAMPLE_RATE
  
-#define SYMBOL_BITS 320 //320
+#define SYMBOL_BITS 512 //320
 #define SYMBOL_DURATION (double)SYMBOL_BITS / SAMPLE_RATE//0.0145124716 // For 22.05Khz 0.0072562358 //For 44.1Khz
 
 //*** Under sampling definitions ***

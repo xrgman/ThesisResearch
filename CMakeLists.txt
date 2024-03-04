@@ -56,7 +56,7 @@ add_executable(demo src/main.cpp)
 target_include_directories(demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/lib/Config ${PORTAUDIO_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${SDL2_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS} kissfft)
  
 # Linking libraries
-target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES} ${Boost_LIBRARIES} ${SDL2_LIBRARIES} ${SDL2_TTF_LIBRARIES} Threads::Threads WavHelper AudioHelper kissfft FFTWrapper Util ParticleFilter nlohmann_json::nlohmann_json MapRenderer AudioCodec Config) 
+target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES} ${Boost_LIBRARIES} ${SDL2_LIBRARIES} ${SDL2_TTF_LIBRARIES} Threads::Threads WavHelper AudioHelper kissfft FFTWrapper Util ParticleFilter nlohmann_json::nlohmann_json MapRenderer AudioCodec Config RingBuffer) 
 target_link_libraries(demo PRIVATE spdlog::spdlog)
 
 

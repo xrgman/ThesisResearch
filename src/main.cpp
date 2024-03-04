@@ -433,13 +433,15 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
 {
     const int *channels = new int[numChannelsToDecode];
 
+    int16_t data[NUM_CHANNELS][FRAMES_PER_BUFFER];
+
     // Storing copy of channels here:
     std::memcpy(const_cast<int *>(channels), channelsToDecode, numChannelsToDecode * sizeof(int));
 
     while (keepDecoding)
     {
         // Checking if new data is available:
-        if (!audioHelper.readNextBatch(channels, numChannelsToDecode))
+        /*if (!audioHelper.readNextBatch(channels, numChannelsToDecode))
         {
             usleep(1);
 
@@ -458,11 +460,36 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
                 uint8_t channelToProcess = channels[channel];
                 uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channelToProcess];
 
+
+
                 audioCodec.decode(audioHelper.audioData[channelIdx][i], channelToProcess);
             }
         }
 
-        audioHelper.signalBatchProcessed(channels, numChannelsToDecode);
+        audioHelper.signalBatchProcessed(channels, numChannelsToDecode);*/
+
+        // Checking if new data is available:
+        if (!audioHelper.isDataAvailable(FRAMES_PER_BUFFER))
+        {
+            usleep(1);
+
+            continue;
+        }
+
+        // Reading new data:
+        for (uint8_t channel = 0; channel < config.numChannels; channel++)
+        {
+            audioHelper.inputBuffers[channel].Read(data[channel], FRAMES_PER_BUFFER);
+        }
+
+        // Decoding newly read data:
+        for (int i = 0; i < FRAMES_PER_BUFFER; i++)
+        {
+            for (uint8_t channel = 0; channel < config.numChannels; channel++)
+            {
+                audioCodec.decode(data[channel][i], channel);
+            }
+        }
     }
 }
 
@@ -941,6 +968,13 @@ void handleKeyboardInput()
 
                 continue;
             }
+
+            if (words[0] == "pali")
+            {
+                double load = audioHelper.getInputStreamLoad();
+
+                cout << "Current input stream load: " << load << endl;
+            }
         }
 
         // Process decoding results:
@@ -969,6 +1003,55 @@ void handleKeyboardInput()
 
     // Clearing map renderer:
     mapRenderer.stop();
+}
+
+void launchDecodingThreads()
+{
+    // Starting decoding threads in the background:
+    int channelsPerThread = config.numChannels / decodingThreadsCnt;
+
+    for (int i = 0; i < decodingThreadsCnt; i++)
+    {
+        // Grabbing channels for thread:
+        int *channelsForThread = new int[channelsPerThread];
+
+        cout << "Starting thread for channels: ";
+
+        for (int j = 0; j < channelsPerThread; j++)
+        {
+            channelsForThread[j] = config.channels[i * channelsPerThread + j];
+
+            cout << channelsForThread[j] << (j < channelsPerThread - 1 ? ", " : "\n");
+        }
+
+        // Firing up the thread:
+        decodingThreads[i] = thread(decodingThread, channelsForThread, channelsPerThread);
+    }
+}
+
+void launchDecodingThreads2()
+{
+    // Define CPU affinity masks for threads
+    cpu_set_t cpuSet1, cpuSet2;
+    CPU_ZERO(&cpuSet1);
+    CPU_ZERO(&cpuSet2);
+    CPU_SET(0, &cpuSet1); // Allow thread 1 to run on CPU core 0
+    CPU_SET(1, &cpuSet2); // Allow thread 2 to run on CPU core 1
+
+    int channelsForThread[3] = {0, 1, 2};
+
+    // Create threads
+    // pthread_t thread1, thread2;
+    // pthread_create(&thread1, NULL, decodingThread, channelsForThread, channelsPerThread);
+    // pthread_create(&thread2, NULL, decodingThread, channelsForThread, channelsPerThread);
+
+    // // Set CPU affinity for threads
+    // pthread_setaffinity_np(thread1, sizeof(cpu_set_t), &cpuSet1);
+    // pthread_setaffinity_np(thread2, sizeof(cpu_set_t), &cpuSet2);
+
+    // // Wait for threads to finish
+    // pthread_join(thread1, NULL);
+    // pthread_join(thread2, NULL);
 }
 
 int main()
@@ -1015,26 +1098,38 @@ int main()
 
     audioHelper.signalBatchProcessed(config.channels, config.numChannels);
 
-    // Starting decoding threads in the background:
-    int channelsPerThread = config.numChannels / decodingThreadsCnt;
+    // RingBuffer buff;
 
-    for (int i = 0; i < decodingThreadsCnt; i++)
-    {
-        // Grabbing channels for thread:
-        int *channelsForThread = new int[channelsPerThread];
+    // buff.Initialize(5);
 
-        cout << "Starting thread for channels: ";
+    // for (int i = 0; i < 5; i++) {
+    //     buff.Write(i);
+    // }
 
-        for (int j = 0; j < channelsPerThread; j++)
-        {
-            channelsForThread[j] = config.channels[i * channelsPerThread + j];
+    // buff.printData();
 
-            cout << channelsForThread[j] << (j < channelsPerThread - 1 ? ", " : "\n");
-        }
+    // buff.Write(6);
+    // buff.Write(7);
+    // buff.Write(8);
 
-        // Firing up the thread:
-        decodingThreads[i] = thread(decodingThread, channelsForThread, channelsPerThread);
-    }
+    // buff.printData();
+
+    // // int t = buff.Read();
+    // // int t2 = buff.Read();
+    // // int t3 = buff.Read();
+    // // int t4 = buff.Read();
+    // // int t5 = buff.Read();
+
+    // int16_t lol[6];
+
+    // int totalRead = buff.Read(lol, 6);
+
+    // buff.printData();
+
+    // return 0;
+
+    // Starting decoding threads:
+    launchDecodingThreads();
 
     // Running keyboard input function:
     handleKeyboardInput();

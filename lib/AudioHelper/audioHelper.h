@@ -5,9 +5,12 @@
 #include <portaudio.h>
 
 #include "main.h"
+#include "ringBuffer.h"
 
 #define NUM_BUFFERS 2
 #define CALIBRATION_ITERATIONS 10
+
+
 
 using namespace std;
 
@@ -26,12 +29,18 @@ public:
     void setNextBatchRead(const int *channels, int count);
     bool allDataWritten();
 
+    bool isDataAvailable(const int count);
+
     void signalBatchProcessed(const int *channels, int count);
+
+    double getInputStreamLoad();
 
     bool determineMicrophoneOrder();
     uint8_t* getMicrophonesOrdered();
 
     int16_t audioData[NUM_CHANNELS_RAW][FRAMES_PER_BUFFER];
+
+    RingBuffer inputBuffers[NUM_CHANNELS];
 
 private:
     uint32_t sampleRate;
@@ -48,6 +57,8 @@ private:
     int16_t buffer2[FRAMES_PER_BUFFER];
     uint8_t bufferIdx;
     uint8_t emptyBuffers;
+
+    
 
     bool writeNext;
     bool inputDataAvailable[NUM_CHANNELS];
@@ -77,7 +88,7 @@ private:
 
     static int inputCallback(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
     {
-        return ((AudioHelper *)userData)->inputCallbackMethod(inputBuffer, outputBuffer, framesPerBuffer, timeInfo, statusFlags);
+        return ((AudioHelper *)userData)->inputCallbackMethod(inputBuffer, outputBuffer, framesPerBuffer, timeInfo, statusFlags );
     }
 };
 

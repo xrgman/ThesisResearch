@@ -62,24 +62,43 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     // We want to put data into the outputbuffer as soon as this one is called.
     int16_t *inputData = (int16_t *)inputData; // Not uint16_t but int16
 
-    bool isBatchProcessed = isCompleteBatchProcessed();
+    // bool isBatchProcessed = isCompleteBatchProcessed();
 
-    if (!isBatchProcessed && microphonesAreOrdered)
-    {
-        spdlog::error("Batch was not yet processed!");
-    }
+    // if (!isBatchProcessed && microphonesAreOrdered)
+    // {
+    //     spdlog::error("Batch was not yet processed!");
+    // }
+
+    //spdlog::info("New data arrived!\n");
 
     // Grabbing read data:
+
     for (int i = 0; i < framesPerBuffer; i++)
     {
         for (int channel = 0; channel < numChannels; channel++)
         {
-            audioData[channel][i] = inputData[i * numChannels + channel];
+            if (!microphonesAreOrdered)
+            {
+                audioData[channel][i] = inputData[i * numChannels + channel];
+            }
+            else if (channel < numChannels - 2)
+            {
+                int actualChannelId = microphonesOrdered[channel];
+
+                // Saving to buffer in correct order:
+                inputBuffers[channel].Write(inputData[i * numChannels + actualChannelId]);
+            }
         }
     }
 
-    setCompleteBatchAvailable();
-    setCompleteBatchUnprocessed();
+    if (!microphonesAreOrdered)
+    {
+        setCompleteBatchAvailable();
+        // setCompleteBatchUnprocessed();
+    }
+
+    //         //Saving to buffer in correct order:
+    //         //inputRingBuffer.Write(inputData[i * numChannels + actualChannelId]);
 
     return paContinue;
 }
@@ -125,6 +144,12 @@ bool AudioHelper::initializeAndOpen()
     // Prepare callback data:
     writeNext = true;
 
+    // Preparing buffer:
+    for (int i = 0; i < NUM_CHANNELS; i++)
+    {
+        inputBuffers[i].Initialize(RING_BUFFER_SIZE);
+    }
+
     // Configure and open input stream:
     PaStreamParameters inputParameters;
     inputParameters.device = Pa_GetDefaultInputDevice(); // deviceIdx; // Pa_GetDefaultInputDevice(); //
@@ -158,6 +183,7 @@ bool AudioHelper::initializeAndOpen()
     outputParameters.hostApiSpecificStreamInfo = nullptr;
 
     err = Pa_OpenStream(&outputStream, NULL, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paNoFlag, &outputCallback, this);
+    //err = Pa_OpenStream(&outputStream, NULL, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paNoFlag, NULL, NULL);
 
     if (!checkForPaError(err, "output stream opening"))
     {
@@ -188,6 +214,8 @@ bool AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
     {
         copy(audioData, audioData + nrOfBytes, buffer2);
     }
+
+    //Pa_WriteStream(outputStream, audioData, nrOfBytes);
 
     return true;
 }
@@ -376,6 +404,26 @@ void AudioHelper::setCompleteBatchAvailable()
 bool AudioHelper::allDataWritten()
 {
     return emptyBuffers == NUM_BUFFERS + 1;
+}
+
+bool AudioHelper::isDataAvailable(const int count)
+{
+    for (int i = 0; i < NUM_CHANNELS; i++)
+    {
+        if (inputBuffers[i].bufferSize() < count)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/// @brief Get the current CPU load of the input stream.
+/// @return CPU load between 0.0 and 1.0.
+double AudioHelper::getInputStreamLoad()
+{
+    return Pa_GetStreamCpuLoad(inputStream);
 }
 
 //*************************************************

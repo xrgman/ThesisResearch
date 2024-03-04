@@ -8,6 +8,7 @@ add_library(ParticleFilter SHARED ParticleFilter/particleFilter.cpp  ${CMAKE_CUR
 add_library(MapRenderer SHARED MapRenderer/mapRenderer.cpp)
 add_library(AudioCodec SHARED AudioCodec/audioCodec.cpp)
 add_library(Config SHARED Config/config.cpp)
+add_library(RingBuffer SHARED RingBuffer/ringBuffer.cpp)
 
 # Set the library output directory
 set_target_properties(WavHelper PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
@@ -18,6 +19,7 @@ set_target_properties(ParticleFilter PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE
 set_target_properties(MapRenderer PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set_target_properties(AudioCodec PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set_target_properties(Config PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+set_target_properties(RingBuffer PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
  
 # Include the header files in the library target
 target_include_directories(WavHelper PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/WavHelper ${CMAKE_CURRENT_SOURCE_DIR}/../src) 
@@ -29,10 +31,11 @@ target_include_directories(ParticleFilter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Par
 target_include_directories(MapRenderer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/MapRenderer ${CMAKE_CURRENT_SOURCE_DIR}/../src) 
 target_include_directories(AudioCodec PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/AudioCodec ${CMAKE_CURRENT_SOURCE_DIR}/../src) 
 target_include_directories(Config PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Config) 
+target_include_directories(RingBuffer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/RingBuffer ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
 #Linking libraries:
 target_link_libraries(FFTWrapper PUBLIC kissfft)
-target_link_libraries(AudioHelper PUBLIC Util)
+target_link_libraries(AudioHelper PUBLIC Util RingBuffer)
 target_link_libraries(WavHelper PUBLIC Util)
 target_link_libraries(ParticleFilter PUBLIC Util nlohmann_json::nlohmann_json)
 target_link_libraries(MapRenderer PUBLIC Util ParticleFilter ${SDL2_LIBRARIES} ${SDL2_TTF_LIBRARIES})
