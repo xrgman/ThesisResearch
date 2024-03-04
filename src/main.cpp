@@ -42,7 +42,7 @@ bool processDecodedDataToPf = true; // TODO: set to false
 double currentProcessingDistance = 0;
 
 // Parallel processing of decoding:
-const int decodingThreadsCnt = 2;
+const int decodingThreadsCnt = 1;
 thread decodingThreads[decodingThreadsCnt];
 
 vector<AudioCodecResult> decodingResults;
@@ -138,21 +138,32 @@ void processDecodingResults()
             if (receiverId == config.robotId)
             {
                 // Saving time:
-                //chrono::time_point responseReceived = chrono::high_resolution_clock::now();
+                // chrono::time_point responseReceived = chrono::high_resolution_clock::now();
 
                 // Removing time it took to reach this point:
-                //auto timeDifference = chrono::duration_cast<chrono::milliseconds>(responseReceived - decodingResult.decodingDoneTime);
+                // auto timeDifference = chrono::duration_cast<chrono::milliseconds>(responseReceived - decodingResult.decodingDoneTime);
 
-                //Removing time from start of sending message:
-                auto timeDifference = chrono::duration_cast<chrono::milliseconds>(decodingResult.decodingDoneTime - localizationBroadcastSend);
+                // Removing time from start of sending message:
+                auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(decodingResult.decodingDoneTime - localizationBroadcastSend);
+
+                // We still need to substract the processing time inside the other robot....
+                double timeDiffNs = timeDifference.count();
+
+                spdlog::info("Time difference: {}ns", timeDifference.count());
+
+                double averageProcessingTimeB = 1653883567.0;
+
+                timeDiffNs -= averageProcessingTimeB;
+
+                double timeDiffS = timeDiffNs / 1000000000;
 
                 // Calculate the actual distance:
-                double distance = 343 * timeDifference.count();
+                double distanceInM = 343.0 * timeDiffS / 2;
 
-                spdlog::info("Robot is {} cm away.", distance);
+                spdlog::info("Robot is {} cm away.", distanceInM * 100);
 
                 // Saving calculated distance:
-                distanceToOtherRobots[decodingResult.senderId] = distance;
+                distanceToOtherRobots[decodingResult.senderId] = distanceInM;
             }
 
             break;
@@ -439,17 +450,15 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
 
         // auto t1 = chrono::high_resolution_clock::now();
 
-        //  Looping over all microphones:
-        for (uint8_t channel = 0; channel < numChannelsToDecode; channel++)
+        // Decode all new data:
+        for (int i = 0; i < FRAMES_PER_BUFFER; i++)
         {
-            uint8_t channelToProcess = channels[channel];
-            uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channelToProcess];
-            int16_t *channelData = audioHelper.audioData[channelIdx];
-
-            // Looping over all frames in the buffer:
-            for (int i = 0; i < FRAMES_PER_BUFFER; i++)
+            for (uint8_t channel = 0; channel < numChannelsToDecode; channel++)
             {
-                audioCodec.decode(channelData[i], channelToProcess);
+                uint8_t channelToProcess = channels[channel];
+                uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channelToProcess];
+
+                audioCodec.decode(audioHelper.audioData[channelIdx][i], channelToProcess);
             }
         }
 
@@ -666,7 +675,7 @@ void handleKeyboardInput()
 {
     bool keepProcessing = true;
     string input;
- 
+
     struct pollfd fd;
     fd.fd = STDIN_FILENO;
     fd.events = POLLIN;
