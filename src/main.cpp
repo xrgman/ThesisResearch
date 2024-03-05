@@ -32,7 +32,8 @@ AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw);
 ParticleFilter particleFilter;
 MapRenderer mapRenderer;
 
-AudioCodec audioCodec(dataDecodedCallback, config.sampleRate, config.totalNumberRobots, config.robotId, config.preambleSamples, config.bitSamples, config.printBitsEncoding, config.filterOwnSource);
+AudioCodec audioCodec(dataDecodedCallback, config.sampleRate, config.totalNumberRobots, config.robotId, config.preambleSamples, config.bitSamples,
+                      config.frequencyStartPreamble, config.frequencyStopPreamble, config.frequencyStartBit, config.frequencyStopBit, config.printBitsEncoding, config.filterOwnSource);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool keepDecoding = true;
@@ -133,7 +134,6 @@ void processDecodingResults()
             auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(messageSend - decodingResult.decodingDoneTime);
 
             spdlog::info("Time between receiving and completely sending: {}ns", timeDifference.count());
-
 
             break;
         }
@@ -1079,6 +1079,9 @@ int main()
     // Filling buffers with 0's:
     audioHelper.clearBuffers();
 
+    // Starting decoding threads:
+    launchDecodingThreads();
+
     // Opening audio streams:
     if (!audioHelper.initializeAndOpen())
     {
@@ -1134,9 +1137,6 @@ int main()
     // buff.printData();
 
     // return 0;
-
-    // Starting decoding threads:
-    launchDecodingThreads();
 
     // Running keyboard input function:
     handleKeyboardInput();

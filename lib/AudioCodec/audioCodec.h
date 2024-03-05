@@ -14,13 +14,6 @@
 #define PREAMBLE_SIGNAL_ENERGY_CUTOFF 400 //When to assume message is from own source
 #define MINIMUM_DISTANCE_PREAMBLE_PEAKS 1000 //Two peaks should be at least be x samples apart to be considered from different sources.
 
-//*** Encoding frequency definitions ***
-#define START_FREQ_PREAMBLE 2500.0//5500.0
-#define STOP_FREQ_PREAMBLE 6500.0//9500.0
-
-#define START_FREQ_BITS 6500.0//5500.0
-#define STOP_FREQ_BITS 10500.0//9500.0
-
 //*** Encoding bits definitions ***
 #define PREAMBLE_BITS 8192 //Was 4096
 
@@ -127,7 +120,8 @@ struct AudioCodecFrequencyPair
 class AudioCodec
 {
 public:
-    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, bool printCodedBits, bool filterOwnSource);
+    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
+           double frequencyStopBit, bool printCodedBits, bool filterOwnSource);
 
     ~AudioCodec()
     {
@@ -172,7 +166,7 @@ private:
     int preambleSamples, bitSamples;
     bool printCodedBits, filterOwnSource;
     double volume;
-    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairOwnUp, frequencyPairOwnDown;
+    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBit, frequencyPairOwnUp, frequencyPairOwnDown;
     AudioCodecFrequencyPair frequencyPairsOwn[2];
     void (*data_decoded_callback)(AudioCodecResult);
 

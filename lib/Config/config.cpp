@@ -47,7 +47,11 @@ Config Config::LoadConfig(const char *filename)
                       jsonData["print_bits_encoding"],
                       channels,
                       jsonData["preamble_samples"],
-                      jsonData["bit_samples"]);
+                      jsonData["bit_samples"],
+                      jsonData["freq_start_preamble"],
+                      jsonData["freq_stop_preamble"],
+                      jsonData["freq_start_bit"],
+                      jsonData["freq_stop_bit"]);
     }
     catch (const json::exception &e)
     {

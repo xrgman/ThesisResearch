@@ -10,7 +10,8 @@
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, bool printCodedBits, bool filterOwnSource)
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
+           double frequencyStopBit, bool printCodedBits, bool filterOwnSource)
 {
     this->sampleRate = sampleRate;
     this->totalNumberRobots = totalNumberRobots;
@@ -21,8 +22,10 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
     this->filterOwnSource = filterOwnSource;
     this->data_decoded_callback = data_decoded_callback;
     this->volume = 1.0;
-    this->frequencyPairPreamble.startFrequency = START_FREQ_PREAMBLE;
-    this->frequencyPairPreamble.stopFrequency = STOP_FREQ_PREAMBLE;
+    this->frequencyPairPreamble.startFrequency = frequencyStartPreamble;
+    this->frequencyPairPreamble.stopFrequency = frequencyStopPreamble;
+    this->frequencyPairBit.startFrequency = frequencyStartBit;
+    this->frequencyPairBit.stopFrequency = frequencyStopBit;
 
     for (uint8_t i; i < NUM_CHANNELS; i++)
     {
@@ -40,10 +43,10 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
 void AudioCodec::generateConvolutionFields(int robotId)
 {
     // Determining frequency range for specific robot ID:
-    double totalBandwidth = STOP_FREQ_BITS - START_FREQ_BITS;
+    double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency; 
     double bandwidthRobot = totalBandwidth / totalNumberRobots;
 
-    double startFrequency = START_FREQ_BITS + (robotId * bandwidthRobot);
+    double startFrequency = frequencyPairBit.startFrequency + (robotId * bandwidthRobot);
     double stopFrequency = startFrequency + bandwidthRobot;
 
     this->frequencyPairOwnDown.startFrequency = stopFrequency; // 0
@@ -81,8 +84,8 @@ void AudioCodec::generateConvolutionFields(int robotId)
     for (uint8_t i = 0; i < totalNumberRobots; i++)
     {
         AudioCodecFrequencyPair frequencies_up = {
-            START_FREQ_BITS + (i * bandwidthRobot),
-            START_FREQ_BITS + (i * bandwidthRobot) + bandwidthRobot};
+            frequencyPairBit.startFrequency + (i * bandwidthRobot),
+            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthRobot};
 
         AudioCodecFrequencyPair frequencies_down = {
             frequencies_up.stopFrequency,
