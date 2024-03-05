@@ -6,7 +6,7 @@ add_library(FFTWrapper SHARED FFTWrapper/fftWrapper.cpp ${CMAKE_CURRENT_SOURCE_D
 add_library(Util SHARED Util/util.cpp)
 add_library(ParticleFilter SHARED ParticleFilter/particleFilter.cpp  ${CMAKE_CURRENT_SOURCE_DIR}/../src/main.h ParticleFilter/particle.cpp ParticleFilter/Map/mapData.h ParticleFilter/Map/cell.cpp ParticleFilter/Map/wall.cpp ParticleFilter/Map/door.cpp ParticleFilter/Map/line.h) 
 add_library(MapRenderer SHARED MapRenderer/mapRenderer.cpp)
-add_library(AudioCodec SHARED AudioCodec/audioCodec.cpp)
+add_library(AudioCodec SHARED AudioCodec/audioCodec.cpp AudioCodec/audioCodecBits.cpp)
 add_library(Config SHARED Config/config.cpp)
 add_library(RingBuffer SHARED RingBuffer/ringBuffer.cpp)
 
