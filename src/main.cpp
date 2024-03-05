@@ -128,6 +128,13 @@ void processDecodingResults()
             // Sending localization response to requester:
             sendLocalizationResponse(decodingResult.senderId);
 
+            chrono::time_point messageSend = chrono::high_resolution_clock::now();
+
+            auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(messageSend - decodingResult.decodingDoneTime);
+
+            spdlog::info("Time between receiving and completely sending: {}ns", timeDifference.count());
+
+
             break;
         }
         case LOCALIZE_RESPONSE:
