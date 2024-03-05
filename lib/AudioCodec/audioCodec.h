@@ -172,7 +172,7 @@ public:
     void generateConvolutionFields(int robotId);
 
 private:
-    int totalNumberRobots;
+    int totalNumberRobots, robotId;
     bool printCodedBits, filterOwnSource;
     double volume;
     AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairOwnUp, frequencyPairOwnDown;

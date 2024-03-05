@@ -13,6 +13,7 @@
 AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int totalNumberRobots, int robotId, bool printCodedBits, bool filterOwnSource)
 {
     this->totalNumberRobots = totalNumberRobots;
+    this->robotId = robotId;
     this->printCodedBits = printCodedBits;
     this->filterOwnSource = filterOwnSource;
     this->data_decoded_callback = data_decoded_callback;
@@ -815,6 +816,16 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
                         continue;
                     }
+
+                    //If sender id is same as myself stop decoding:
+                    if(senderId == robotId) {
+                        spdlog::error("Sender ID is the same as own ID, signal energy: {}", decodingResults[decodingResultIdx].signalEnergy[microphoneId]);
+
+                        decodingResults.erase(decodingResults.begin() + decodingResultIdx);
+
+                        continue;
+                    }
+
 
                     decodingResults[decodingResultIdx].senderId = senderId;
                     decodingResults[decodingResultIdx].decodingBitsPosition += SYMBOL_BITS;
