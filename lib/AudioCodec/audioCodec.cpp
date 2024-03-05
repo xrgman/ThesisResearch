@@ -1155,7 +1155,7 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult)
     }
     else
     {
-        cout << "CRC mismatch, dropping message!\n\n";
+        spdlog::error("CRC mismatch, dropping message!");
     }
 
     // Resetting decoding stores:
