@@ -1170,7 +1170,7 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult)
     }
     else
     {
-        spdlog::error("CRC mismatch, dropping message!");
+        spdlog::error("CRC mismatch from robot {}, dropping message!", decodingResult.senderId);
     }
 
     // Resetting decoding stores:
