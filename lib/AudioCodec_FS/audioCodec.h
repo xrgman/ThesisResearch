@@ -95,7 +95,7 @@ static uint16_t Preamble_Sequence[3] = {17, 49, 127};
 class AudioCodec
 {
 public:
-    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samples_per_symbol, uint8_t spreading_factor, double bandwith);
+    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int samples_per_symbol, uint8_t spreading_factor, double bandwith);
 
     ~AudioCodec()
     {
@@ -116,7 +116,7 @@ private:
     void (*data_decoded_callback)(AudioCodecResult);
 
     // From the complex ecoding example:
-    int samples_per_symbol, bandwith;
+    int sampleRate, samples_per_symbol, bandwith;
     uint8_t spreading_factor;
 
     // Fields that are used for encoding and decoding (should not be altered!):

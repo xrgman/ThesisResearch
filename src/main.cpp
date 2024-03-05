@@ -32,7 +32,7 @@ AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw);
 ParticleFilter particleFilter;
 MapRenderer mapRenderer;
 
-AudioCodec audioCodec(dataDecodedCallback, config.totalNumberRobots, config.robotId, config.printBitsEncoding, config.filterOwnSource);
+AudioCodec audioCodec(dataDecodedCallback, config.sampleRate, config.totalNumberRobots, config.robotId, config.printBitsEncoding, config.filterOwnSource);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool keepDecoding = true;
@@ -335,7 +335,7 @@ void recordToWavFile(const char *filename, const int seconds)
     }
 
     // Write data to file:
-    writeWavFile(filename, dataToWrite.data(), dataToWrite.size(), SAMPLE_RATE, 16, NUM_CHANNELS);
+    writeWavFile(filename, dataToWrite.data(), dataToWrite.size(), config.sampleRate, 16, config.numChannels);
 
     cout << "Successfully written " << seconds << " seconds to wav file '" << filename << "'\n";
 }

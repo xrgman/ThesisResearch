@@ -10,8 +10,9 @@
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int totalNumberRobots, int robotId, bool printCodedBits, bool filterOwnSource)
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, bool printCodedBits, bool filterOwnSource)
 {
+    this->sampleRate = sampleRate;
     this->totalNumberRobots = totalNumberRobots;
     this->robotId = robotId;
     this->printCodedBits = printCodedBits;
@@ -168,7 +169,7 @@ int AudioCodec::getEncodingSize()
 /// @return Duration message in seconds.
 double AudioCodec::getEncodingDuration()
 {
-    return (double)getEncodingSize() / SAMPLE_RATE;
+    return (double)getEncodingSize() / sampleRate;
 }
 
 /// @brief Basic encoding definition.
@@ -378,7 +379,7 @@ void AudioCodec::bitToChirpOld(double *output, uint8_t bit, AudioCodecFrequencyP
     double durationPerSubChirp = duration / numberOfSubChirps;
 
     // Calculate the size of a generated chirp:
-    int size = round(SAMPLE_RATE * durationPerSubChirp);
+    int size = round(sampleRate * durationPerSubChirp);
 
     // Looping over all symbols:
     for (int i = 0; i < numberOfSubChirps; i++)
@@ -559,19 +560,18 @@ void AudioCodec::encodeChirp(double *output, AudioCodecFrequencyPair frequencies
 }
 
 /// @brief Generate a linear chirp frequency sweep between a start and stop frequency.
-/// @param output Output array to store the chirp in, size should be at least SAMPLE_RATE * duration.
+/// @param output Output array to store the chirp in, size should be at least sample rate * duration.
 /// @param startFrequency Start frequency of the chirp.
 /// @param stopFrequency Stop frequency of the chirp.
 /// @param size Number of samples of the chirp.
 void AudioCodec::generateChirp(double *output, AudioCodecFrequencyPair frequencies, int size)
 {
-    // int size = round(SAMPLE_RATE * duration);
-    double duration = (double)size / (double)SAMPLE_RATE;
+    double duration = (double)size / (double)sampleRate;
 
     for (int i = 0; i < size; i++)
     {
         // Caluclate time in seconds:
-        double t = static_cast<double>(i) / SAMPLE_RATE;
+        double t = static_cast<double>(i) / sampleRate;
 
         // Linear frequency sweep:
         double frequency = frequencies.startFrequency + (frequencies.stopFrequency - frequencies.startFrequency) * t / (2 * duration);
@@ -737,7 +737,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 
             double signalEnergy = calculateSignalEnergy(energyFrame, PREAMBLE_BITS);
 
-            //cout << "Signal energy: " << signalEnergy << endl;
+            // cout << "Signal energy: " << signalEnergy << endl;
 
             // Checking if its from own source:
             if (filterOwnSource && signalEnergy > PREAMBLE_SIGNAL_ENERGY_CUTOFF)
@@ -817,15 +817,15 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                         continue;
                     }
 
-                    //If sender id is same as myself stop decoding:
-                    if(senderId == robotId) {
+                    // If sender id is same as myself stop decoding:
+                    if (senderId == robotId)
+                    {
                         spdlog::error("Sender ID is the same as own ID, signal energy: {}", decodingResults[decodingResultIdx].signalEnergy[microphoneId]);
 
                         decodingResults.erase(decodingResults.begin() + decodingResultIdx);
 
                         continue;
                     }
-
 
                     decodingResults[decodingResultIdx].senderId = senderId;
                     decodingResults[decodingResultIdx].decodingBitsPosition += SYMBOL_BITS;
@@ -1159,7 +1159,7 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult)
         }
 
         // Handle distance calculation:
-        //performDistanceTracking(decodingEndTime);
+        // performDistanceTracking(decodingEndTime);
 
         // Return data to callback:
         data_decoded_callback(decodingResult);
@@ -1252,7 +1252,7 @@ void AudioCodec::performDistanceTracking(chrono::system_clock::time_point decodi
 /// @param fft_plan_inv FFT plan inverse (With same size as arrays).
 void AudioCodec::fftConvolve(const double *in1, const double *in2, const int size, double *output, FFTConfigStore fftConfigStore)
 {
-    //auto t1 = chrono::high_resolution_clock::now();
+    // auto t1 = chrono::high_resolution_clock::now();
 
     int originalN = size * 2 - 1;
 
@@ -1402,7 +1402,7 @@ void AudioCodec::createSinWaveFromFreqs(const double *input, double *output, con
     for (int i = 0; i < size; i++)
     {
         // 1. Devide frequency by the sampling frequency:
-        double dividing = input[i] / SAMPLE_RATE;
+        double dividing = input[i] / sampleRate;
 
         // 2. Cumulativily sum the frequencies
         sum += dividing;
@@ -1446,10 +1446,10 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
         double test = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]);
 
         // TDOA with consecutive microphone:
-        tdoa[i] = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]) / SAMPLE_RATE;
+        tdoa[i] = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]) / sampleRate;
 
         // TDOA with opposite microphone:
-        tdoa[numChannels + i] = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 3), numChannels)]) / SAMPLE_RATE;
+        tdoa[numChannels + i] = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 3), numChannels)]) / sampleRate;
     }
 
     // 2. Calculate the angles between the arrivals at the microphones:
@@ -1489,8 +1489,8 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 double AudioCodec::calculateDistance(const int *arrivalTimes, const int size)
 {
     // Calculating time differences:
-    double t2t1 = ((double)arrivalTimes[1] - (double)arrivalTimes[0]) / SAMPLE_RATE;
-    double t3t2 = ((double)arrivalTimes[2] - (double)arrivalTimes[1]) / SAMPLE_RATE;
+    double t2t1 = ((double)arrivalTimes[1] - (double)arrivalTimes[0]) / sampleRate;
+    double t3t2 = ((double)arrivalTimes[2] - (double)arrivalTimes[1]) / sampleRate;
 
     // Encoded message duration:
     double encodedMessageDuration = getEncodingDuration();
