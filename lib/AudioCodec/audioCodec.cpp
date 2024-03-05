@@ -426,7 +426,7 @@ void AudioCodec::encodeBit(double *output, uint8_t bit, AudioCodecFrequencyPair 
     // // Determining which frequency pair to use based on the bit to encode:
     // encodeChirp(output, bit == 0 ? frequencies[0] : frequencies[1], bitSamples);
 
-    double totalBandwidth = frequencies[1].stopFrequency - frequencies[1].stopFrequency;
+    double totalBandwidth = frequencies[1].stopFrequency - frequencies[1].startFrequency;
     double bandwidthPerBit = totalBandwidth / 2;
 
     AudioCodecFrequencyPair frequenciesBit0 = {
