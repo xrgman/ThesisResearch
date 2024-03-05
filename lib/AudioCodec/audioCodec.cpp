@@ -10,11 +10,13 @@
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, bool printCodedBits, bool filterOwnSource)
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, bool printCodedBits, bool filterOwnSource)
 {
     this->sampleRate = sampleRate;
     this->totalNumberRobots = totalNumberRobots;
     this->robotId = robotId;
+    this->preambleSamples = preambleSamples;
+    this->bitSamples = bitSamples;
     this->printCodedBits = printCodedBits;
     this->filterOwnSource = filterOwnSource;
     this->data_decoded_callback = data_decoded_callback;
@@ -37,9 +39,6 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
 
 void AudioCodec::generateConvolutionFields(int robotId)
 {
-    // Calculate duration per bit:
-    durationPerBit = SYMBOL_DURATION;
-
     // Determining frequency range for specific robot ID:
     double totalBandwidth = STOP_FREQ_BITS - START_FREQ_BITS;
     double bandwidthRobot = totalBandwidth / totalNumberRobots;
@@ -401,6 +400,8 @@ void AudioCodec::bitToChirpOld(double *output, uint8_t bit, AudioCodecFrequencyP
 
 void AudioCodec::bitsToChirpOld(double *output, uint8_t *bits, int numberOfBits, AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps)
 {
+    double durationPerBit = (double)bitSamples / sampleRate;
+
     // Looping over all bits:
     for (int i = 0; i < numberOfBits; i++)
     {

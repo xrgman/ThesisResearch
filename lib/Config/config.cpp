@@ -45,7 +45,9 @@ Config Config::LoadConfig(const char *filename)
                       jsonData["num_channels"],
                       jsonData["filter_own_source"],
                       jsonData["print_bits_encoding"],
-                      channels);
+                      channels,
+                      jsonData["preamble_samples"],
+                      jsonData["bit_samples"]);
     }
     catch (const json::exception &e)
     {

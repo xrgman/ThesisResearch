@@ -23,10 +23,7 @@
 
 //*** Encoding bits definitions ***
 #define PREAMBLE_BITS 8192 //Was 4096
-#define PREAMBLE_DURATION (double)PREAMBLE_BITS / SAMPLE_RATE
- 
 #define SYMBOL_BITS 320 //320
-#define SYMBOL_DURATION (double)SYMBOL_BITS / SAMPLE_RATE//0.0145124716 // For 22.05Khz 0.0072562358 //For 44.1Khz
 
 //*** Under sampling definitions ***
 #define UNDER_SAMPLING_DIVISOR 4 //Was 1
@@ -131,7 +128,7 @@ struct AudioCodecFrequencyPair
 class AudioCodec
 {
 public:
-    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, bool printCodedBits, bool filterOwnSource);
+    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, bool printCodedBits, bool filterOwnSource);
 
     ~AudioCodec()
     {
@@ -173,6 +170,7 @@ public:
 
 private:
     int sampleRate, totalNumberRobots, robotId;
+    int preambleSamples, bitSamples;
     bool printCodedBits, filterOwnSource;
     double volume;
     AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairOwnUp, frequencyPairOwnDown;
@@ -213,8 +211,6 @@ private:
     // Storing bits:
     double decodingBuffer[NUM_CHANNELS][DECODING_BUFFER_SIZE];
 
-    // Convolution:
-    double durationPerBit;
 
     AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS]; // Here the different sub frequencies of the bits 0 and 1 are stored.
     double originalPreambleFlipped[UNDER_SAMPLING_BITS];
