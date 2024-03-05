@@ -352,5 +352,29 @@ using namespace std;
     }
 }*/
 
+  // int sizePerSubChirp = bitSamples / 2;
+        // double bandwidthPerSubChirp = (frequencies[1].stopFrequency - frequencies[1].startFrequency) / 2;
+
+        // AudioCodecFrequencyPair frequencyPair = {
+        //     frequencies[1].startFrequency + bandwidthPerSubChirp,
+        //     frequencies[1].startFrequency};
+
+        // generateChirp(&output[0 * sizePerSubChirp], frequencyPair, sizePerSubChirp);
+
+        // frequencyPair = {
+        //     frequencies[1].stopFrequency,
+        //     frequencies[1].startFrequency + bandwidthPerSubChirp};
+
+        // generateChirp(&output[1 * sizePerSubChirp], frequencyPair, sizePerSubChirp);
+
+        // for (int j = 0; j < bitSamples; j++)
+        // {
+        //     // Apply volume:
+        //     output[j] *= volume;
+
+        //     // Apply kaiser window:
+        //     output[j] = applyKaiserWindow(output[j], bitSamples, j, KAISER_WINDOW_BETA);
+        // }
+
 
 

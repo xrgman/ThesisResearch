@@ -11,7 +11,7 @@
 #define KAISER_WINDOW_BETA 4
 
 AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
-           double frequencyStopBit, bool printCodedBits, bool filterOwnSource)
+                       double frequencyStopBit, bool printCodedBits, bool filterOwnSource)
 {
     this->sampleRate = sampleRate;
     this->totalNumberRobots = totalNumberRobots;
@@ -43,7 +43,7 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
 void AudioCodec::generateConvolutionFields(int robotId)
 {
     // Determining frequency range for specific robot ID:
-    double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency; 
+    double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
     double bandwidthRobot = totalBandwidth / totalNumberRobots;
 
     double startFrequency = frequencyPairBit.startFrequency + (robotId * bandwidthRobot);
@@ -117,7 +117,7 @@ void AudioCodec::generateConvolutionFields(int robotId)
 
     // Calculate optimal FFT values (foud using python):
     int convolvePreambleN = getNextPowerOf2(UNDER_SAMPLING_BITS * 2 - 1); // 8192; // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
-    int convolveBitN = getNextPowerOf2(bitSamples * 2 - 1);  // 640
+    int convolveBitN = getNextPowerOf2(bitSamples * 2 - 1);               // 640
 
     fftConfigStoreConvPre = {
         UNDER_SAMPLING_BITS * 2 - 1,
@@ -426,43 +426,34 @@ void AudioCodec::encodeBit(double *output, uint8_t bit, AudioCodecFrequencyPair 
     // // Determining which frequency pair to use based on the bit to encode:
     // encodeChirp(output, bit == 0 ? frequencies[0] : frequencies[1], bitSamples);
 
+    double totalBandwidth = frequencies[1].stopFrequency - frequencies[1].stopFrequency;
+    double bandwidthPerBit = totalBandwidth / 2;
+
+    AudioCodecFrequencyPair frequenciesBit0 = {
+        frequencies[1].startFrequency + bandwidthPerBit,
+        frequencies[1].startFrequency};
+
+    AudioCodecFrequencyPair frequenciesBit1 = {
+        frequencies[1].startFrequency + bandwidthPerBit,
+        frequencies[1].stopFrequency};
+
+    encodeChirp(output, bit == 0 ? frequenciesBit0 : frequenciesBit1, bitSamples, 2);
+
     // // Flip the signal, if its needed for convolution:
     // if (flipped)
     // {
     //     reverse(output, output + bitSamples);
     // }
 
-    if (bit == 1)
-    {
-        encodeChirp(output, frequencies[1], bitSamples, 2);
-    }
-    else
-    {
-        encodeChirp(output, frequencies[0], bitSamples, 2);
-        // int sizePerSubChirp = bitSamples / 2;
-        // double bandwidthPerSubChirp = (frequencies[1].stopFrequency - frequencies[1].startFrequency) / 2;
-
-        // AudioCodecFrequencyPair frequencyPair = {
-        //     frequencies[1].startFrequency + bandwidthPerSubChirp,
-        //     frequencies[1].startFrequency};
-
-        // generateChirp(&output[0 * sizePerSubChirp], frequencyPair, sizePerSubChirp);
-
-        // frequencyPair = {
-        //     frequencies[1].stopFrequency,
-        //     frequencies[1].startFrequency + bandwidthPerSubChirp};
-
-        // generateChirp(&output[1 * sizePerSubChirp], frequencyPair, sizePerSubChirp);
-
-        // for (int j = 0; j < bitSamples; j++)
-        // {
-        //     // Apply volume:
-        //     output[j] *= volume;
-
-        //     // Apply kaiser window:
-        //     output[j] = applyKaiserWindow(output[j], bitSamples, j, KAISER_WINDOW_BETA);
-        // }
-    }
+    // THIS IS THE WORKING ONE:
+    //  if (bit == 1)
+    //  {
+    //      encodeChirp(output, frequencies[1], bitSamples, 2);
+    //  }
+    //  else
+    //  {
+    //      encodeChirp(output, frequencies[0], bitSamples, 2);
+    //  }
 
     // int subChirpOrder[4] = {
     //     bit == 0 ? 0 : 7,
