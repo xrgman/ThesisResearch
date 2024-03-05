@@ -23,7 +23,6 @@
 
 //*** Encoding bits definitions ***
 #define PREAMBLE_BITS 8192 //Was 4096
-#define SYMBOL_BITS 320 //320
 
 //*** Under sampling definitions ***
 #define UNDER_SAMPLING_DIVISOR 4 //Was 1
@@ -214,9 +213,6 @@ private:
 
     AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS]; // Here the different sub frequencies of the bits 0 and 1 are stored.
     double originalPreambleFlipped[UNDER_SAMPLING_BITS];
-    // double bit0Flipped[ROBOTS_COUNT][SYMBOL_BITS];
-    // double bit1Flipped[ROBOTS_COUNT][SYMBOL_BITS];
-    // double senderIdsFlipped[ROBOTS_COUNT][SYMBOL_BITS];
     double **bit0Flipped;
     double **bit1Flipped;
     double **senderIdsFlipped;
@@ -254,12 +250,6 @@ private:
     void hilbert(const double *input, kiss_fft_cpx *output, int size, FFTConfigStore fftConfigStore);
     void linespace(const double start, const double stop, const int numPoints, double *output, const bool inverse);
     void createSinWaveFromFreqs(const double *input, double *output, const int size);
-
-
-
-
-    double bit0OldFlipped[SYMBOL_BITS];
-    double bit1OldFlipped[SYMBOL_BITS];
 };
 
 #endif
