@@ -1,9 +1,5 @@
 #include "audioCodec.h"
 
-#define SAMPLES_PER_SYMBOL 2048 // SAMPLES_PER_SYMBOL / NUM_SYMBOLS == SF
-#define SF 8
-#define NUM_SYMBOLS 256 // 2^SF
-
 //*************************************************
 //******** Initialization *************************
 //*************************************************
@@ -21,20 +17,23 @@ void AudioCodec::initializeBitEncodingData()
     bit0Flipped = new double *[totalNumberRobots];
     bit1Flipped = new double *[totalNumberRobots];
 
+    downChirps_complex = new kiss_fft_cpx *[totalNumberRobots];
+
+    // Creating fft config store for the symbol decoding algorithm:
+    fftConfigStoreHilSymbols = {
+        SAMPLES_PER_SYMBOL,
+        SAMPLES_PER_SYMBOL,
+        kiss_fft_alloc(SAMPLES_PER_SYMBOL, 0, nullptr, nullptr),
+        kiss_fft_alloc(SAMPLES_PER_SYMBOL, 1, nullptr, nullptr)};
+
+    fftConfigSymbols = kiss_fft_alloc(NUM_SYMBOLS, 0, nullptr, nullptr);
+
     // Create sender ID flipped:
     for (uint8_t i = 0; i < totalNumberRobots; i++)
     {
         AudioCodecFrequencyPair frequencies = {
             frequencyPairBit.startFrequency + (i * bandwidthRobot),
             frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthRobot};
-
-        // AudioCodecFrequencyPair frequencies_down = {
-        //     frequencies_up.stopFrequency,
-        //     frequencies_up.startFrequency};
-
-        // AudioCodecFrequencyPair frequencies[2] = {
-        //     frequencies_down,
-        //     frequencies_up};
 
         senderIdsFlipped[i] = new double[bitSamples];
         bit0Flipped[i] = new double[bitSamples];
@@ -46,9 +45,33 @@ void AudioCodec::initializeBitEncodingData()
         encodeBit(bit0Flipped[i], 0, frequencies, true);
         encodeBit(bit1Flipped[i], 1, frequencies, true);
 
+        // LORA:
+        //  Creating down chirp that is used for decoding:
+        double downChirp_frequencies[SAMPLES_PER_SYMBOL];
+        double downChirp[SAMPLES_PER_SYMBOL];
+        kiss_fft_cpx downChirp_complex_full[SAMPLES_PER_SYMBOL];
+
+        linespace(frequencies.startFrequency, frequencies.stopFrequency, SAMPLES_PER_SYMBOL, downChirp_frequencies, true);
+
+        // Creating sine wave from downchirp frequencies:
+        createSinWaveFromFreqs(downChirp_frequencies, downChirp, SAMPLES_PER_SYMBOL);
+        hilbert(downChirp, downChirp_complex_full, SAMPLES_PER_SYMBOL, fftConfigStoreHilSymbols); // Adding complex part
+
+        downChirps_complex[i] = new kiss_fft_cpx[NUM_SYMBOLS];
+
+        // Storing only 256 samples from the complex result:
+        for (int j = 0; j < NUM_SYMBOLS; j++)
+        {
+            int n = j * SAMPLING_DELTA;
+
+            downChirps_complex[i][j] = downChirp_complex_full[n];
+        }
+
         // Define own sender Id and bit encodings:
         if (i == robotId)
         {
+            frequencyPairOwn = frequencies;
+
             encodedSenderId = new double[bitSamples];
             encodedBit0 = new double[bitSamples];
             encodedBit1 = new double[bitSamples];
@@ -56,48 +79,13 @@ void AudioCodec::initializeBitEncodingData()
             encodeSenderId(encodedSenderId, frequencies, false);
             encodeBit(encodedBit0, 0, frequencies, false);
             encodeBit(encodedBit1, 1, frequencies, false);
+
+            // LORA approach:
+
+            // Creating the original upchirp:
+            linespace(frequencies.startFrequency, frequencies.stopFrequency, SAMPLES_PER_SYMBOL, upChirp, false);
         }
     }
-
-    // Test with symbol encoding usaing LORA approach:
-    // Fields that are set once and should not be altered:
-    // this->Fs = (samples_per_symbol / std::pow(2, spreading_factor)) * bandwith;
-    // this->Fc = Fs / 2 - bandwith / 2;
-    // this->num_symbols = std::pow(2, spreading_factor);
-    // this->Tc = (double)1 / bandwith;
-    // this->Ts = num_symbols * Tc;
-    // this->F_begin = Fc - bandwith / 2;
-    // this->F_end = Fc + bandwith / 2;
-    // this->sampling_delta = samples_per_symbol / num_symbols;
-
-    // // Creating fft config store for the symbol decoding algorithm:
-    // fftConfigStoreHilSymbols = {
-    //     SAMPLES_PER_SYMBOL,
-    //     SAMPLES_PER_SYMBOL,
-    //     kiss_fft_alloc(SAMPLES_PER_SYMBOL, 0, nullptr, nullptr),
-    //     kiss_fft_alloc(SAMPLES_PER_SYMBOL, 1, nullptr, nullptr)};
-
-    // // Creating the original upchirp:
-    // linespace(F_begin, F_end, samples_per_symbol, upChirp, false);
-
-    // // Creating down chirp that is used for decoding:
-    // double downChirp_frequencies[samples_per_symbol];
-    // double downChirp[samples_per_symbol];
-    // kiss_fft_cpx downChirp_complex_full[samples_per_symbol];
-
-    // linespace(F_begin, F_end, samples_per_symbol, downChirp_frequencies, true);
-
-    // // Creating sine wave from downchirp frequencies:
-    // createSinWaveFromFreqs(downChirp_frequencies, downChirp, samples_per_symbol);
-    // hilbert(downChirp, downChirp_complex_full, samples_per_symbol, fftConfigStoreHilSymbols); // Adding complex part
-
-    // // Storing only 256 samples from the complex result:
-    // for (int i = 0; i < num_symbols; i++)
-    // {
-    //     int n = i * sampling_delta;
-
-    //     downChirp_complex[i] = downChirp_complex_full[n];
-    // }
 }
 
 //*************************************************
@@ -108,7 +96,7 @@ void AudioCodec::initializeBitEncodingData()
 /// @param output The output buffer.
 /// @param bit Bit to encode.
 /// @param flipped Whether to flip the data in the output buffer for convolution.
-void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair& frequencies, bool flipped)
+void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair &frequencies, bool flipped)
 {
     // Here I make them for up and down :)
     AudioCodecFrequencyPair frequenciesBit0 = {
@@ -181,6 +169,23 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     }
 }
 
+void AudioCodec::encodeSymbol(double *output, const int symbol, const AudioCodecFrequencyPair &frequencies)
+{
+    // Determine shift in the frequencies:
+    int shift = (int)floor((double)symbol * SAMPLES_PER_SYMBOL / NUM_SYMBOLS);
+
+    // Creating frequency window:
+    double frequency_window[SAMPLES_PER_SYMBOL];
+
+    for (int i = 0; i < SAMPLES_PER_SYMBOL; i++)
+    {
+        frequency_window[i] = upChirp[(shift + i) % SAMPLES_PER_SYMBOL];
+    }
+
+    // Creating sine wave representation of the signal:
+    createSinWaveFromFreqs(frequency_window, output, SAMPLES_PER_SYMBOL);
+}
+
 /// @brief Translate a whole array of bits into multiple chirps.
 /// @param output Output array where the chrips will be placed into.
 /// @param bits List of bits to be translated.
@@ -188,16 +193,23 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
 void AudioCodec::encodeBits(double *output, uint8_t *bits, int numberOfBits)
 {
     // Looping over all bits:
-    for (int i = 0; i < numberOfBits; i++)
+    // for (int i = 0; i < numberOfBits; i++)
+    // {
+    //     int bit = bits[i];
+
+    //     for (int j = 0; j < bitSamples; j++)
+    //     {
+    //         output[i * bitSamples + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
+    //     }
+
+    //     // encodeBit(&output[i * bitSamples], bit, frequencyPairsOwn, false);
+    // }
+
+    for (int i = 0; i < numberOfBits / 8; i++)
     {
-        int bit = bits[i];
+        uint8_t value = bitsToUint8(&bits[i * 8]);
 
-        for (int j = 0; j < bitSamples; j++)
-        {
-            output[i * bitSamples + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
-        }
-
-        // encodeBit(&output[i * bitSamples], bit, frequencyPairsOwn, false);
+        encodeSymbol(&output[i * SAMPLES_PER_SYMBOL], value, frequencyPairOwn);
     }
 }
 
@@ -209,7 +221,7 @@ void AudioCodec::encodeBits(double *output, uint8_t *bits, int numberOfBits)
 /// @param window Window containing the bit.
 /// @param windowSize Size of the window.
 /// @return The bit, either 0 or 1.
-int AudioCodec::decodeBit(const double *window, const int windowSize, int senderId)
+int AudioCodec::decodeBit(const double *window, const int windowSize, const int senderId)
 {
     // 1. Performing convolution with the 0 and 1 chirps:
     double convolutionData0[bitSamples];
@@ -229,39 +241,39 @@ int AudioCodec::decodeBit(const double *window, const int windowSize, int sender
     return max0 > max1 ? 0 : 1;
 }
 
-// int AudioCodec::decode_symbol(const double *window, const int windowSize)
-// {
-//     // 1. Apply hilbert transform overt the window, to get the complex representation:
-//     kiss_fft_cpx complex_window_full[windowSize];
+int AudioCodec::decodeSymbol(const double *window, const int windowSize, const int senderId)
+{
+    // 1. Apply hilbert transform overt the window, to get the complex representation:
+    kiss_fft_cpx complex_window_full[windowSize];
 
-//     hilbert(window, complex_window_full, windowSize, fftConfigStoreHilSymbols);
+    hilbert(window, complex_window_full, windowSize, fftConfigStoreHilSymbols);
 
-//     // 2. Get samples from the complex window:
-//     kiss_fft_cpx complex_window[num_symbols];
+    // 2. Get samples from the complex window:
+    kiss_fft_cpx complex_window[NUM_SYMBOLS];
 
-//     for (int i = 0; i < num_symbols; i++)
-//     {
-//         int n = i * sampling_delta;
+    for (int i = 0; i < NUM_SYMBOLS; i++)
+    {
+        int n = i * SAMPLING_DELTA;
 
-//         complex_window[i] = complex_window_full[n];
-//     }
+        complex_window[i] = complex_window_full[n];
+    }
 
-//     // 3. Apply point wise multiplication of the window and the downchirp:
-//     kiss_fft_cpx window_multiplied[num_symbols];
+    // 3. Apply point wise multiplication of the window and the downchirp:
+    kiss_fft_cpx window_multiplied[NUM_SYMBOLS];
 
-//     complexMultiplication(complex_window, downChirp_complex, num_symbols, window_multiplied);
+    complexMultiplication(complex_window, downChirps_complex[senderId], NUM_SYMBOLS, window_multiplied);
 
-//     // 4. Apply FFT over the multiplied data:
-//     kiss_fft_cpx window_fft[num_symbols];
+    // 4. Apply FFT over the multiplied data:
+    kiss_fft_cpx window_fft[NUM_SYMBOLS];
 
-//     performFFT(fft_config_symbols, window_multiplied, window_fft, num_symbols, false);
-//     complexDivisionAll(window_fft, num_symbols, num_symbols);
+    performFFT(fftConfigSymbols, window_multiplied, window_fft, NUM_SYMBOLS, false);
+    complexDivisionAll(window_fft, NUM_SYMBOLS, NUM_SYMBOLS);
 
-//     // 5. Take absolute values:
-//     double window_absolute[num_symbols];
+    // 5. Take absolute values:
+    double window_absolute[NUM_SYMBOLS];
 
-//     complexAbsolute(window_fft, window_absolute, num_symbols);
+    complexAbsolute(window_fft, window_absolute, NUM_SYMBOLS);
 
-//     // 6. Finding maximum value and returining the index of it as the symbol:
-//     return findMaxIndex(window_absolute, num_symbols);
-// }
+    // 6. Finding maximum value and returining the index of it as the symbol:
+    return findMaxIndex(window_absolute, NUM_SYMBOLS);
+}

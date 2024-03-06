@@ -36,6 +36,12 @@ static const int DECODING_BUFFER_SIZE = PREAMBLE_BITS * 4;
 
 #define SPEED_OF_SOUND 343.0 // Speed of sound, should be based on temperature!
 
+// LORA DEFINES:
+#define SAMPLES_PER_SYMBOL 2048 // SAMPLES_PER_SYMBOL / NUM_SYMBOLS == SF
+#define SF 8
+#define NUM_SYMBOLS 256 // 2^SF
+#define SAMPLING_DELTA SAMPLES_PER_SYMBOL / NUM_SYMBOLS
+
 enum AudioCodedMessageType
 {
     ENCODING_TEST = 0,
@@ -136,6 +142,7 @@ public:
 
         free(fftConfigStoreHilSymbols.fftConfig);
         free(fftConfigStoreHilSymbols.fftConfigInv);
+        free(fftConfigSymbols);
 
         //Dealocate memory:
         delete[] originalPreambleFlipped;
@@ -173,7 +180,7 @@ private:
     const int preambleSamples, bitSamples, preambleUndersamplingDivisor, preambleUndersampledSamples;
     bool printCodedBits, filterOwnSource;
     double volume;
-    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBit;
+    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBit, frequencyPairOwn;
     void (*data_decoded_callback)(AudioCodecResult);
 
     // FFT configurations convolution:
@@ -187,6 +194,7 @@ private:
 
     void encodePreamble(double *output, bool flipped);
     void encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair& frequencies, bool flipped);
+    void encodeSymbol(double *output, const int symbol, const AudioCodecFrequencyPair &frequencies);
     void encodeBits(double *output, uint8_t *bits, int numberOfBits);
     void encodeSenderId(double *output, const AudioCodecFrequencyPair& frequencies, bool flipped);
 
@@ -236,7 +244,8 @@ private:
 
     void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, FFTConfigStore fftConfigStoreConvolve, FFTConfigStore fftConfigStoreHilbert);
     int decodeSenderId(const double *window, const int windowSize);
-    int decodeBit(const double *window, const int windowSize, int senderId);
+    int decodeBit(const double *window, const int windowSize, const int senderId);
+    int decodeSymbol(const double *window, const int windowSize, const int senderId);
 
     int findDecodingResult(int preamblePeakIndex);
     bool doesDecodingResultExistForSenderId(int senderId);
@@ -258,6 +267,15 @@ private:
 
     //Fields for symbol encoding decoding using lora approach:
     FFTConfigStore fftConfigStoreHilSymbols;
+    kiss_fft_cfg fftConfigSymbols;
+
+    // Upchirp:
+    double upChirp[SAMPLES_PER_SYMBOL];
+
+    // DownChirp:
+    //kiss_fft_cpx downChirp_complex[NUM_SYMBOLS];
+
+    kiss_fft_cpx **downChirps_complex;
 };
 
 #endif
