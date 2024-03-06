@@ -1083,60 +1083,30 @@ int main()
     launchDecodingThreads();
 
     // Opening audio streams:
-    // if (!audioHelper.initializeAndOpen())
-    // {
-    //     cout << "Initializing audio helper has failed!\n";
+    if (!audioHelper.initializeAndOpen())
+    {
+        cout << "Initializing audio helper has failed!\n";
 
-    //     return 0;
-    // }
+        return 0;
+    }
 
-    // // Determining microphone order when first batch is received:
-    // while (!audioHelper.readNextBatch(config.channels, 6))
-    // {
-    //     usleep(1);
-    // }
+    // Determining microphone order when first batch is received:
+    while (!audioHelper.readNextBatch(config.channels, 6))
+    {
+        usleep(1);
+    }
 
-    // audioHelper.setNextBatchRead(config.channels, 6);
+    audioHelper.setNextBatchRead(config.channels, 6);
 
-    // // Determine order of microphones, only executed once:
-    // if (!audioHelper.determineMicrophoneOrder())
-    // {
-    //     cout << "Failed to determine microphone order! Stopping program.\n";
+    // Determine order of microphones, only executed once:
+    if (!audioHelper.determineMicrophoneOrder())
+    {
+        cout << "Failed to determine microphone order! Stopping program.\n";
 
-    //     return 0;
-    // }
+        return 0;
+    }
 
-    // audioHelper.signalBatchProcessed(config.channels, config.numChannels);
-
-    // RingBuffer buff;
-
-    // buff.Initialize(5);
-
-    // for (int i = 0; i < 5; i++) {
-    //     buff.Write(i);
-    // }
-
-    // buff.printData();
-
-    // buff.Write(6);
-    // buff.Write(7);
-    // buff.Write(8);
-
-    // buff.printData();
-
-    // // int t = buff.Read();
-    // // int t2 = buff.Read();
-    // // int t3 = buff.Read();
-    // // int t4 = buff.Read();
-    // // int t5 = buff.Read();
-
-    // int16_t lol[6];
-
-    // int totalRead = buff.Read(lol, 6);
-
-    // buff.printData();
-
-    // return 0;
+    audioHelper.signalBatchProcessed(config.channels, config.numChannels);
 
     // Running keyboard input function:
     handleKeyboardInput();
