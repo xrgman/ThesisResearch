@@ -97,9 +97,6 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
         // setCompleteBatchUnprocessed();
     }
 
-    //         //Saving to buffer in correct order:
-    //         //inputRingBuffer.Write(inputData[i * numChannels + actualChannelId]);
-
     return paContinue;
 }
 

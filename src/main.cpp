@@ -156,7 +156,7 @@ void processDecodingResults()
                 // We still need to substract the processing time inside the other robot....
                 double timeDiffNs = timeDifference.count();
 
-                spdlog::info("Time difference: {}ns", timeDifference.count());
+                spdlog::info("Time difference: {}", timeDifference.count());
 
                 double averageProcessingTimeB = 1653883567.0;
 
