@@ -9,6 +9,7 @@
                 "-g",
                 "${file}",
                 "-o",
+                "-fsanitize=address",
                 "${fileDirname}/${fileBasenameNoExtension}"
             ],
             "options": {

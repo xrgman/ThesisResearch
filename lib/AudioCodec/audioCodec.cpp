@@ -1,5 +1,4 @@
 #include "audioCodec.h"
-#include "util.h"
 
 #include <cmath>
 #include <iostream>
@@ -10,14 +9,10 @@
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
-                       double frequencyStopBit, bool printCodedBits, bool filterOwnSource)
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
+                       double frequencyStopBit, bool printCodedBits, bool filterOwnSource) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
+                                                                                             preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor)
 {
-    this->sampleRate = sampleRate;
-    this->totalNumberRobots = totalNumberRobots;
-    this->robotId = robotId;
-    this->preambleSamples = preambleSamples;
-    this->bitSamples = bitSamples;
     this->printCodedBits = printCodedBits;
     this->filterOwnSource = filterOwnSource;
     this->data_decoded_callback = data_decoded_callback;
@@ -27,7 +22,7 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
     this->frequencyPairBit.startFrequency = frequencyStartBit;
     this->frequencyPairBit.stopFrequency = frequencyStopBit;
 
-    for (uint8_t i; i < NUM_CHANNELS; i++)
+    for (uint8_t i = 0; i < NUM_CHANNELS; i++)
     {
         decodingStore[i].reset();
 
@@ -42,30 +37,20 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samp
 
 void AudioCodec::generateConvolutionFields(int robotId)
 {
-    // Determining frequency range for specific robot ID:
-    double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
-    double bandwidthRobot = totalBandwidth / totalNumberRobots;
-
-    double startFrequency = frequencyPairBit.startFrequency + (robotId * bandwidthRobot);
-    double stopFrequency = startFrequency + bandwidthRobot;
-
-    this->frequencyPairOwnDown.startFrequency = stopFrequency; // 0
-    this->frequencyPairOwnDown.stopFrequency = startFrequency; // 0
-    this->frequencyPairOwnUp.startFrequency = startFrequency;  // 1
-    this->frequencyPairOwnUp.stopFrequency = stopFrequency;    // 1
-
-    frequencyPairsOwn[0] = this->frequencyPairOwnDown;
-    frequencyPairsOwn[1] = this->frequencyPairOwnUp;
-
     // Create the original preamble chirp flipped taking into account undersampling, used for detecting preamble:
-    double originalPreamble[PREAMBLE_BITS];
+    double originalPreamble[preambleSamples];
 
     encodePreamble(originalPreamble, true);
 
-    for (int i = 0; i < UNDER_SAMPLING_BITS; i++)
+    originalPreambleFlipped = new double[preambleUndersampledSamples];
+
+    for (int i = 0; i < preambleUndersampledSamples; i++)
     {
-        originalPreambleFlipped[i] = originalPreamble[i * UNDER_SAMPLING_DIVISOR];
+        originalPreambleFlipped[i] = originalPreamble[i * preambleUndersamplingDivisor];
     }
+
+    // Creating bit encoding and decoding data:
+    initializeBitEncodingData();
 
     // Create encoding symbols
     // generateSymbols(symbols, NUMBER_OF_SUB_CHIRPS, robotId);
@@ -76,51 +61,13 @@ void AudioCodec::generateConvolutionFields(int robotId)
 
     // reverse(bit0OldFlipped, bit0OldFlipped + bitSamples);
     // reverse(bit1OldFlipped, bit1OldFlipped + bitSamples);
-    senderIdsFlipped = new double *[totalNumberRobots];
-    bit0Flipped = new double *[totalNumberRobots];
-    bit1Flipped = new double *[totalNumberRobots];
-
-    // Create sender ID flipped:
-    for (uint8_t i = 0; i < totalNumberRobots; i++)
-    {
-        AudioCodecFrequencyPair frequencies_up = {
-            frequencyPairBit.startFrequency + (i * bandwidthRobot),
-            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthRobot};
-
-        AudioCodecFrequencyPair frequencies_down = {
-            frequencies_up.stopFrequency,
-            frequencies_up.startFrequency};
-
-        AudioCodecFrequencyPair frequencies[2] = {
-            frequencies_down,
-            frequencies_up};
-
-        senderIdsFlipped[i] = new double[bitSamples];
-        bit0Flipped[i] = new double[bitSamples];
-        bit1Flipped[i] = new double[bitSamples];
-
-        encodeSenderId(senderIdsFlipped[i], frequencies_up, true);
-
-        // Create flipped decoding symbols:
-        encodeBit(bit0Flipped[i], 0, frequencies, true);
-        encodeBit(bit1Flipped[i], 1, frequencies, true);
-    }
-
-    double test1[320];
-    double test2[320];
-
-    for (int i = 0; i < 320; i++)
-    {
-        test1[i] = bit0Flipped[1][i];
-        test2[i] = bit1Flipped[1][i];
-    }
 
     // Calculate optimal FFT values (foud using python):
-    int convolvePreambleN = getNextPowerOf2(UNDER_SAMPLING_BITS * 2 - 1); // 8192; // 16384; // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);  // 18000; // getNextPowerOf2(PREAMBLE_BITS * 2 - 1);
-    int convolveBitN = getNextPowerOf2(bitSamples * 2 - 1);               // 640
+    int convolvePreambleN = getNextPowerOf2(preambleUndersampledSamples * 2 - 1); // 8192; // 16384; // 18000; // getNextPowerOf2(preambleSamples * 2 - 1);  // 18000; // getNextPowerOf2(preambleSamples * 2 - 1);
+    int convolveBitN = getNextPowerOf2(bitSamples * 2 - 1);                       // 640
 
     fftConfigStoreConvPre = {
-        UNDER_SAMPLING_BITS * 2 - 1,
+        preambleUndersampledSamples * 2 - 1,
         convolvePreambleN,
         kiss_fft_alloc(convolvePreambleN, 0, nullptr, nullptr),
         kiss_fft_alloc(convolvePreambleN, 1, nullptr, nullptr)};
@@ -132,14 +79,14 @@ void AudioCodec::generateConvolutionFields(int robotId)
         kiss_fft_alloc(convolveBitN, 1, nullptr, nullptr)};
 
     // Creating FFT config stores for the hilbert transform:
-    // int hilbertPreambleN = getNextPowerOf2(PREAMBLE_BITS);
+    // int hilbertPreambleN = getNextPowerOf2(preambleSamples);
     // int hilbertBitsN = getNextPowerOf2(bitSamples);
 
     fftConfigStoreHilPre = {
-        UNDER_SAMPLING_BITS,
-        UNDER_SAMPLING_BITS,
-        kiss_fft_alloc(UNDER_SAMPLING_BITS, 0, nullptr, nullptr),
-        kiss_fft_alloc(UNDER_SAMPLING_BITS, 1, nullptr, nullptr)};
+        preambleUndersampledSamples,
+        preambleUndersampledSamples,
+        kiss_fft_alloc(preambleUndersampledSamples, 0, nullptr, nullptr),
+        kiss_fft_alloc(preambleUndersampledSamples, 1, nullptr, nullptr)};
 
     fftConfigStoreHilBit = {
         bitSamples,
@@ -164,7 +111,7 @@ int AudioCodec::getNumberOfBits()
 /// @return Size.
 int AudioCodec::getEncodingSize()
 {
-    return PREAMBLE_BITS + bitSamples + (getNumberOfBits() * bitSamples);
+    return preambleSamples + bitSamples + (getNumberOfBits() * bitSamples);
 }
 
 /// @brief Get the duration of an encoded message in seconds.
@@ -298,7 +245,7 @@ void AudioCodec::encodeLocalizeResponseMessage(int16_t *output, uint8_t senderId
 void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits)
 {
     const uint16_t dataLength = getNumberOfBits();
-    const int preambleLength = PREAMBLE_BITS;
+    const int preambleLength = preambleSamples;
     const int outputLength = getEncodingSize();
 
     // 1. Creating data array, containing all data to be send:
@@ -346,7 +293,10 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     encodePreamble(outputBuffer, false);
 
     // 4. Encode the sender ID:
-    encodeSenderId(&outputBuffer[preambleLength], frequencyPairOwnUp, false);
+    for (int i = 0; i < bitSamples; i++)
+    {
+        outputBuffer[preambleLength + i] = encodedSenderId[i];
+    }
 
     // 5. Encode the data:
     encodeBits(&outputBuffer[preambleLength + bitSamples], data, dataLength);
@@ -364,12 +314,12 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
 /// @param flipped Whether to flip the data in the output buffer for convolution.
 void AudioCodec::encodePreamble(double *output, bool flipped)
 {
-    encodeChirp(output, frequencyPairPreamble, PREAMBLE_BITS, KAISER_WINDOW_BETA);
+    encodeChirp(output, frequencyPairPreamble, preambleSamples, KAISER_WINDOW_BETA);
 
     // Flip the signal, if its needed for convolution:
     if (flipped)
     {
-        reverse(output, output + PREAMBLE_BITS);
+        reverse(output, output + preambleSamples);
     }
 }
 
@@ -420,7 +370,7 @@ void AudioCodec::bitsToChirpOld(double *output, uint8_t *bits, int numberOfBits,
 /// @brief Encode the sender ID into an unique identifier signal.
 /// @param output Output array, where the identifier will be placed into.
 /// @param flipped Whether to flip the data in the output buffer for convolutio
-void AudioCodec::encodeSenderId(double *output, AudioCodecFrequencyPair frequencies, bool flipped)
+void AudioCodec::encodeSenderId(double *output, const AudioCodecFrequencyPair& frequencies, bool flipped)
 {
     int subChirpOrder[8] = {0, 7, 6, 3, 2, 4, 1, 5};
 
@@ -448,7 +398,7 @@ void AudioCodec::encodeSenderId(double *output, AudioCodecFrequencyPair frequenc
 /// @param output Output array where the chrip will be placed in.
 /// @param frequencies Object containing the frequencies of the sub chirps.
 /// @param size Samples of the chirp.
-void AudioCodec::encodeChirp(double *output, AudioCodecFrequencyPair frequencies, int size, int kaiserWindowBeta)
+void AudioCodec::encodeChirp(double *output, const AudioCodecFrequencyPair& frequencies, int size, int kaiserWindowBeta)
 {
     // Generate chirp:
     generateChirp(output, frequencies, size);
@@ -472,7 +422,7 @@ void AudioCodec::encodeChirp(double *output, AudioCodecFrequencyPair frequencies
 /// @param startFrequency Start frequency of the chirp.
 /// @param stopFrequency Stop frequency of the chirp.
 /// @param size Number of samples of the chirp.
-void AudioCodec::generateChirp(double *output, AudioCodecFrequencyPair frequencies, int size)
+void AudioCodec::generateChirp(double *output, const AudioCodecFrequencyPair& frequencies, int size)
 {
     double duration = (double)size / (double)sampleRate;
 
@@ -509,46 +459,46 @@ double AudioCodec::applyKaiserWindow(double value, int totalSize, int i, int bet
 // TODO: Check if can delete this entirely
 void AudioCodec::generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps, int robotId)
 {
-    int chirpOrder[8][8] = {
-        {1, 8, 7, 4, 3, 5, 2, 6},
-        {3, 6, 5, 2, 4, 7, 8, 1},
-        {8, 5, 6, 7, 1, 2, 4, 3},
-        {7, 1, 2, 5, 8, 6, 3, 4},
-        {6, 7, 4, 3, 2, 1, 5, 8},
-        {2, 4, 3, 6, 7, 8, 1, 5},
-        {4, 2, 1, 8, 5, 3, 6, 7},
-        {5, 3, 8, 1, 6, 4, 7, 2}};
+    // int chirpOrder[8][8] = {
+    //     {1, 8, 7, 4, 3, 5, 2, 6},
+    //     {3, 6, 5, 2, 4, 7, 8, 1},
+    //     {8, 5, 6, 7, 1, 2, 4, 3},
+    //     {7, 1, 2, 5, 8, 6, 3, 4},
+    //     {6, 7, 4, 3, 2, 1, 5, 8},
+    //     {2, 4, 3, 6, 7, 8, 1, 5},
+    //     {4, 2, 1, 8, 5, 3, 6, 7},
+    //     {5, 3, 8, 1, 6, 4, 7, 2}};
 
-    if (numberOfSubChirps != 8)
-    {
-        std::cerr << "Only 8 sub chirps supported for now.\n";
+    // if (numberOfSubChirps != 8)
+    // {
+    //     std::cerr << "Only 8 sub chirps supported for now.\n";
 
-        return;
-    }
+    //     return;
+    // }
 
-    // Only fill first two rows for now, representing bit 0 and 1:
-    for (int row = robotId * 2; row < robotId * 2 + 2; row++)
-    {
-        for (int column = 0; column < numberOfSubChirps; column++)
-        {
-            int chirpOrderIdx = chirpOrder[row][column];
+    // // Only fill first two rows for now, representing bit 0 and 1:
+    // for (int row = robotId * 2; row < robotId * 2 + 2; row++)
+    // {
+    //     for (int column = 0; column < numberOfSubChirps; column++)
+    //     {
+    //         int chirpOrderIdx = chirpOrder[row][column];
 
-            double fs = frequencyPairsOwn[1].startFrequency + ((chirpOrderIdx - 1) * (frequencyPairsOwn[1].stopFrequency - frequencyPairsOwn[1].startFrequency)) / numberOfSubChirps;
-            double fe = fs + (frequencyPairsOwn[1].stopFrequency - frequencyPairsOwn[1].startFrequency) / numberOfSubChirps;
+    //         double fs = frequencyPairsOwn[1].startFrequency + ((chirpOrderIdx - 1) * (frequencyPairsOwn[1].stopFrequency - frequencyPairsOwn[1].startFrequency)) / numberOfSubChirps;
+    //         double fe = fs + (frequencyPairsOwn[1].stopFrequency - frequencyPairsOwn[1].startFrequency) / numberOfSubChirps;
 
-            // Determine whether to use an up or down chirp:
-            if (chirpOrderIdx % 2 == column % 2)
-            {
-                symbols[row % 2][column].startFrequency = fe;
-                symbols[row % 2][column].stopFrequency = fs;
-            }
-            else
-            {
-                symbols[row % 2][column].startFrequency = fs;
-                symbols[row % 2][column].stopFrequency = fe;
-            }
-        }
-    }
+    //         // Determine whether to use an up or down chirp:
+    //         if (chirpOrderIdx % 2 == column % 2)
+    //         {
+    //             symbols[row % 2][column].startFrequency = fe;
+    //             symbols[row % 2][column].stopFrequency = fs;
+    //         }
+    //         else
+    //         {
+    //             symbols[row % 2][column].startFrequency = fs;
+    //             symbols[row % 2][column].stopFrequency = fe;
+    //         }
+    //     }
+    // }
 }
 
 /// @brief Calculate the minimum symbol time to encode one bit.
@@ -585,8 +535,6 @@ uint8_t AudioCodec::calculateCRC(const uint8_t *data, const int size)
 //******** Decoding *******************************
 //*************************************************
 
-static vector<double> durations;
-
 void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
 {
     // Converting received value to double between -1 and 1:
@@ -599,7 +547,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
     numberOfReceivedBits[microphoneId]++;
 
     // Checking if buffer has been filled enough for first preamble check:
-    if ((bufferFilled[microphoneId] || numberOfReceivedBits[microphoneId] >= PREAMBLE_BITS) && decodingStore[microphoneId].processedBitsPosition + HOP_SIZE <= numberOfReceivedBits[microphoneId])
+    if ((bufferFilled[microphoneId] || numberOfReceivedBits[microphoneId] >= preambleSamples) && decodingStore[microphoneId].processedBitsPosition + HOP_SIZE <= numberOfReceivedBits[microphoneId])
     {
         bufferFilled[microphoneId] = true;
         decodingStore[microphoneId].processedBitsPosition = numberOfReceivedBits[microphoneId];
@@ -608,19 +556,19 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
         int readingPosition = startReadingPosition[microphoneId];
 
         // Creating frame:
-        double frame[UNDER_SAMPLING_BITS];
+        double frame[preambleUndersampledSamples];
 
-        for (int j = 0; j < UNDER_SAMPLING_BITS; j++)
+        for (int j = 0; j < preambleUndersampledSamples; j++)
         {
-            frame[j] = decodingBuffer[microphoneId][(readingPosition + j * UNDER_SAMPLING_DIVISOR) % DECODING_BUFFER_SIZE];
+            frame[j] = decodingBuffer[microphoneId][(readingPosition + j * preambleUndersamplingDivisor) % DECODING_BUFFER_SIZE];
         }
 
         // Checking if frame contains the preamble:
-        vector<int> possiblePreambleIdxs = containsPreamble(frame, UNDER_SAMPLING_BITS);
+        vector<int> possiblePreambleIdxs = containsPreamble(frame, preambleUndersampledSamples);
 
         for (int i = 0; i < possiblePreambleIdxs.size(); i++)
         {
-            possiblePreambleIdxs[i] = (possiblePreambleIdxs[i] * UNDER_SAMPLING_DIVISOR) + readingPosition;
+            possiblePreambleIdxs[i] = (possiblePreambleIdxs[i] * preambleUndersamplingDivisor) + readingPosition;
 
             decodingStore[microphoneId].preamblePositionStorage.push_back(possiblePreambleIdxs[i]);
         }
@@ -635,15 +583,15 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
             int preambleIndex = preambleIdxs[i];
 
             // Calculating signal energy:
-            double energyFrame[PREAMBLE_BITS];
-            int startPreamblePosition = preambleIndex - (PREAMBLE_BITS / 2);
+            double energyFrame[preambleSamples];
+            int startPreamblePosition = preambleIndex - (preambleSamples / 2);
 
-            for (int j = 0; j < PREAMBLE_BITS; j++)
+            for (int j = 0; j < preambleSamples; j++)
             {
-                frame[j] = decodingBuffer[microphoneId][(startPreamblePosition + j) % DECODING_BUFFER_SIZE];
+                energyFrame[j] = decodingBuffer[microphoneId][(startPreamblePosition + j) % DECODING_BUFFER_SIZE];
             }
 
-            double signalEnergy = calculateSignalEnergy(energyFrame, PREAMBLE_BITS);
+            double signalEnergy = calculateSignalEnergy(energyFrame, preambleSamples);
 
             // cout << "Signal energy: " << signalEnergy << endl;
 
@@ -671,7 +619,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
             if (microphoneId == 0)
             {
                 // Setting decoding bits start position:
-                decodingResults[decodingResultIdx].decodingBitsPosition = preambleIndex + (PREAMBLE_BITS / 2);
+                decodingResults[decodingResultIdx].decodingBitsPosition = preambleIndex + (preambleSamples / 2);
             }
 
             // Saving preamble peak:
@@ -1221,8 +1169,7 @@ void AudioCodec::hilbert(const double *input, kiss_fft_cpx *output, int size, FF
         if (i == 0 || (i == halfSize && evenSize)) //  && size % 2 == 0
         {
             // Keep values the same:
-            fftInput[i].r = fftInput[i].r;
-            fftInput[i].i = fftInput[i].i;
+            continue;
         }
         else if (i > 0 && (i < halfSize || (!evenSize && i == halfSize)))
         {
@@ -1327,7 +1274,7 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 
     for (int i = 0; i < numChannels; i++)
     {
-        double test = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]);
+        //double test = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]);
 
         // TDOA with consecutive microphone:
         tdoa[i] = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]) / sampleRate;
@@ -1372,29 +1319,29 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 
 double AudioCodec::calculateDistance(const int *arrivalTimes, const int size)
 {
-    // Calculating time differences:
-    double t2t1 = ((double)arrivalTimes[1] - (double)arrivalTimes[0]) / sampleRate;
-    double t3t2 = ((double)arrivalTimes[2] - (double)arrivalTimes[1]) / sampleRate;
+    // // Calculating time differences:
+    // double t2t1 = ((double)arrivalTimes[1] - (double)arrivalTimes[0]) / sampleRate;
+    // double t3t2 = ((double)arrivalTimes[2] - (double)arrivalTimes[1]) / sampleRate;
 
-    // Encoded message duration:
-    double encodedMessageDuration = getEncodingDuration();
+    // // Encoded message duration:
+    // double encodedMessageDuration = getEncodingDuration();
 
-    // Calculate actual time differences:
-    t2t1 -= (encodedMessageDuration + LOCALIZATION_INTERVAL_SECONDS);
-    t3t2 -= (encodedMessageDuration + LOCALIZATION_INTERVAL_SECONDS);
+    // // Calculate actual time differences:
+    // t2t1 -= (encodedMessageDuration + LOCALIZATION_INTERVAL_SECONDS);
+    // t3t2 -= (encodedMessageDuration + LOCALIZATION_INTERVAL_SECONDS);
 
-    double distancet2t1 = SPEED_OF_SOUND * t2t1 / 2;
-    double distancet3t2 = SPEED_OF_SOUND * t2t1 / 2;
+    // double distancet2t1 = SPEED_OF_SOUND * t2t1 / 2;
+    // double distancet3t2 = SPEED_OF_SOUND * t2t1 / 2;
 
-    // Use TOF to calculate relative distance:
-    // Relative distance = C * one way TOF / 2
+    // // Use TOF to calculate relative distance:
+    // // Relative distance = C * one way TOF / 2
 
-    /// Distance = c * ToF
-    // Send multiple at known intervals and take the average distance
-    // It is oke to set the interval to be known, then we dont need to send any information in the message itself.
-    // I think we can assume processing times, but the only problem is that that only holds on an actual microcontroller or FGPA, not a Pi since multiple other processes are running in the background which screws things up :()
+    // /// Distance = c * ToF
+    // // Send multiple at known intervals and take the average distance
+    // // It is oke to set the interval to be known, then we dont need to send any information in the message itself.
+    // // I think we can assume processing times, but the only problem is that that only holds on an actual microcontroller or FGPA, not a Pi since multiple other processes are running in the background which screws things up :()
 
-    // Distance = c * TDOA / 2 (just comething I found)
+    // // Distance = c * TDOA / 2 (just comething I found)
 
     return 1.0;
 }

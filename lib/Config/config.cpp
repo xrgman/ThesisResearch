@@ -48,6 +48,7 @@ Config Config::LoadConfig(const char *filename)
                       channels,
                       jsonData["preamble_samples"],
                       jsonData["bit_samples"],
+                      jsonData["preamble_undersampling_divisor"],
                       jsonData["freq_start_preamble"],
                       jsonData["freq_stop_preamble"],
                       jsonData["freq_start_bit"],

@@ -11,14 +11,15 @@ class Config
 {
 public:
     Config() : robotId(-1), totalNumberRobots(-1), sampleRate(-1), numChannelsRaw(-1), numChannels(-1), filterOwnSource(false), printBitsEncoding(false), channels(nullptr),
-               preambleSamples(-1), bitSamples(-1), frequencyStartPreamble(-1), frequencyStopPreamble(-1), frequencyStartBit(-1), frequencyStopBit(-1){};
+               preambleSamples(-1), bitSamples(-1), frequencyStartPreamble(-1), frequencyStopPreamble(-1), frequencyStartBit(-1), frequencyStopBit(-1),
+               preambleUndersamplingDivisor(-1){};
     Config(int robotId, int totalNumberRobots, int sampleRate, int numChannelsRaw, int numChannels, bool filterOwnSource, bool printBitsEncoding,
-           const int *channelsArray, int preambleSamples, int bitSamples, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
+           const int *channelsArray, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
            double frequencyStopBit)
         : robotId(robotId), totalNumberRobots(totalNumberRobots), sampleRate(sampleRate), numChannelsRaw(numChannelsRaw),
           numChannels(numChannels), filterOwnSource(filterOwnSource), printBitsEncoding(printBitsEncoding), channels(new int[numChannels]),
-          preambleSamples(preambleSamples), bitSamples(bitSamples), frequencyStartPreamble(frequencyStartPreamble), frequencyStopPreamble(frequencyStopPreamble),
-          frequencyStartBit(frequencyStartBit), frequencyStopBit(frequencyStopBit)
+          preambleSamples(preambleSamples), bitSamples(bitSamples), preambleUndersamplingDivisor(preambleUndersamplingDivisor),
+          frequencyStartPreamble(frequencyStartPreamble), frequencyStopPreamble(frequencyStopPreamble), frequencyStartBit(frequencyStartBit), frequencyStopBit(frequencyStopBit)
     {
 
         // Storing channels to decode data:
@@ -41,6 +42,7 @@ public:
 
     const int preambleSamples;
     const int bitSamples;
+    const int preambleUndersamplingDivisor;
 
     const double frequencyStartPreamble;
     const double frequencyStopPreamble;

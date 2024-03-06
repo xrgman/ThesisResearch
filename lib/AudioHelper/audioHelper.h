@@ -10,8 +10,6 @@
 #define NUM_BUFFERS 2
 #define CALIBRATION_ITERATIONS 10
 
-
-
 using namespace std;
 
 class AudioHelper
