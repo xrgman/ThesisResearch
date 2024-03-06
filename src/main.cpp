@@ -378,9 +378,9 @@ void encodeMessageForAudio(const char *filename, int robotId)
     fillArrayWithZeros(codedAudioData, size);
 
     // Encode the message:
-    // audioCodec.encode(codedAudioData, robotId, ENCODING_TEST);
+    audioCodec.encode(codedAudioData, robotId, ENCODING_TEST);
     // audioCodec.encodeCellMessage(codedAudioData, robotId, 6969);
-    audioCodec.encodeWallMessage(codedAudioData, robotId, 90.0, 12.56);
+    //audioCodec.encodeWallMessage(codedAudioData, robotId, 90.0, 12.56);
 
     // Write data to file:
     writeWavFile(filename, codedAudioData, size, config.sampleRate, 16, 1);
@@ -1083,30 +1083,30 @@ int main()
     launchDecodingThreads();
 
     // Opening audio streams:
-    if (!audioHelper.initializeAndOpen())
-    {
-        cout << "Initializing audio helper has failed!\n";
+    // if (!audioHelper.initializeAndOpen())
+    // {
+    //     cout << "Initializing audio helper has failed!\n";
 
-        return 0;
-    }
+    //     return 0;
+    // }
 
-    // Determining microphone order when first batch is received:
-    while (!audioHelper.readNextBatch(config.channels, 6))
-    {
-        usleep(1);
-    }
+    // // Determining microphone order when first batch is received:
+    // while (!audioHelper.readNextBatch(config.channels, 6))
+    // {
+    //     usleep(1);
+    // }
 
-    audioHelper.setNextBatchRead(config.channels, 6);
+    // audioHelper.setNextBatchRead(config.channels, 6);
 
-    // Determine order of microphones, only executed once:
-    if (!audioHelper.determineMicrophoneOrder())
-    {
-        cout << "Failed to determine microphone order! Stopping program.\n";
+    // // Determine order of microphones, only executed once:
+    // if (!audioHelper.determineMicrophoneOrder())
+    // {
+    //     cout << "Failed to determine microphone order! Stopping program.\n";
 
-        return 0;
-    }
+    //     return 0;
+    // }
 
-    audioHelper.signalBatchProcessed(config.channels, config.numChannels);
+    // audioHelper.signalBatchProcessed(config.channels, config.numChannels);
 
     // RingBuffer buff;
 

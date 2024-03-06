@@ -169,7 +169,7 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     }
 }
 
-void AudioCodec::encodeSymbol(double *output, const int symbol, const AudioCodecFrequencyPair &frequencies)
+void AudioCodec::encodeSymbol(double *output, const int symbol)
 {
     // Determine shift in the frequencies:
     int shift = (int)floor((double)symbol * SAMPLES_PER_SYMBOL / NUM_SYMBOLS);
@@ -193,24 +193,24 @@ void AudioCodec::encodeSymbol(double *output, const int symbol, const AudioCodec
 void AudioCodec::encodeBits(double *output, uint8_t *bits, int numberOfBits)
 {
     // Looping over all bits:
-    // for (int i = 0; i < numberOfBits; i++)
-    // {
-    //     int bit = bits[i];
-
-    //     for (int j = 0; j < bitSamples; j++)
-    //     {
-    //         output[i * bitSamples + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
-    //     }
-
-    //     // encodeBit(&output[i * bitSamples], bit, frequencyPairsOwn, false);
-    // }
-
-    for (int i = 0; i < numberOfBits / 8; i++)
+    for (int i = 0; i < numberOfBits; i++)
     {
-        uint8_t value = bitsToUint8(&bits[i * 8]);
+        int bit = bits[i];
 
-        encodeSymbol(&output[i * SAMPLES_PER_SYMBOL], value, frequencyPairOwn);
+        for (int j = 0; j < bitSamples; j++)
+        {
+            output[i * bitSamples + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
+        }
+
+        // encodeBit(&output[i * bitSamples], bit, frequencyPairsOwn, false);
     }
+
+    // for (int i = 0; i < numberOfBits / 8; i++)
+    // {
+    //     int value = bitsToUint8(&bits[i * 8]);
+
+    //     encodeSymbol(&output[i * SAMPLES_PER_SYMBOL], value);
+    // }
 }
 
 //*************************************************

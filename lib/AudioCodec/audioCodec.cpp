@@ -370,7 +370,7 @@ void AudioCodec::bitsToChirpOld(double *output, uint8_t *bits, int numberOfBits,
 /// @brief Encode the sender ID into an unique identifier signal.
 /// @param output Output array, where the identifier will be placed into.
 /// @param flipped Whether to flip the data in the output buffer for convolutio
-void AudioCodec::encodeSenderId(double *output, const AudioCodecFrequencyPair& frequencies, bool flipped)
+void AudioCodec::encodeSenderId(double *output, const AudioCodecFrequencyPair &frequencies, bool flipped)
 {
     int subChirpOrder[8] = {0, 7, 6, 3, 2, 4, 1, 5};
 
@@ -398,7 +398,7 @@ void AudioCodec::encodeSenderId(double *output, const AudioCodecFrequencyPair& f
 /// @param output Output array where the chrip will be placed in.
 /// @param frequencies Object containing the frequencies of the sub chirps.
 /// @param size Samples of the chirp.
-void AudioCodec::encodeChirp(double *output, const AudioCodecFrequencyPair& frequencies, int size, int kaiserWindowBeta)
+void AudioCodec::encodeChirp(double *output, const AudioCodecFrequencyPair &frequencies, int size, int kaiserWindowBeta)
 {
     // Generate chirp:
     generateChirp(output, frequencies, size);
@@ -422,7 +422,7 @@ void AudioCodec::encodeChirp(double *output, const AudioCodecFrequencyPair& freq
 /// @param startFrequency Start frequency of the chirp.
 /// @param stopFrequency Stop frequency of the chirp.
 /// @param size Number of samples of the chirp.
-void AudioCodec::generateChirp(double *output, const AudioCodecFrequencyPair& frequencies, int size)
+void AudioCodec::generateChirp(double *output, const AudioCodecFrequencyPair &frequencies, int size)
 {
     double duration = (double)size / (double)sampleRate;
 
@@ -674,7 +674,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                     }
 
                     // If sender id is same as myself stop decoding:
-                    if (senderId == robotId)
+                    if (senderId == robotId && filterOwnSource)
                     {
                         spdlog::error("Sender ID is the same as own ID, signal energy: {}", decodingResults[decodingResultIdx].signalEnergy[microphoneId]);
 
@@ -1274,7 +1274,7 @@ double AudioCodec::calculateDOA(const int *arrivalTimes, const int numChannels)
 
     for (int i = 0; i < numChannels; i++)
     {
-        //double test = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]);
+        // double test = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]);
 
         // TDOA with consecutive microphone:
         tdoa[i] = ((double)arrivalTimes[i] - (double)arrivalTimes[positive_modulo((i - 1), numChannels)]) / sampleRate;

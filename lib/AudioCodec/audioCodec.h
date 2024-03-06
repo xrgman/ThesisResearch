@@ -194,7 +194,7 @@ private:
 
     void encodePreamble(double *output, bool flipped);
     void encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair& frequencies, bool flipped);
-    void encodeSymbol(double *output, const int symbol, const AudioCodecFrequencyPair &frequencies);
+    void encodeSymbol(double *output, const int symbol);
     void encodeBits(double *output, uint8_t *bits, int numberOfBits);
     void encodeSenderId(double *output, const AudioCodecFrequencyPair& frequencies, bool flipped);
 

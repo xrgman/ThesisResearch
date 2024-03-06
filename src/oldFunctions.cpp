@@ -378,3 +378,29 @@ using namespace std;
 
 
 
+    //   if (decodingBitsPosition + SAMPLES_PER_SYMBOL <= numberOfReceivedBits[microphoneId])
+    //             {
+    //                 int ba = 10;
+
+    //                 double data[SAMPLES_PER_SYMBOL];
+
+    //                 encodeSymbol(data, ba);
+
+    //                 int tesss = decodeSymbol(data, SAMPLES_PER_SYMBOL, robotId);
+
+    //                 // Creating frame:
+    //                 double symbolFrame[SAMPLES_PER_SYMBOL];
+
+    //                 for (int j = 0; j < SAMPLES_PER_SYMBOL; j++)
+    //                 {
+    //                     symbolFrame[j] = decodingBuffer[microphoneId][(decodingBitsPosition + j) % DECODING_BUFFER_SIZE];
+    //                 }
+
+    //                 int symbol = decodeSymbol(symbolFrame, SAMPLES_PER_SYMBOL, decodingResults[decodingResultIdx].senderId);
+
+    //                 decodingResults[decodingResultIdx].decodingBitsPosition += SAMPLES_PER_SYMBOL;
+
+    //                 int bla = 10;
+    //             }
+
+    //             decodingResultIdx++;
