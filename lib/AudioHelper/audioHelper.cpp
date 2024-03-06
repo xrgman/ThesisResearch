@@ -15,7 +15,6 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
     this->numChannels = numChannels;
 
     this->inputStreamsReceived = 0;
-    this->emptyBuffers = NUM_BUFFERS;
 
     for (int i = 0; i < numChannels; i++)
     {
@@ -28,33 +27,17 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
     fillArrayWithZeros(bufferEmpty, FRAMES_PER_BUFFER);
 }
 
+/// @brief Callback function that handles writing the buffer to the output stream.
+/// @param inputBuffer Not used here.
+/// @param outputBuffer Buffer to write data to, resulting in speaker output.
+/// @param framesPerBuffer Frames to be written to the output buffer.
+/// @param timeInfo Timing info from audio device.
+/// @param statusFlags Some status info.
+/// @return Status code.
 int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
     // We want to put data into the outputbuffer as soon as this one is called.
     int16_t *outputData = (int16_t *)outputBuffer;
-
-    // Copying over data:
-    // if (bufferIdx == 0)
-    // {
-    //     copy(buffer1, buffer1 + FRAMES_PER_BUFFER, outputData);
-
-    //     fillArrayWithZeros(buffer1, FRAMES_PER_BUFFER);
-    // }
-    // else
-    // {
-    //     copy(buffer2, buffer2 + FRAMES_PER_BUFFER, outputData);
-
-    //     fillArrayWithZeros(buffer2, FRAMES_PER_BUFFER);
-    // }
-
-    // // Signaling write available:
-    // bufferIdx = (bufferIdx + 1) % NUM_BUFFERS;
-    // writeNext = true;
-
-    // if (emptyBuffers <= NUM_BUFFERS)
-    // {
-    //     emptyBuffers++;
-    // }
 
     // Checking if data is available:
     if (outputRingBuffer.isDataAvailable())
@@ -120,6 +103,12 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     return paContinue;
 }
 
+//*************************************************
+//******** Initialization *************************
+//*************************************************
+
+/// @brief Initialize the audio helper, by opening the input and output streams.
+/// @return Whether opening the streams was successfull.
 bool AudioHelper::initializeAndOpen()
 {
     cout << "PortAudio version " << Pa_GetVersionText() << endl;
@@ -157,9 +146,6 @@ bool AudioHelper::initializeAndOpen()
 
         return false;
     }
-
-    // Prepare callback data:
-    writeNext = true;
 
     // Preparing buffers:
     outputRingBuffer.initialize(RING_BUFFER_OUTPUT_SIZE);
@@ -219,28 +205,9 @@ bool AudioHelper::initializeAndOpen()
     return true;
 }
 
-bool AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
-{
-    // writeNext = false;
-
-    // emptyBuffers -= allDataWritten() ? 2 : 1;
-
-    // if (bufferIdx == 0)
-    // {
-    //     copy(audioData, audioData + nrOfBytes, buffer1);
-    // }
-    // else
-    // {
-    //     copy(audioData, audioData + nrOfBytes, buffer2);
-    // }
-
-    // Pa_WriteStream(outputStream, audioData, nrOfBytes);
-
-    outputRingBuffer.write(audioData, nrOfBytes);
-
-    return true;
-}
-
+/// @brief Stop and close the input and output stream.
+/// @param stopOnError Force close everything and ignore errors.
+/// @return Whether or not the stopping and closing was successfull.
 bool AudioHelper::stopAndClose(bool stopOnError)
 {
     // Stop and close output stream:
@@ -279,74 +246,43 @@ bool AudioHelper::stopAndClose(bool stopOnError)
     return true;
 }
 
-PaSampleFormat AudioHelper::getSampleFormat(uint16_t bitsPerSample)
-{
-    if (bitsPerSample == 8)
-    {
-        return paUInt8;
-    }
-    else if (bitsPerSample == 16)
-    {
-        return paInt16;
-    }
-    else if (bitsPerSample == 24)
-    {
-        return paInt24;
-    }
-    else if (bitsPerSample == 32)
-    {
-        return paInt32;
-    }
+//*************************************************
+//******** Output *********************************
+//*************************************************
 
-    // TODO error:
-    return paInt32;
+/// @brief Write bytes to the output buffer, this data will be outputted by the speaker.
+/// @param audioData Data to write to the speaker.
+/// @param nrOfBytes Number of bytes to write.
+/// @return 
+void AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
+{
+    outputRingBuffer.write(audioData, nrOfBytes);
 }
 
-bool AudioHelper::checkForPaError(PaError err, const char *part)
+/// @brief Check whether the output buffer is capacity, should be checked to prevent overwriting unprocessed data.
+/// @return Whether or not the output buffer is full.
+bool AudioHelper::isOutputBufferFull()
 {
-    return checkForPaError(err, part, true);
+    return outputRingBuffer.isFull();
 }
 
-bool AudioHelper::checkForPaError(PaError err, const char *part, bool cleanup)
+/// @brief Check whether the output buffer is completely empty. This also indicates that all the written data has been processed.
+/// @return Whether or not the output buffer is empty.
+bool AudioHelper::isOutputBufferEmpty()
 {
-    if (err != paNoError)
-    {
-        cerr << "PortAudio " << part << " failed: " << Pa_GetErrorText(err) << '\n';
-
-        if (cleanup)
-        {
-            if (Pa_IsStreamActive(outputStream))
-            {
-                Pa_StopStream(outputStream);
-            }
-
-            if (Pa_IsStreamActive(inputStream))
-            {
-                Pa_StopStream(inputStream);
-            }
-
-            Pa_Terminate();
-        }
-
-        return false;
-    }
-
-    return true;
+    return !outputRingBuffer.isDataAvailable();
 }
 
-void AudioHelper::clearBuffers()
+/// @brief Get the current amount of empty bytes left in the buffer.
+/// @return Bytes left open to be written.
+int AudioHelper::getOutputBufferAvailableSize()
 {
-    for (int i = 0; i < FRAMES_PER_BUFFER; i++)
-    {
-        buffer1[i] = 0;
-        buffer2[i] = 0;
-    }
+   return outputRingBuffer.maximumSize() - outputRingBuffer.bufferSize();
 }
 
-bool AudioHelper::writeNextBatch()
-{
-    return writeNext;
-}
+//*************************************************
+//******** Input **********************************
+//*************************************************
 
 /// @brief Check whether new data is available for the given channels.
 /// @param channels Channels to check for new data.
@@ -420,13 +356,9 @@ void AudioHelper::setCompleteBatchAvailable()
     }
 }
 
-/// @brief Simple method that tells you if all written data has been send to the audio device, based on the number of empty buffers.
-/// @return Whether or not both output buffers are empty.
-bool AudioHelper::allDataWritten()
-{
-    return emptyBuffers == NUM_BUFFERS + 1;
-}
-
+/// @brief Check whether a given amount of data is available in the buffers of all channels.
+/// @param count Number of bytes to check for availability.
+/// @return Whether or not there are at least count bytes in all channel input buffers.
 bool AudioHelper::isDataAvailable(const int count)
 {
     for (int i = 0; i < NUM_CHANNELS; i++)
@@ -440,19 +372,64 @@ bool AudioHelper::isDataAvailable(const int count)
     return true;
 }
 
-bool AudioHelper::isOutputBufferFull()
+
+//*************************************************
+//******** Misc ***********************************
+//*************************************************
+
+PaSampleFormat AudioHelper::getSampleFormat(uint16_t bitsPerSample)
 {
-    return outputRingBuffer.isFull();
+    if (bitsPerSample == 8)
+    {
+        return paUInt8;
+    }
+    else if (bitsPerSample == 16)
+    {
+        return paInt16;
+    }
+    else if (bitsPerSample == 24)
+    {
+        return paInt24;
+    }
+    else if (bitsPerSample == 32)
+    {
+        return paInt32;
+    }
+
+    // TODO error:
+    return paInt32;
 }
 
-bool AudioHelper::isOutputBufferEmpty()
+bool AudioHelper::checkForPaError(PaError err, const char *part)
 {
-    return !outputRingBuffer.isDataAvailable();
+    return checkForPaError(err, part, true);
 }
 
-int AudioHelper::getOutputBufferAvailableSize()
+bool AudioHelper::checkForPaError(PaError err, const char *part, bool cleanup)
 {
-   return outputRingBuffer.maximumSize() - outputRingBuffer.bufferSize();
+    if (err != paNoError)
+    {
+        cerr << "PortAudio " << part << " failed: " << Pa_GetErrorText(err) << '\n';
+
+        if (cleanup)
+        {
+            if (Pa_IsStreamActive(outputStream))
+            {
+                Pa_StopStream(outputStream);
+            }
+
+            if (Pa_IsStreamActive(inputStream))
+            {
+                Pa_StopStream(inputStream);
+            }
+
+            Pa_Terminate();
+        }
+
+        return false;
+    }
+
+    return true;
 }
 
 /// @brief Get the current CPU load of the input stream.

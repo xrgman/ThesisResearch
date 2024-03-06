@@ -63,14 +63,14 @@ int16_t RingBuffer::read()
 {
     int16_t element = buffer[tail];
 
+    // Increasing read index:
+    tail = (tail + 1) % size;
+
     // If buffer is empty, declare it that way :)
-    if (tail == head - 1)
+    if (tail == head)
     {
         isEmpty = true;
     }
-
-    // Increasing read index:
-    tail = (tail + 1) % size;
 
     return element;
 }

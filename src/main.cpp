@@ -186,33 +186,11 @@ void processDecodingResults()
     }
 }
 
-/// @brief Function that outputs an array of encoded data to the speaker.
+/// @brief Function that outputs an array of encoded data to the speaker and waits for all data to be played.
 /// @param codedAudioData Array containing the encoded data.
 /// @param size Size of the encoded data.
 void outputMessageToSpeaker(const int16_t *codedAudioData, const int size)
 {
-    int bytesWritten = 0;
-
-    // Reading successfull, so playing it:
-    // while (bytesWritten < size)
-    // {
-    //     // Waiting for batch to be written:
-    //     if (!audioHelper.writeNextBatch())
-    //     {
-    //         continue;
-    //     }
-
-    //     // Writing to helper:
-    //     if (!audioHelper.writeBytes(&codedAudioData[bytesWritten], FRAMES_PER_BUFFER))
-    //     {
-    //         break;
-    //     }
-
-    //     bytesWritten += FRAMES_PER_BUFFER;
-    // }
-
-    // audioHelper.clearBuffers();
-
     // Writing data to the buffer:
     audioHelper.writeBytes(codedAudioData, size);
 
@@ -260,6 +238,8 @@ void processKeyBoard()
     }
 }
 
+/// @brief Open a specific wavfile and output it over the speaker.
+/// @param filename Name of the wavfile. 
 void openAndPlayWavFile(const char *filename)
 {
     // Reading WAV file:
@@ -291,25 +271,6 @@ void openAndPlayWavFile(const char *filename)
 
         // Writing to output buffer:
         audioHelper.writeBytes(audioData, bytesRead);
-
-        // Waiting for batch to be written:
-        // if (!audioHelper.writeNextBatch())
-        // {
-        //     usleep(1);
-
-        //     continue;
-        // }
-
-        // int16_t audioData[FRAMES_PER_BUFFER];
-        // size_t bytesRead = fread(audioData, 2, FRAMES_PER_BUFFER, fileRead);
-
-        // // Writing to helper:
-        // if (!audioHelper.writeBytes(audioData, bytesRead))
-        // {
-        //     // cout << "Something went"
-
-        //     break;
-        // }
     }
 
     // Closing file:
@@ -545,9 +506,6 @@ void sendDistanceMessage()
     // Send the first message:
     outputMessageToSpeaker(codedAudioData, size);
 
-    while (!audioHelper.allDataWritten())
-        ;
-
     auto messageSendTime = chrono::high_resolution_clock::now();
 
     // Send next message exactly interval time later:
@@ -566,9 +524,6 @@ void sendDistanceMessage()
 
     // Send the second message (same data as first one):
     outputMessageToSpeaker(codedAudioData, size);
-
-    while (!audioHelper.allDataWritten())
-        ;
 
     keepWaiting = true;
     messageSendTime = chrono::high_resolution_clock::now();
@@ -1108,9 +1063,6 @@ int main()
     // Killing running tasks:
     audioHelper.stopAndClose(false);
 
-    // Filling buffers with 0's:
-    audioHelper.clearBuffers();
-
     // Starting decoding threads:
     launchDecodingThreads();
 
@@ -1149,7 +1101,6 @@ int main()
         decodingThreads[i].join();
     }
 
-    audioHelper.clearBuffers();
     audioHelper.stopAndClose();
 
     cout << "End program reached!\n";
