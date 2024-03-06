@@ -152,7 +152,7 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
             toUse.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp),
             (toUse.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
 
-        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp);
+        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, 4);
     }
 
 
