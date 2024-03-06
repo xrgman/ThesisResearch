@@ -194,24 +194,33 @@ void outputMessageToSpeaker(const int16_t *codedAudioData, const int size)
     int bytesWritten = 0;
 
     // Reading successfull, so playing it:
-    while (bytesWritten < size)
+    // while (bytesWritten < size)
+    // {
+    //     // Waiting for batch to be written:
+    //     if (!audioHelper.writeNextBatch())
+    //     {
+    //         continue;
+    //     }
+
+    //     // Writing to helper:
+    //     if (!audioHelper.writeBytes(&codedAudioData[bytesWritten], FRAMES_PER_BUFFER))
+    //     {
+    //         break;
+    //     }
+
+    //     bytesWritten += FRAMES_PER_BUFFER;
+    // }
+
+    // audioHelper.clearBuffers();
+
+    // Writing data to the buffer:
+    audioHelper.writeBytes(codedAudioData, size);
+
+    // Waiting for data to be done writing:
+    while (!audioHelper.isOutputBufferEmpty())
     {
-        // Waiting for batch to be written:
-        if (!audioHelper.writeNextBatch())
-        {
-            continue;
-        }
-
-        // Writing to helper:
-        if (!audioHelper.writeBytes(&codedAudioData[bytesWritten], FRAMES_PER_BUFFER))
-        {
-            break;
-        }
-
-        bytesWritten += FRAMES_PER_BUFFER;
+        usleep(1);
     }
-
-    audioHelper.clearBuffers();
 }
 
 /// @brief Around 40cm is travel distance of one wheel rotation
@@ -267,27 +276,50 @@ void openAndPlayWavFile(const char *filename)
     while (!feof(fileRead))
     {
         // Waiting for batch to be written:
-        if (!audioHelper.writeNextBatch())
+        if (audioHelper.isOutputBufferFull())
         {
             usleep(1);
 
             continue;
         }
 
-        int16_t audioData[FRAMES_PER_BUFFER];
-        size_t bytesRead = fread(audioData, 2, FRAMES_PER_BUFFER, fileRead);
+        // Reading next data:
+        int sizeAvailableBuffer = audioHelper.getOutputBufferAvailableSize();
 
-        // Writing to helper:
-        if (!audioHelper.writeBytes(audioData, bytesRead))
-        {
-            // cout << "Something went"
+        int16_t audioData[sizeAvailableBuffer];
+        size_t bytesRead = fread(audioData, 2, sizeAvailableBuffer, fileRead);
 
-            break;
-        }
+        // Writing to output buffer:
+        audioHelper.writeBytes(audioData, bytesRead);
+
+        // Waiting for batch to be written:
+        // if (!audioHelper.writeNextBatch())
+        // {
+        //     usleep(1);
+
+        //     continue;
+        // }
+
+        // int16_t audioData[FRAMES_PER_BUFFER];
+        // size_t bytesRead = fread(audioData, 2, FRAMES_PER_BUFFER, fileRead);
+
+        // // Writing to helper:
+        // if (!audioHelper.writeBytes(audioData, bytesRead))
+        // {
+        //     // cout << "Something went"
+
+        //     break;
+        // }
     }
 
     // Closing file:
     fclose(fileRead);
+
+    // Waiting for output buffer to become empty:
+    while (!audioHelper.isOutputBufferEmpty())
+    {
+        usleep(1);
+    }
 
     cout << "Done playing WAV file!\n";
 }
@@ -380,7 +412,7 @@ void encodeMessageForAudio(const char *filename, int robotId)
     // Encode the message:
     audioCodec.encode(codedAudioData, robotId, ENCODING_TEST);
     // audioCodec.encodeCellMessage(codedAudioData, robotId, 6969);
-    //audioCodec.encodeWallMessage(codedAudioData, robotId, 90.0, 12.56);
+    // audioCodec.encodeWallMessage(codedAudioData, robotId, 90.0, 12.56);
 
     // Write data to file:
     writeWavFile(filename, codedAudioData, size, config.sampleRate, 16, 1);
@@ -486,7 +518,7 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
         // Reading new data:
         for (uint8_t channel = 0; channel < config.numChannels; channel++)
         {
-            audioHelper.inputBuffers[channel].Read(data[channel], FRAMES_PER_BUFFER);
+            audioHelper.inputBuffers[channel].read(data[channel], FRAMES_PER_BUFFER);
         }
 
         // Decoding newly read data:

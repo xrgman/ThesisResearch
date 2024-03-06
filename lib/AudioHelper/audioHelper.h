@@ -28,6 +28,9 @@ public:
     bool allDataWritten();
 
     bool isDataAvailable(const int count);
+    bool isOutputBufferFull();
+    bool isOutputBufferEmpty();
+    int getOutputBufferAvailableSize();
 
     void signalBatchProcessed(const int *channels, int count);
 
@@ -53,10 +56,11 @@ private:
     //Used in callback:
     int16_t buffer1[FRAMES_PER_BUFFER];
     int16_t buffer2[FRAMES_PER_BUFFER];
+    int16_t *bufferEmpty;
     uint8_t bufferIdx;
     uint8_t emptyBuffers;
 
-    
+    RingBuffer outputRingBuffer;
 
     bool writeNext;
     bool inputDataAvailable[NUM_CHANNELS];

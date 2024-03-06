@@ -22,6 +22,10 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
         this->batchProcessed[i] = true;
         this->inputDataAvailable[i] = false;
     }
+
+    bufferEmpty = new int16_t[FRAMES_PER_BUFFER];
+
+    fillArrayWithZeros(bufferEmpty, FRAMES_PER_BUFFER);
 }
 
 int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
@@ -30,26 +34,39 @@ int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffe
     int16_t *outputData = (int16_t *)outputBuffer;
 
     // Copying over data:
-    if (bufferIdx == 0)
-    {
-        copy(buffer1, buffer1 + FRAMES_PER_BUFFER, outputData);
+    // if (bufferIdx == 0)
+    // {
+    //     copy(buffer1, buffer1 + FRAMES_PER_BUFFER, outputData);
 
-        fillArrayWithZeros(buffer1, FRAMES_PER_BUFFER);
+    //     fillArrayWithZeros(buffer1, FRAMES_PER_BUFFER);
+    // }
+    // else
+    // {
+    //     copy(buffer2, buffer2 + FRAMES_PER_BUFFER, outputData);
+
+    //     fillArrayWithZeros(buffer2, FRAMES_PER_BUFFER);
+    // }
+
+    // // Signaling write available:
+    // bufferIdx = (bufferIdx + 1) % NUM_BUFFERS;
+    // writeNext = true;
+
+    // if (emptyBuffers <= NUM_BUFFERS)
+    // {
+    //     emptyBuffers++;
+    // }
+
+    // Checking if data is available:
+    if (outputRingBuffer.isDataAvailable())
+    {
+        int currentBufferSize = outputRingBuffer.bufferSize();
+        currentBufferSize = currentBufferSize > framesPerBuffer ? framesPerBuffer : currentBufferSize;
+
+        outputRingBuffer.read(outputData, currentBufferSize);
     }
     else
     {
-        copy(buffer2, buffer2 + FRAMES_PER_BUFFER, outputData);
-
-        fillArrayWithZeros(buffer2, FRAMES_PER_BUFFER);
-    }
-
-    // Signaling write available:
-    bufferIdx = (bufferIdx + 1) % NUM_BUFFERS;
-    writeNext = true;
-
-    if (emptyBuffers <= NUM_BUFFERS)
-    {
-        emptyBuffers++;
+        copy(bufferEmpty, bufferEmpty + framesPerBuffer, outputData);
     }
 
     return paContinue;
@@ -69,7 +86,7 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     //     spdlog::error("Batch was not yet processed!");
     // }
 
-    //spdlog::info("New data arrived!\n");
+    // spdlog::info("New data arrived!\n");
 
     // Grabbing read data:
 
@@ -86,7 +103,7 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
                 int actualChannelId = microphonesOrdered[channel];
 
                 // Saving to buffer in correct order:
-                inputBuffers[channel].Write(inputData[i * numChannels + actualChannelId]);
+                inputBuffers[channel].write(inputData[i * numChannels + actualChannelId]);
             }
         }
     }
@@ -144,10 +161,12 @@ bool AudioHelper::initializeAndOpen()
     // Prepare callback data:
     writeNext = true;
 
-    // Preparing buffer:
+    // Preparing buffers:
+    outputRingBuffer.initialize(RING_BUFFER_OUTPUT_SIZE);
+
     for (int i = 0; i < NUM_CHANNELS; i++)
     {
-        inputBuffers[i].Initialize(RING_BUFFER_SIZE);
+        inputBuffers[i].initialize(RING_BUFFER_INPUT_SIZE);
     }
 
     // Configure and open input stream:
@@ -183,7 +202,7 @@ bool AudioHelper::initializeAndOpen()
     outputParameters.hostApiSpecificStreamInfo = nullptr;
 
     err = Pa_OpenStream(&outputStream, NULL, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paNoFlag, &outputCallback, this);
-    //err = Pa_OpenStream(&outputStream, NULL, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paNoFlag, NULL, NULL);
+    // err = Pa_OpenStream(&outputStream, NULL, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paNoFlag, NULL, NULL);
 
     if (!checkForPaError(err, "output stream opening"))
     {
@@ -202,20 +221,22 @@ bool AudioHelper::initializeAndOpen()
 
 bool AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
 {
-    writeNext = false;
+    // writeNext = false;
 
-    emptyBuffers -= allDataWritten() ? 2 : 1;
+    // emptyBuffers -= allDataWritten() ? 2 : 1;
 
-    if (bufferIdx == 0)
-    {
-        copy(audioData, audioData + nrOfBytes, buffer1);
-    }
-    else
-    {
-        copy(audioData, audioData + nrOfBytes, buffer2);
-    }
+    // if (bufferIdx == 0)
+    // {
+    //     copy(audioData, audioData + nrOfBytes, buffer1);
+    // }
+    // else
+    // {
+    //     copy(audioData, audioData + nrOfBytes, buffer2);
+    // }
 
-    //Pa_WriteStream(outputStream, audioData, nrOfBytes);
+    // Pa_WriteStream(outputStream, audioData, nrOfBytes);
+
+    outputRingBuffer.write(audioData, nrOfBytes);
 
     return true;
 }
@@ -417,6 +438,21 @@ bool AudioHelper::isDataAvailable(const int count)
     }
 
     return true;
+}
+
+bool AudioHelper::isOutputBufferFull()
+{
+    return outputRingBuffer.isFull();
+}
+
+bool AudioHelper::isOutputBufferEmpty()
+{
+    return !outputRingBuffer.isDataAvailable();
+}
+
+int AudioHelper::getOutputBufferAvailableSize()
+{
+   return outputRingBuffer.maximumSize() - outputRingBuffer.bufferSize();
 }
 
 /// @brief Get the current CPU load of the input stream.

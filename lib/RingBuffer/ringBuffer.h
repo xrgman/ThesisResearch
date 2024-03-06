@@ -11,21 +11,25 @@ class RingBuffer
 public:
     ~RingBuffer();
 
-    void Initialize(int size);
+    void initialize(int size);
 
-    void Write(const int16_t data);
-    void Write(const int16_t *data, const int count);
-    int16_t Read();
-    int Read(int16_t *data, const int count);
+    void write(const int16_t data);
+    void write(const int16_t *data, const int count);
+    
+    int read(int16_t *data, const int count);
 
+    bool isFull();
     bool isDataAvailable();
     int bufferSize();
+    int maximumSize();
     void printData();
 
 private:
     vector<int16_t> buffer;
     int size, head, tail;
     bool isEmpty;
+
+    int16_t read();
 };
 
 #endif
