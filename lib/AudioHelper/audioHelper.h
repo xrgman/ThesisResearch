@@ -15,6 +15,7 @@ class AudioHelper
 {
 public:
     AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels);
+    ~AudioHelper();
 
     // Initialization:
     bool initializeAndOpen();
@@ -46,8 +47,6 @@ private:
     uint16_t bitsPerSample;
     uint8_t numChannels;
 
-    uint8_t calibrationCounter;
-
     bool microphonesAreOrdered;
     uint8_t microphonesOrdered[6]; // Containing indexes of audiodata sorted correctly.
 
@@ -62,9 +61,6 @@ private:
     bool isCompleteBatchProcessed();
     void setCompleteBatchUnprocessed();
     void setCompleteBatchAvailable();
-
-    uint8_t inputStreamsReceived;
-    bool inputStreamReady;
 
     PaStream *outputStream, *inputStream;
 

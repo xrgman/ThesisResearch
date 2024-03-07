@@ -11,6 +11,7 @@ using json = nlohmann::json;
 ParticleFilter::ParticleFilter() : generator(rd()), normal_distribution(NOISE_MEAN, NOISE_STDEV)
 {
     this->selectedCellIdx = -1;
+    this->particlesInArray = 0;
 }
 
 //*************************************************
@@ -200,6 +201,20 @@ void ParticleFilter::processMessage(double distance, double angle, double robotA
     // And reposition the invalid particles just like is in process movement.
 }
 
+void ParticleFilter::processMessageTable(int senderId, double distance, double angle, double robotAngle)
+{
+    // 0. Checking if particle filter has been initialized:
+    if (particlesInArray <= 0)
+    {
+        std::cerr << "No particles found, make sure to initialize before processing any movement.\n";
+
+        return;
+    }
+
+    // 1. Adjust the angle to match the orientation of the map (YAW of robot).
+    angle = positive_modulo((angle + robotAngle), 360.0);
+}
+
 /// @brief Update all particles based on the movement of the robot.
 /// @param distance Distance the robot moved.
 /// @param angle The angle at which the robot moved.
@@ -308,8 +323,6 @@ void ParticleFilter::processWallDetected(double wallAngle, double wallDistance)
 
     calculateMovementAlongAxis(wallDistance, wallAngle, movementX, movementY);
 
-
-
     // Clear selected cell:
     selectedCellIdx = -1;
 
@@ -362,7 +375,7 @@ void ParticleFilter::processWallDetected(double wallAngle, double wallDistance)
     std::cout << "In total " << incorrectParticleIdxs.size() << " particles are out of bound and " << correctParticleIdxs.size() << " are ok.\n";
 
     // Process new particle locations:
-    processNewParticleLocations(correctParticleIdxs.data(), incorrectParticleIdxs.data(), correctParticleIdxs.size(), incorrectParticleIdxs.size(),  wallDistance, particlesPerCell);
+    processNewParticleLocations(correctParticleIdxs.data(), incorrectParticleIdxs.data(), correctParticleIdxs.size(), incorrectParticleIdxs.size(), wallDistance, particlesPerCell);
 
     // Select cell with most particles in it:
     determineLocalizationCell(particlesPerCell);
@@ -374,6 +387,7 @@ void ParticleFilter::processWallDetectedOther(double wallAngle, double wallDista
 
 void ParticleFilter::processCellDetectedOther(int cellId)
 {
+    // Based on distance we can deduce a lot here.
 }
 
 /// @brief Get the currently selected cell, based on the position of the particles.
@@ -511,7 +525,7 @@ void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[]
 
         Particle chosenParticle = particles[correctParticleIdxs[correctParticleIdx]];
 
-        //Grabbning current cell of chosen particle:
+        // Grabbning current cell of chosen particle:
         isCoordinateAllowed(chosenParticle.getXCoordinate(), chosenParticle.getYcoordinate(), cellIdxChosenParticle);
 
         // Create new coordinates for the particle, that are allowed:

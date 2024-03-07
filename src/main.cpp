@@ -1026,13 +1026,13 @@ void launchDecodingThreads()
 void launchDecodingThreads2()
 {
     // Define CPU affinity masks for threads
-    cpu_set_t cpuSet1, cpuSet2;
-    CPU_ZERO(&cpuSet1);
-    CPU_ZERO(&cpuSet2);
-    CPU_SET(0, &cpuSet1); // Allow thread 1 to run on CPU core 0
-    CPU_SET(1, &cpuSet2); // Allow thread 2 to run on CPU core 1
+    // cpu_set_t cpuSet1, cpuSet2;
+    // CPU_ZERO(&cpuSet1);
+    // CPU_ZERO(&cpuSet2);
+    // CPU_SET(0, &cpuSet1); // Allow thread 1 to run on CPU core 0
+    // CPU_SET(1, &cpuSet2); // Allow thread 2 to run on CPU core 1
 
-    int channelsForThread[3] = {0, 1, 2};
+    // int channelsForThread[3] = {0, 1, 2};
 
     // Create threads
     // pthread_t thread1, thread2;

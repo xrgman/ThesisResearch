@@ -27,6 +27,7 @@ public:
     void initializeParticlesUniformly();
 
     void processMessage(double distance, double angle, double robotAngle);
+    void processMessageTable(int senderId, double distance, double angle, double robotAngle);
     void processMovement(double distance, int angle);
     void processWallDetected(double wallAngle, double wallDistance);
     void processWallDetectedOther(double wallAngle, double wallDistance);

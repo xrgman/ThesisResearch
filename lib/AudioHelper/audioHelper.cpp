@@ -14,7 +14,7 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
     this->bitsPerSample = bitsPerSample;
     this->numChannels = numChannels;
 
-    this->inputStreamsReceived = 0;
+    this->microphonesAreOrdered = false;
 
     for (int i = 0; i < numChannels; i++)
     {
@@ -25,6 +25,12 @@ AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t nu
     bufferEmpty = new int16_t[FRAMES_PER_BUFFER];
 
     fillArrayWithZeros(bufferEmpty, FRAMES_PER_BUFFER);
+}
+
+/// @brief Destructor.
+AudioHelper::~AudioHelper()
+{
+    delete[] bufferEmpty;
 }
 
 /// @brief Callback function that handles writing the buffer to the output stream.
@@ -60,7 +66,7 @@ int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffe
 int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
     // We want to put data into the outputbuffer as soon as this one is called.
-    int16_t *inputData = (int16_t *)inputData; // Not uint16_t but int16
+    int16_t *inputData = (int16_t *)inputBuffer; // Not uint16_t but int16
 
     // bool isBatchProcessed = isCompleteBatchProcessed();
 
@@ -250,7 +256,7 @@ bool AudioHelper::stopAndClose(bool stopOnError)
 /// @brief Write bytes to the output buffer, this data will be outputted by the speaker.
 /// @param audioData Data to write to the speaker.
 /// @param nrOfBytes Number of bytes to write.
-/// @return 
+/// @return
 void AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
 {
     outputRingBuffer.write(audioData, nrOfBytes);
@@ -274,7 +280,7 @@ bool AudioHelper::isOutputBufferEmpty()
 /// @return Bytes left open to be written.
 int AudioHelper::getOutputBufferAvailableSize()
 {
-   return outputRingBuffer.maximumSize() - outputRingBuffer.bufferSize();
+    return outputRingBuffer.maximumSize() - outputRingBuffer.bufferSize();
 }
 
 //*************************************************
@@ -368,7 +374,6 @@ bool AudioHelper::isDataAvailable(const int count)
 
     return true;
 }
-
 
 //*************************************************
 //******** Misc ***********************************
