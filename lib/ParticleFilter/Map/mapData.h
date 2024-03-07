@@ -17,87 +17,42 @@ public:
     ~MapData()
     {
         // delete[] cells;
-    }
 
-    const char *getName()
-    {
-        if (name.empty())
+        if (distancesBetweenCells != NULL)
         {
-            return "Not loaded";
-        }
+            for (int i = 0; i < numberOfCells; i++)
+            {
+                delete[] distancesBetweenCells[i];
+            }
 
-        return name.c_str();
-    };
-
-    int getNumberOfCells()
-    {
-        return numberOfCells;
-    };
-
-    int getNumberOfWalls()
-    {
-        return numberOfWalls;
-    };
-
-    int getNumberOfDoors()
-    {
-        return numberOfDoors;
-    };
-
-    std::vector<Cell> getCells() {
-        return cells;
-    }
-
-    std::vector<Wall> getWalls() {
-        return walls;
-    }
-
-    std::vector<Door> getDoors() {
-        return doors;
-    }
-
-    void print()
-    {
-        std::cout << "Map " << name << " data: \n";
-        std::cout << "\tNumber of cells: " << numberOfCells << std::endl;
-        std::cout << "\tNumber of walls: " << numberOfWalls << std::endl;
-        std::cout << "\tNumber of doors: " << numberOfDoors << std::endl;
-        std::cout << "\tCells: \n";
-
-        for (int i = 0; i < numberOfCells; i++)
-        {
-            Cell cell = cells[i];
-
-            std::cout << "\t\t{ID: " << cell.id << ", startX: " << cell.startX << ", startY: " << cell.startY << ", stopX: " << cell.stopX << ", stopY: " << cell.stopY << "}\n";
-        }
-
-        std::cout << "\tWalls: \n";
-
-        for (int i = 0; i < numberOfWalls; i++)
-        {
-            Wall wall = walls[i];
-
-            std::cout << "\t\t{ID: " << wall.id << ", startX: " << wall.startX << ", startY: " << wall.startY << ", stopX: " << wall.stopX << ", stopY: " << wall.stopY << "}\n";
-        }
-
-        std::cout << "\tDoors: \n";
-
-        for (int i = 0; i < numberOfDoors; i++)
-        {
-            Door door = doors[i];
-
-            std::cout << "\t\t{ID: " << door.id << ", startX: " << door.startX << ", startY: " << door.startY << ", stopX: " << door.stopX << ", stopY: " << door.stopY << "}\n";
+            delete[] distancesBetweenCells;
         }
     }
+
+    void initialize();
+
+    const char *getName();
+    int getNumberOfCells();
+    int getNumberOfWalls();
+    int getNumberOfDoors();
+
+    std::vector<Cell> &getCells();
+    std::vector<Wall> &getWalls();
+    std::vector<Door> &getDoors();
+
+    void print();
 
 private:
     std::string name;
     int numberOfCells;
     int numberOfWalls;
     int numberOfDoors;
+
     std::vector<Cell> cells;
     std::vector<Wall> walls;
     std::vector<Door> doors;
+
+    int **distancesBetweenCells;
 
     friend void from_json(const json &j, MapData &mapData)
     {
@@ -115,8 +70,7 @@ private:
 
             for (int i = 0; i < numCells; i++)
             {
-                Cell cell;
-                Cell::from_json(j["cells"][i], cell);
+                Cell cell = Cell::fromJson(j["cells"][i]);
 
                 mapData.cells.push_back(cell);
             }
@@ -138,7 +92,7 @@ private:
             }
         }
 
-         // Deserializing doors:
+        // Deserializing doors:
         if (j.find("doors") != j.end() && j["doors"].is_array())
         {
             int numDoors = j["doors"].size();

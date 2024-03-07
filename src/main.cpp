@@ -6,7 +6,6 @@
 #include <cmath>
 #include <string>
 #include <poll.h>
-#include <thread>
 
 #include "main.h"
 #include "wavHelper.h"
@@ -29,7 +28,7 @@ void sendLocalizationResponse(int receiverId);
 
 AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw);
 
-ParticleFilter particleFilter;
+ParticleFilter particleFilter(config.totalNumberRobots, config.robotId);
 MapRenderer mapRenderer;
 
 AudioCodec audioCodec(dataDecodedCallback, config.sampleRate, config.totalNumberRobots, config.robotId, config.preambleSamples, config.bitSamples, config.preambleUndersamplingDivisor,

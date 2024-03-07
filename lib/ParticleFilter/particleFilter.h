@@ -4,6 +4,7 @@
 #include "main.h"
 #include "Map/mapData.h"
 #include "Map/line.h"
+#include "Table/localizationTable.h"
 #include "particle.h"
 
 #include <random>
@@ -14,10 +15,15 @@
 #define NOISE_STDEV 10.0
 #define NOISE_MEAN 0
 
+//TODO: Determine these based on testing result of doa and distance approaches :)
+#define DISTANCE_ERROR_CM 20.0
+#define ANGLE_ERROR_DEGREE 40.0
+
 class ParticleFilter
 {
 public:
-    ParticleFilter();
+    ParticleFilter(const int totalNumberOfRobots, const int robotId);
+    ~ParticleFilter();
 
     bool loadMap(const char *filename);
     const char* getMapName();
@@ -37,11 +43,17 @@ public:
     int getSelectedCellIdx();
 
 private:
+    const int totalNumberOfRobots, robotId;
+
     MapData mapData;
     int selectedCellIdx;
 
     int particlesInArray;
+    int *particlesPerCell;
     std::vector<Particle> particles;
+
+    //Localization helpers:
+    LocalizationTable *localizationTables;
 
     //Random helpers:
     std::random_device rd;
@@ -56,6 +68,7 @@ private:
     void processNewParticleLocations(const int correctParticleIdxs[], const int incorrectParticleIdxs[], int nrOfCorrectParticles, int nrOfIncorrectParticles, double distance, int* particlesPerCell);
     void normalizeParticleWeights();
     void determineLocalizationCell(int *particlesPerCell);
+    void resetParticlesPerCell();
 };
 
 #endif

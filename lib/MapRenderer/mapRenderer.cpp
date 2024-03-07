@@ -195,13 +195,11 @@ void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scal
     }
 
     // Drawing all cells:
-    std::vector<Cell> cells = mapData->getCells();
-
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
 
     for (int i = 0; i < mapData->getNumberOfCells(); i++)
     {
-        Cell cell = cells[i];
+        Cell cell = mapData->getCells()[i];
 
         SDL_Rect rect = {
             (int)std::ceil(cell.startX / scale) + BORDER_WIDTH,

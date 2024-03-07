@@ -8,10 +8,17 @@
 using json = nlohmann::json;
 
 /// @brief Constructor.
-ParticleFilter::ParticleFilter() : generator(rd()), normal_distribution(NOISE_MEAN, NOISE_STDEV)
+ParticleFilter::ParticleFilter(const int totalNumberOfRobots, const int robotId) : generator(rd()), normal_distribution(NOISE_MEAN, NOISE_STDEV), totalNumberOfRobots(totalNumberOfRobots), robotId(robotId)
 {
     this->selectedCellIdx = -1;
     this->particlesInArray = 0;
+}
+
+/// @brief Destructor, used to deallocate memory.
+ParticleFilter::~ParticleFilter()
+{
+    delete[] localizationTables;
+    delete[] particlesPerCell;
 }
 
 //*************************************************
@@ -49,6 +56,28 @@ bool ParticleFilter::loadMap(const char *filename)
     catch (const json::exception &e)
     {
         std::cerr << "JSON parsing error: " << e.what() << std::endl;
+    }
+
+    //Initialize map data after loading:
+    mapData.initialize();
+
+    mapData.print();
+
+    // Initializing particles per cell array:
+    particlesPerCell = new int[mapData.getNumberOfCells()];
+
+    // Initializing localization tables:
+    localizationTables = new LocalizationTable[totalNumberOfRobots];
+
+    for (int i = 0; i < totalNumberOfRobots; i++)
+    {
+        // Skipping own table:
+        if (i == robotId)
+        {
+            continue;
+        }
+
+        localizationTables[i] = LocalizationTable(mapData.getNumberOfCells(), robotId, i);
     }
 
     return true;
@@ -89,8 +118,8 @@ int ParticleFilter::getNumberOfParticles()
 /// @brief Create a fixed amount of particles, that are spread uniformly over all cells in the map.
 void ParticleFilter::initializeParticlesUniformly()
 {
-    const int particlesPerCell = NUMBER_OF_PARTICLES / mapData.getNumberOfCells(); // We take it for granted that we will not exactly get the number of particles in the define.
-    const double weight = (double)1 / NUMBER_OF_PARTICLES;                         // Initial particle weight is equal amongst all particles.
+    const int particlesInCell = NUMBER_OF_PARTICLES / mapData.getNumberOfCells(); // We take it for granted that we will not exactly get the number of particles in the define.
+    const double weight = (double)1 / NUMBER_OF_PARTICLES;                        // Initial particle weight is equal amongst all particles.
 
     // Preparing particle array:
     particlesInArray = 0;
@@ -100,14 +129,16 @@ void ParticleFilter::initializeParticlesUniformly()
     // Loop over every cell and create random particles in there:
     for (int i = 0; i < mapData.getNumberOfCells(); i++)
     {
-        for (int j = 0; j < particlesPerCell; j++)
+        for (int j = 0; j < particlesInCell; j++)
         {
-            int particleID = i * particlesPerCell + j;
+            int particleID = i * particlesInCell + j;
 
             particles[particleID] = Particle::createParticleInCell(particleID, weight, mapData.getCells()[i]);
 
             particlesInArray++;
         }
+
+        particlesPerCell[i] = particlesInCell;
     }
 }
 
@@ -148,11 +179,10 @@ void ParticleFilter::processMessage(double distance, double angle, double robotA
     const double weigthAddition = (double)1 / NUMBER_OF_PARTICLES;
 
     // Keeping track of nr of particles in cell:
-    int particlesPerCell[mapData.getNumberOfCells()];
+    resetParticlesPerCell();
+
     int noise1, noise2;
     int cellIdx;
-
-    fillArrayWithZeros(particlesPerCell, mapData.getNumberOfCells());
 
     // Looping over all particles and check their position:
     for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
@@ -213,6 +243,54 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
 
     // 1. Adjust the angle to match the orientation of the map (YAW of robot).
     angle = positive_modulo((angle + robotAngle), 360.0);
+
+    // 1.1 Allow for distance and angle errors:
+    double distanceLowerBound = distance - DISTANCE_ERROR_CM;
+    double distanceUpperBound = distance + DISTANCE_ERROR_CM;
+    double angleLowerBound = angle - ANGLE_ERROR_DEGREE;
+    double angleUpperBound = angle + ANGLE_ERROR_DEGREE;
+
+    // 2. Looping over all cells to fill localization table:
+    for (int i = 0; i < mapData.getNumberOfCells(); i++)
+    {
+        int ownCell = i;
+
+        // Option 0: No particles in starting cell, so no point in checking:
+        if (particlesPerCell[i] == 0)
+        {
+            continue;
+        }
+
+
+
+        // Looping over all possible candidate cells:
+        for (int j = 0; j < mapData.getNumberOfCells(); i++)
+        {
+            int senderCell = j;
+
+            // Option 1: cells are the same can only happen if distance is smaller than cell:
+            if (ownCell == senderCell)
+            {
+                // For now we just check if diameter of cell is bigger then the lower bound of distance:
+                if (distanceLowerBound <= mapData.getCells()[i].getDiameter())
+                {
+                    localizationTables[senderId].markCellAsPossible(ownCell, senderCell);
+                }
+
+                continue;
+            }
+
+            //Now follow some kind of path algorithm pffffff
+            //DO the drawing with lines and check which cell we have then reached.
+            //Then check whether the actual distance between our cell and that cell is possible (if wall has been passed the anwser should be no!)
+            //Based on this we should get a good approximation.
+
+            // Check if we can make it from own cell to sender cell
+        }
+    }
+
+    // CHeck for invalid cells, so a cell id for which the whole row states false;
+    // If found eliminate all particles in that cell.
 }
 
 /// @brief Update all particles based on the movement of the robot.
@@ -247,10 +325,9 @@ void ParticleFilter::processMovement(double distance, int angle)
     const double weigthAddition = (double)1 / NUMBER_OF_PARTICLES;
 
     // Keeping track of nr of particles in cell:
-    int particlesPerCell[mapData.getNumberOfCells()];
-    int cellIdx;
+    resetParticlesPerCell();
 
-    fillArrayWithZeros(particlesPerCell, mapData.getNumberOfCells());
+    int cellIdx;
 
     // Looping over all particles and update their position:
     for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
@@ -331,11 +408,9 @@ void ParticleFilter::processWallDetected(double wallAngle, double wallDistance)
     const double weigthAddition = (double)1 / NUMBER_OF_PARTICLES;
 
     // Keeping track of nr of particles in cell:
-    int particlesPerCell[mapData.getNumberOfCells()];
+    resetParticlesPerCell();
     int noise1, noise2;
     int cellIdx;
-
-    fillArrayWithZeros(particlesPerCell, mapData.getNumberOfCells());
 
     // Looping over all particles and check their position:
     for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
@@ -586,5 +661,14 @@ void ParticleFilter::determineLocalizationCell(int *particlesPerCell)
     if (numberOfParticlesInCell > MIN_NUMBER_OF_PARTICLES_CONVERGENCE)
     {
         selectedCellIdx = cellWithMostParticlesIdx;
+    }
+}
+
+/// @brief Resetting the particles per cell counter back to zero for all cells.
+void ParticleFilter::resetParticlesPerCell()
+{
+    for (int i = 0; i < mapData.getNumberOfCells(); i++)
+    {
+        particlesPerCell[i] = 0;
     }
 }

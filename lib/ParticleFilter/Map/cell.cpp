@@ -1,24 +1,46 @@
 #include "cell.h"
 
-#include <iostream>
-
-void Cell::from_json(const json &j, Cell &cellData)
+// @brief Default constructor, should not be used in practice!
+Cell::Cell() : id(-1), startX(-1), stopX(-1), startY(-1), stopY(-1)
 {
-    j.at("id").get_to(cellData.id);
-    j.at("startX").get_to(cellData.startX);
-    j.at("startY").get_to(cellData.startY);
-    j.at("stopX").get_to(cellData.stopX);
-    j.at("stopY").get_to(cellData.stopY);
 }
 
+Cell::Cell(int id, int startX, int stopX, int startY, int stopY)
+    : id(id), startX(startX), stopX(stopX), startY(startY), stopY(stopY)
+{
+    width = stopX - startX;
+    height = stopY - startY;
+    diameter = sqrt(width * width + height * height);
+}
+
+Cell Cell::fromJson(const json &jsonData)
+{
+    return Cell(jsonData["id"],
+                jsonData["startX"],
+                jsonData["stopX"],
+                jsonData["startY"],
+                jsonData["stopY"]);
+}
+
+/// @brief Get the width of the cell.
+/// @return Width of the cell.
 int Cell::getWidth()
 {
-    return stopX - startX;
+    return width;
 }
 
+/// @brief Get the height of the cell.
+/// @return Height of the cell.
 int Cell::getHeight()
 {
-    return stopY - startY;
+    return height;
+}
+
+/// @brief Get the diameter of the cell.
+/// @return Diameter of the cell.
+int Cell::getDiameter()
+{
+    return diameter;
 }
 
 /// @brief Check if the given x/y coordinate is inside the cell.
