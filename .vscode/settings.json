@@ -59,6 +59,9 @@
         "valarray": "cpp",
         "condition_variable": "cpp",
         "mutex": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "bitset": "cpp",
+        "charconv": "cpp",
+        "regex": "cpp"
     }
 }

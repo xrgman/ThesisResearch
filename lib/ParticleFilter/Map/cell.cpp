@@ -11,6 +11,8 @@ Cell::Cell(int id, int startX, int stopX, int startY, int stopY)
     width = stopX - startX;
     height = stopY - startY;
     diameter = sqrt(width * width + height * height);
+    centerX = (startX + stopX) / 2;
+    centerY = (startY + stopY) / 2;
 }
 
 Cell Cell::fromJson(const json &jsonData)
@@ -43,11 +45,18 @@ int Cell::getDiameter()
     return diameter;
 }
 
+/// @brief Get the center X and Y coordinate of a cell.
+/// @return Center coordinates cell.
+std::pair<int, int> Cell::getCenter()
+{
+    return std::make_pair(centerX, centerY);
+}
+
 /// @brief Check if the given x/y coordinate is inside the cell.
 /// @param x X coordinate to check.
 /// @param y Y coordinate to check.
 /// @return Whether or not the coordinate is inside the cell.
-bool Cell::containsPoint(int x, int y)
+bool Cell::containsPoint(const int x, const int y) const
 {
     return x >= startX && x <= stopX && y >= startY && y <= stopY;
 }

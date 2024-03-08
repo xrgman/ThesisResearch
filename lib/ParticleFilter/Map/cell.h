@@ -16,7 +16,9 @@ public:
     int getHeight();
     int getDiameter();
 
-    bool containsPoint(int x, int y);
+    std::pair<int, int> getCenter();
+
+    bool containsPoint(const int x, const int y) const;
 
     const char *getCellName();
 
@@ -31,6 +33,7 @@ public:
 
 private:
     int height, width, diameter;
+    int centerX, centerY;
 };
 
 #endif

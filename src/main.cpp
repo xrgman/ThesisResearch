@@ -238,7 +238,7 @@ void processKeyBoard()
 }
 
 /// @brief Open a specific wavfile and output it over the speaker.
-/// @param filename Name of the wavfile. 
+/// @param filename Name of the wavfile.
 void openAndPlayWavFile(const char *filename)
 {
     // Reading WAV file:
@@ -1058,6 +1058,9 @@ int main()
     // Initialize the logger
     spdlog::set_pattern("[%H:%M:%S.%e] [%l] %v");
     spdlog::info("Logger initialized!");
+
+    //FOR TESTING NOW:
+    loadParticleFilter(false);
 
     // Killing running tasks:
     audioHelper.stopAndClose(false);

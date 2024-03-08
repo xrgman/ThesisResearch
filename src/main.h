@@ -24,4 +24,6 @@ T positive_modulo(T val, T mod) {
 
 #define LOCALIZATION_INTERVAL_SECONDS 1.0
 
+#define ASTAR_NODE_SIZE 10 //Needs to be divisible by 2
+
 #endif

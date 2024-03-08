@@ -1,14 +1,15 @@
 #include "mapData.h"
 #include "util.h"
+#include "aStarAlgorithm.h"
 
 void MapData::initialize()
 {
     // Calculating smallest distances between cells:
-    distancesBetweenCells = new int *[numberOfCells];
+    shortestPathsBetweenCells = new double *[numberOfCells];
 
     for (int i = 0; i < numberOfCells; i++)
     {
-        distancesBetweenCells[i] = new int[numberOfCells];
+        shortestPathsBetweenCells[i] = new double[numberOfCells];
 
         int startCell = i;
 
@@ -16,19 +17,28 @@ void MapData::initialize()
         {
             int destinationCell = j;
 
-            // If we already know it, simply copy the value, maybe not do this as we look from center of cell:
-            //if we do from center to center than this is quite alright
-            if (destinationCell < startCell)
+            // If cells are the same, distance is zero:
+            if (destinationCell == startCell)
             {
-                distancesBetweenCells[startCell][destinationCell] = distancesBetweenCells[destinationCell][startCell];
+                shortestPathsBetweenCells[startCell][destinationCell] = 0.0;
 
                 continue;
             }
 
+            // Think we need euclidian distance for this
 
-            //From center of startcell to edge of destinationCell
+            // If we already know it, simply copy the value, maybe not do this as we look from center of cell:
+            // if we do from center to center than this is quite alright
+            if (destinationCell < startCell)
+            {
+                shortestPathsBetweenCells[startCell][destinationCell] = shortestPathsBetweenCells[destinationCell][startCell];
 
-            distancesBetweenCells[startCell][destinationCell] = i+ j;
+                continue;
+            }
+
+            // From center of startcell to edge of destinationCell
+
+            shortestPathsBetweenCells[startCell][destinationCell] = calculateShortestDistanceBetweenCells(startCell, destinationCell, getCells());
         }
     }
 }
@@ -123,9 +133,19 @@ void MapData::print()
 
         for (int j = 0; j < numberOfCells; j++)
         {
-            cout << distancesBetweenCells[i][j] << "\t| ";
+            cout << shortestPathsBetweenCells[i][j] << "\t| ";
         }
 
         cout << endl;
     }
+}
+
+double MapData::calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, const std::vector<Cell> &cells)
+{
+    Cell startCell = cells[originCellId];
+    Cell endCell = cells[destinationCellId];
+
+    AStarAlgorithm algorithm(startCell, endCell, getCells(), true);
+
+    return algorithm.calculateShortestPathDistance();
 }

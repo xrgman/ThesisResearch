@@ -612,3 +612,17 @@ bool onSegment(int p1X, int p1Y, int p2X, int p2Y, int p3X, int p3Y)
 {
     return (p2X <= max(p1X, p3X) && p2X >= min(p1X, p3X)) && (p2Y <= max(p1Y, p3Y) && p2Y >= min(p1Y, p3Y));
 }
+
+/// @brief Calculate the euclidean distance between two points.
+/// @param p1X X coordinate of the first point.
+/// @param p1Y Y coordinate of the first point. 
+/// @param p2X X coordinate of the second point.
+/// @param p2Y Y coordinate of the second point.
+/// @return Euclidean distance between the two points.
+double calculateEuclideanDistance(int p1X, int p1Y, int p2X, int p2Y)
+{
+    int differenceX = p1X - p2X;
+    int differenceY = p1Y - p2Y;
+
+    return sqrt(differenceX * differenceX + differenceY * differenceY);
+}

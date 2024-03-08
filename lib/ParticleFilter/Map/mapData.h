@@ -18,14 +18,14 @@ public:
     {
         // delete[] cells;
 
-        if (distancesBetweenCells != NULL)
+        if (shortestPathsBetweenCells != NULL)
         {
             for (int i = 0; i < numberOfCells; i++)
             {
-                delete[] distancesBetweenCells[i];
+                delete[] shortestPathsBetweenCells[i];
             }
 
-            delete[] distancesBetweenCells;
+            delete[] shortestPathsBetweenCells;
         }
     }
 
@@ -52,7 +52,9 @@ private:
     std::vector<Wall> walls;
     std::vector<Door> doors;
 
-    int **distancesBetweenCells;
+    double **shortestPathsBetweenCells;
+
+    double calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, const std::vector<Cell> &cells);
 
     friend void from_json(const json &j, MapData &mapData)
     {
