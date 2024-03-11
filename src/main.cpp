@@ -441,47 +441,13 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
     while (keepDecoding)
     {
         // Checking if new data is available:
-        /*if (!audioHelper.readNextBatch(channels, numChannelsToDecode))
-        {
-            usleep(1);
-
-            continue;
-        }
-
-        audioHelper.setNextBatchRead(channels, numChannelsToDecode);
-
-        // auto t1 = chrono::high_resolution_clock::now();
-
-        // Decode all new data:
-        for (int i = 0; i < FRAMES_PER_BUFFER; i++)
-        {
-            for (uint8_t channel = 0; channel < numChannelsToDecode; channel++)
-            {
-                uint8_t channelToProcess = channels[channel];
-                uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channelToProcess];
-
-
-
-                audioCodec.decode(audioHelper.audioData[channelIdx][i], channelToProcess);
-            }
-        }
-
-        audioHelper.signalBatchProcessed(channels, numChannelsToDecode);*/
-
-        // Checking if new data is available:
         if (!audioHelper.isDataAvailable(FRAMES_PER_BUFFER))
         {
             usleep(1);
 
             continue;
         }
-
-        // Reading new data:
-        // for (uint8_t channel = 0; channel < config.numChannels; channel++)
-        // {
-        //     audioHelper.inputBuffers[channel].read(data[channel], FRAMES_PER_BUFFER);
-        // }
-
+        
         // Decoding newly read data:
         for (int i = 0; i < FRAMES_PER_BUFFER; i++)
         {
