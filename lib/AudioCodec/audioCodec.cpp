@@ -263,8 +263,11 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     // Calculate and add CRC (excluding padding):
     // uint8_t crc = calculateCRC(&data[0], dataLength - 8);
     // uint8ToBits(crc, &data[dataLength - 8]);
-    uint8_t crc = calculateCRC(&data[0], dataLength - 16);
-    uint8ToBits(crc, &data[dataLength - 16]);
+    // uint8_t crc = calculateCRC(&data[0], dataLength - 16);
+    // uint8ToBits(crc, &data[dataLength - 16]);
+
+    uint8_t crc = calculateCRC(&data[0], dataLength - 8);
+    uint8ToBits(crc, &data[dataLength - 8]);
 
     // Adding padding of 1's
     // for (uint8_t i = 0; i < 8; i++)
