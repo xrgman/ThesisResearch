@@ -132,7 +132,7 @@ void processDecodingResults()
 
             auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(messageSend - decodingResult.decodingDoneTime);
 
-            spdlog::info("Time between receiving and completely sending: {}ns", timeDifference.count());
+            spdlog::info("Time between receiving and completely sending: {}", timeDifference.count());
 
             break;
         }
@@ -403,9 +403,10 @@ void decodeWavFile(const char *filename)
     }
 
     // Start timer:
+    chrono::time_point<chrono::high_resolution_clock> receivedTime;
     decodingStart = chrono::high_resolution_clock::now();
 
-    // Reading successfull, so decoding it:
+        // Reading successfull, so decoding it:
     while (!feof(fileRead))
     {
         int16_t audioData[frames_per_buffer];
@@ -414,7 +415,7 @@ void decodeWavFile(const char *filename)
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
         for (int i = 0; i < bytesRead; i += 1)
         {
-            audioCodec.decode(audioData[i], i % wavHeader.numChannels); // i % NUM_CHANNELS
+            audioCodec.decode(audioData[i], i % wavHeader.numChannels, receivedTime); // i % NUM_CHANNELS
         }
     }
 
@@ -476,17 +477,25 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
         }
 
         // Reading new data:
-        for (uint8_t channel = 0; channel < config.numChannels; channel++)
-        {
-            audioHelper.inputBuffers[channel].read(data[channel], FRAMES_PER_BUFFER);
-        }
+        // for (uint8_t channel = 0; channel < config.numChannels; channel++)
+        // {
+        //     audioHelper.inputBuffers[channel].read(data[channel], FRAMES_PER_BUFFER);
+        // }
 
         // Decoding newly read data:
         for (int i = 0; i < FRAMES_PER_BUFFER; i++)
         {
             for (uint8_t channel = 0; channel < config.numChannels; channel++)
             {
-                audioCodec.decode(data[channel][i], channel);
+                if (audioHelper.inputBuffers[channel].isDataAvailable())
+                {
+                    chrono::time_point<chrono::high_resolution_clock> receivedTime;
+                    int16_t dataRead = audioHelper.inputBuffers[channel].read(receivedTime);
+
+                    audioCodec.decode(dataRead, channel, receivedTime);
+                }
+
+                // audioCodec.decode(data[channel][i], channel);
             }
         }
     }
@@ -667,8 +676,9 @@ void processFileWoDistance(const char *filename)
     }
 
     // Start timer:
+    chrono::time_point<chrono::high_resolution_clock> receivedTime;
     decodingStart = chrono::high_resolution_clock::now();
-
+    
     // Reading successfull, so decoding it:
     while (!feof(fileRead))
     {
@@ -678,7 +688,7 @@ void processFileWoDistance(const char *filename)
         // SAMPLE FILE HAS ONLY ONE CHANNEL:
         for (int i = 0; i < bytesRead; i += 1)
         {
-            audioCodec.decode(audioData[i], i % config.numChannels);
+            audioCodec.decode(audioData[i], i % config.numChannels, receivedTime);
         }
     }
 
@@ -1059,7 +1069,7 @@ int main()
     spdlog::set_pattern("[%H:%M:%S.%e] [%l] %v");
     spdlog::info("Logger initialized!");
 
-    //FOR TESTING NOW:
+    // FOR TESTING NOW:
     loadParticleFilter(false);
 
     // Killing running tasks:

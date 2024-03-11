@@ -286,6 +286,7 @@ bool AStarAlgorithm::areNewCoordinatesAllowed(const int newX, const int newY)
     }
 
     // 3. Check if not traversed a wall?
+    //Allow it to traverse doors, as they are techniqally not considered a cell :)
 
     return false;
 }

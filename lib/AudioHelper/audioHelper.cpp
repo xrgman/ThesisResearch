@@ -65,17 +65,11 @@ int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffe
 // So each channel has 2048 items in it.
 int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
+    //Grabbing time of receiving current batch:
+    chrono::time_point currentTime = chrono::high_resolution_clock::now();
+
     // We want to put data into the outputbuffer as soon as this one is called.
     int16_t *inputData = (int16_t *)inputBuffer; // Not uint16_t but int16
-
-    // bool isBatchProcessed = isCompleteBatchProcessed();
-
-    // if (!isBatchProcessed && microphonesAreOrdered)
-    // {
-    //     spdlog::error("Batch was not yet processed!");
-    // }
-
-    // spdlog::info("New data arrived!\n");
 
     // Grabbing read data:
 
@@ -92,7 +86,8 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
                 int actualChannelId = microphonesOrdered[channel];
 
                 // Saving to buffer in correct order:
-                inputBuffers[channel].write(inputData[i * numChannels + actualChannelId]);
+                //inputBuffers[channel].write(inputData[i * numChannels + actualChannelId]);
+                inputBuffers[channel].write(inputData[i * numChannels + actualChannelId], currentTime);
             }
         }
     }

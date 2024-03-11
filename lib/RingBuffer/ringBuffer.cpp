@@ -22,6 +22,9 @@ void RingBuffer::initialize(int size)
     buffer.resize(size);
     buffer.clear();
 
+    receivedTimes.clear();
+    receivedTimes.reserve(20);
+
     fillArrayWithZeros(buffer.data(), size);
 }
 
@@ -57,10 +60,31 @@ void RingBuffer::write(const int16_t *data, const int count)
     }
 }
 
+/// @brief Write a single element to the buffer.
+/// @param data Data element to write to the buffer.
+/// @param receivedTime The time that the batch containing this data was received.
+void RingBuffer::write(const int16_t data, chrono::time_point<chrono::high_resolution_clock> receivedTime)
+{
+    // Saving the received time at current header position:
+    if (!receivedTimeSeen(receivedTime))
+    {
+        receivedTimes.push_back(pair<int, chrono::time_point<chrono::high_resolution_clock>>(head, receivedTime));
+    }
+
+    // Performing actual writing to buffer:
+    write(data);
+}
+
 /// @brief Read a single element from the buffer.
 /// @return The read element.
 int16_t RingBuffer::read()
 {
+    // Checking if buffer is not empty:
+    if (isEmpty)
+    {
+        return -1;
+    }
+
     int16_t element = buffer[tail];
 
     // Increasing read index:
@@ -73,6 +97,35 @@ int16_t RingBuffer::read()
     }
 
     return element;
+}
+
+int16_t RingBuffer::read(std::chrono::time_point<std::chrono::high_resolution_clock> &receivedTime)
+{
+    // Grabbing time:
+    if (receivedTimes.size() > 0)
+    {
+        while (receivedTime.time_since_epoch().count() == 0)
+        {
+            pair<int, chrono::time_point<chrono::high_resolution_clock>> receivedTimePair = receivedTimes[0];
+
+            // Checking if received time can be removed:
+            if (receivedTimes.size() > 1)
+            {
+                pair<int, chrono::time_point<chrono::high_resolution_clock>> receivedTimePair2 = receivedTimes[1];
+
+                if (receivedTimePair2.first < tail)
+                {
+                    receivedTimes.erase(receivedTimes.begin());
+
+                    continue;
+                }
+            }
+
+            receivedTime = receivedTimePair.second;
+        }
+    }
+
+    return read();
 }
 
 /// @brief Read multiple elements from the buffer.
@@ -159,9 +212,24 @@ void RingBuffer::printData()
 
     for (int i = 0; i < itemsInBuff; i++)
     {
-        int idx = (tail + i) % size;
         int element = buffer[(tail + i) % size];
 
         cout << element << (i < itemsInBuff - 1 ? ", " : "\n");
     }
+}
+
+/// @brief Check if the given received time is already present in the received times array:
+/// @param receivedTime The time at which the current data was received.
+/// @return Whether or not this time has been recorded already.
+bool RingBuffer::receivedTimeSeen(const std::chrono::time_point<std::chrono::high_resolution_clock> &receivedTime)
+{
+    for (int i = 0; i < receivedTimes.size(); i++)
+    {
+        if (receivedTimes[i].second == receivedTime)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }

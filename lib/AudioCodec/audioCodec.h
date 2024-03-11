@@ -170,7 +170,7 @@ public:
     void encodeLocalizeMessage(int16_t *output, uint8_t senderId);
     void encodeLocalizeResponseMessage(int16_t *output, uint8_t senderId, uint8_t receiverId);
 
-    void decode(int16_t bit, uint8_t microphoneId);
+    void decode(int16_t bit, uint8_t microphoneId, const chrono::time_point<chrono::high_resolution_clock>& receivedTime);
 
     void generateConvolutionFields(int robotId);
     void initializeBitEncodingData();

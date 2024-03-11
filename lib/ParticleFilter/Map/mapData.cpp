@@ -38,7 +38,7 @@ void MapData::initialize()
 
             // From center of startcell to edge of destinationCell
 
-            shortestPathsBetweenCells[startCell][destinationCell] = calculateShortestDistanceBetweenCells(startCell, destinationCell, getCells());
+            //shortestPathsBetweenCells[startCell][destinationCell] = calculateShortestDistanceBetweenCells(startCell, destinationCell, getCells());
         }
     }
 }

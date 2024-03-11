@@ -535,7 +535,7 @@ uint8_t AudioCodec::calculateCRC(const uint8_t *data, const int size)
 //******** Decoding *******************************
 //*************************************************
 
-void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
+void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_point<chrono::high_resolution_clock>& receivedTime)
 {
     // Converting received value to double between -1 and 1:
     double value = int16ToDouble(bit);
@@ -702,7 +702,14 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId)
                 if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits() - 8)
                 {
                     // Save decoding time:
-                    decodingResults[decodingResultIdx].decodingDoneTime = chrono::high_resolution_clock::now();
+                    decodingResults[decodingResultIdx].decodingDoneTime = receivedTime;
+
+                    //For testing calculate time difference between two values :)
+                    // auto ms_int = chrono::duration_cast<chrono::nanoseconds>(decodingResults[decodingResultIdx].decodingDoneTime - receivedTime);
+
+                    // int differenceNs = ms_int.count();
+
+                    // spdlog::info("Difference is: {}", differenceNs);
 
                     completeDecoding(decodingResults[decodingResultIdx]);
 
