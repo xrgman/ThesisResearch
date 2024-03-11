@@ -141,12 +141,6 @@ void processDecodingResults()
 
             if (receiverId == config.robotId)
             {
-                // Saving time:
-                // chrono::time_point responseReceived = chrono::high_resolution_clock::now();
-
-                // Removing time it took to reach this point:
-                // auto timeDifference = chrono::duration_cast<chrono::milliseconds>(responseReceived - decodingResult.decodingDoneTime);
-
                 // Removing time from start of sending message:
                 auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(decodingResult.decodingDoneTime - localizationBroadcastSend);
 
@@ -155,7 +149,7 @@ void processDecodingResults()
 
                 spdlog::info("Time difference: {}", timeDifference.count());
 
-                double averageProcessingTimeB = 1653883567.0;
+                double averageProcessingTimeB = 1216903391.0;
 
                 timeDiffNs -= averageProcessingTimeB;
 
@@ -538,8 +532,6 @@ void sendLocalizationResponse(int receiverId)
 
     // Output message to speaker:
     outputMessageToSpeaker(codedAudioData, size);
-
-    cout << "Localization response send!\n";
 }
 
 /// @brief Send out an encoded message, while simultaniously recording data to a WAV file.
