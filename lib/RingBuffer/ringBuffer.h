@@ -17,13 +17,14 @@ public:
     void write(const int16_t data);
     void write(const int16_t data, chrono::time_point<chrono::high_resolution_clock> receivedTime);
     void write(const int16_t *data, const int count);
-    
+
     int16_t read();
-    int16_t read(std::chrono::time_point<std::chrono::high_resolution_clock>& receivedTime);
+    int16_t read(std::chrono::time_point<std::chrono::high_resolution_clock> &receivedTime);
     int read(int16_t *data, const int count);
 
     bool isFull();
     bool isDataAvailable();
+    chrono::time_point<chrono::high_resolution_clock> getEmptyTime();
     int bufferSize();
     int maximumSize();
     void printData();
@@ -33,8 +34,9 @@ private:
     vector<pair<int, chrono::time_point<chrono::high_resolution_clock>>> receivedTimes;
     int size, head, tail;
     bool isEmpty;
+    chrono::time_point<chrono::high_resolution_clock> isEmptyTime;
 
-    bool receivedTimeSeen(const std::chrono::time_point<std::chrono::high_resolution_clock>& receivedTime);
+    bool receivedTimeSeen(const std::chrono::time_point<std::chrono::high_resolution_clock> &receivedTime);
 };
 
 #endif

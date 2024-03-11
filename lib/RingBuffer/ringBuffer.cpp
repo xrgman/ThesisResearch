@@ -94,6 +94,9 @@ int16_t RingBuffer::read()
     if (tail == head)
     {
         isEmpty = true;
+
+        // Log time that buffer went empty:
+        isEmptyTime = chrono::high_resolution_clock::now();
     }
 
     return element;
@@ -165,6 +168,13 @@ bool RingBuffer::isFull()
 bool RingBuffer::isDataAvailable()
 {
     return !isEmpty;
+}
+
+/// @brief Get the last time that the buffer was marked as empty.
+/// @return Time that buffer went empty.
+chrono::time_point<chrono::high_resolution_clock> RingBuffer::getEmptyTime()
+{
+    return isEmptyTime;
 }
 
 /// @brief Get the current count of items in the buffer.

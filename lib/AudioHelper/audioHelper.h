@@ -25,6 +25,7 @@ public:
     void writeBytes(const int16_t *audioData, uint32_t nrOfBytes);
     bool isOutputBufferFull();
     bool isOutputBufferEmpty();
+    chrono::time_point<chrono::high_resolution_clock> getOutputBufferEmptyTime();
     int getOutputBufferAvailableSize();
 
     //Input:

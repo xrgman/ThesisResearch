@@ -48,7 +48,7 @@ thread decodingThreads[decodingThreadsCnt];
 vector<AudioCodecResult> decodingResults;
 
 // Fields in use for distance tracking:
-chrono::time_point localizationBroadcastSend = chrono::high_resolution_clock::now();
+chrono::time_point<chrono::high_resolution_clock> localizationBroadcastSend;
 
 double distanceToOtherRobots[12];
 
@@ -123,14 +123,12 @@ void processDecodingResults()
         }
         case LOCALIZE:
         {
-            spdlog::info("Robot has requested a localization response. Sending....");
+            //spdlog::info("Robot has requested a localization response. Sending....");
 
             // Sending localization response to requester:
             sendLocalizationResponse(decodingResult.senderId);
 
-            chrono::time_point messageSend = chrono::high_resolution_clock::now();
-
-            auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(messageSend - decodingResult.decodingDoneTime);
+            auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(audioHelper.getOutputBufferEmptyTime() - decodingResult.decodingDoneTime);
 
             spdlog::info("Time between receiving and completely sending: {}", timeDifference.count());
 
@@ -447,7 +445,7 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
 
             continue;
         }
-        
+
         // Decoding newly read data:
         for (int i = 0; i < FRAMES_PER_BUFFER; i++)
         {
@@ -879,7 +877,7 @@ void handleKeyboardInput()
                 outputMessageToSpeaker(codedAudioData, size);
 
                 // Saving sending time:
-                localizationBroadcastSend = chrono::high_resolution_clock::now();
+                localizationBroadcastSend = audioHelper.getOutputBufferEmptyTime();
 
                 cout << "Done playing message.\n";
 

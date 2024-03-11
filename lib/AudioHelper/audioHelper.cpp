@@ -65,14 +65,13 @@ int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffe
 // So each channel has 2048 items in it.
 int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
-    //Grabbing time of receiving current batch:
-    chrono::time_point currentTime = chrono::high_resolution_clock::now();
+    // Grabbing time of receiving current batch:
+    chrono::time_point<chrono::high_resolution_clock> currentTime = chrono::high_resolution_clock::now();
 
     // We want to put data into the outputbuffer as soon as this one is called.
     int16_t *inputData = (int16_t *)inputBuffer; // Not uint16_t but int16
 
     // Grabbing read data:
-
     for (int i = 0; i < framesPerBuffer; i++)
     {
         for (int channel = 0; channel < numChannels; channel++)
@@ -86,7 +85,7 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
                 int actualChannelId = microphonesOrdered[channel];
 
                 // Saving to buffer in correct order:
-                //inputBuffers[channel].write(inputData[i * numChannels + actualChannelId]);
+                // inputBuffers[channel].write(inputData[i * numChannels + actualChannelId]);
                 inputBuffers[channel].write(inputData[i * numChannels + actualChannelId], currentTime);
             }
         }
@@ -269,6 +268,13 @@ bool AudioHelper::isOutputBufferFull()
 bool AudioHelper::isOutputBufferEmpty()
 {
     return !outputRingBuffer.isDataAvailable();
+}
+
+/// @brief Get the time that the output buffer went empty.
+/// @return Output buffer empty time.
+chrono::time_point<chrono::high_resolution_clock> AudioHelper::getOutputBufferEmptyTime()
+{
+    return outputRingBuffer.getEmptyTime();
 }
 
 /// @brief Get the current amount of empty bytes left in the buffer.
