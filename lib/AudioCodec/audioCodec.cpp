@@ -237,6 +237,17 @@ void AudioCodec::encodeLocalizeResponseMessage(int16_t *output, uint8_t senderId
     encode(output, senderId, LOCALIZE_RESPONSE, dataBits);
 }
 
+void AudioCodec::encodeLocalizeResponse2Message(int16_t *output, uint8_t senderId, chrono::nanoseconds processingTime)
+{
+    uint8_t dataBits[64];
+
+    // Transforming the processing time into bits:
+    nanosecondsToBits(processingTime, dataBits);
+
+    // Performing encoding as normal:
+    encode(output, senderId, LOCALIZE_RESPONSE2, dataBits);
+}
+
 /// @brief The encoding function, does the actual encoding.
 /// @param output The array to store the encoded data in.
 /// @param senderId The ID of the sender.

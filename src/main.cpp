@@ -25,6 +25,7 @@ Config config = Config::LoadConfig("../src/config.json");
 // Func defs:
 void dataDecodedCallback(AudioCodecResult result);
 void sendLocalizationResponse(int receiverId);
+void sendLocalizationResponse2(chrono::nanoseconds processingTime);
 
 AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw);
 
@@ -48,7 +49,7 @@ thread decodingThreads[decodingThreadsCnt];
 vector<AudioCodecResult> decodingResults;
 
 // Fields in use for distance tracking:
-chrono::time_point<chrono::high_resolution_clock> localizationBroadcastSend;
+chrono::time_point<chrono::high_resolution_clock> localizationBroadcastSend, localizationRespondReceived;
 
 double distanceToOtherRobots[12];
 
@@ -123,14 +124,17 @@ void processDecodingResults()
         }
         case LOCALIZE:
         {
-            //spdlog::info("Robot has requested a localization response. Sending....");
+            // spdlog::info("Robot has requested a localization response. Sending....");
 
             // Sending localization response to requester:
             sendLocalizationResponse(decodingResult.senderId);
 
-            auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(audioHelper.getOutputBufferEmptyTime() - decodingResult.decodingDoneTime);
+            chrono::nanoseconds processingTime = chrono::duration_cast<chrono::nanoseconds>(audioHelper.getOutputBufferEmptyTime() - decodingResult.decodingDoneTime);
 
-            spdlog::info("Time between receiving and completely sending: {}", timeDifference.count());
+            spdlog::info("Time between receiving and completely sending: {}", processingTime.count());
+
+            // Send another message :)
+            sendLocalizationResponse2(processingTime);
 
             break;
         }
@@ -141,28 +145,49 @@ void processDecodingResults()
 
             if (receiverId == config.robotId)
             {
+                localizationRespondReceived = decodingResult.decodingDoneTime;
+
                 // Removing time from start of sending message:
-                auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(decodingResult.decodingDoneTime - localizationBroadcastSend);
+                // auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(decodingResult.decodingDoneTime - localizationBroadcastSend);
 
-                // We still need to substract the processing time inside the other robot....
-                double timeDiffNs = timeDifference.count();
+                // // We still need to substract the processing time inside the other robot....
+                // double timeDiffNs = timeDifference.count();
 
-                spdlog::info("Time difference: {}", timeDifference.count());
+                // spdlog::info("Time difference: {}", timeDifference.count());
 
-                double averageProcessingTimeB = 1216903391.0;
+                // double averageProcessingTimeB = 1216903391.0;
 
-                timeDiffNs -= averageProcessingTimeB;
+                // timeDiffNs -= averageProcessingTimeB;
 
-                double timeDiffS = timeDiffNs / 1000000000;
+                // double timeDiffS = timeDiffNs / 1000000000;
 
-                // Calculate the actual distance:
-                double distanceInM = 343.0 * timeDiffS / 2;
+                // // Calculate the actual distance:
+                // double distanceInM = 343.0 * timeDiffS / 2;
 
-                spdlog::info("Robot is {} cm away.", distanceInM * 100);
+                // spdlog::info("Robot is {} cm away.", distanceInM * 100);
 
-                // Saving calculated distance:
-                distanceToOtherRobots[decodingResult.senderId] = distanceInM;
+                // // Saving calculated distance:
+                // distanceToOtherRobots[decodingResult.senderId] = distanceInM;
+                break;
             }
+        }
+        case LOCALIZE_RESPONSE2:
+        {
+            // uint8_t receiverId = bitsToUint8(decodingResult.decodedData);
+            chrono::nanoseconds processingTimeRobotB = bitsToNanoseconds(decodingResult.decodedData);
+
+            // Removing time from start of sending message:
+            chrono::nanoseconds timeDifference = chrono::duration_cast<chrono::nanoseconds>(decodingResult.decodingDoneTime - localizationBroadcastSend);
+
+            // Calculating time in air:
+            chrono::nanoseconds actualAirTimeNs = timeDifference = processingTimeRobotB;
+
+            double timeDiffS = actualAirTimeNs.count() / 1000000000;
+
+            // Calculate the actual distance:
+            double distanceInM = 343.0 * timeDiffS / 2;
+
+            spdlog::info("Robot is {} cm away.", distanceInM * 100);
 
             break;
         }
@@ -398,7 +423,7 @@ void decodeWavFile(const char *filename)
     chrono::time_point<chrono::high_resolution_clock> receivedTime;
     decodingStart = chrono::high_resolution_clock::now();
 
-        // Reading successfull, so decoding it:
+    // Reading successfull, so decoding it:
     while (!feof(fileRead))
     {
         int16_t audioData[frames_per_buffer];
@@ -534,6 +559,18 @@ void sendLocalizationResponse(int receiverId)
     outputMessageToSpeaker(codedAudioData, size);
 }
 
+void sendLocalizationResponse2(chrono::nanoseconds processingTime)
+{
+    int size = audioCodec.getEncodingSize();
+    int16_t codedAudioData[size];
+
+    // Encode the message:
+    audioCodec.encodeLocalizeResponse2Message(codedAudioData, config.robotId, processingTime);
+
+    // Output message to speaker:
+    outputMessageToSpeaker(codedAudioData, size);
+}
+
 /// @brief Send out an encoded message, while simultaniously recording data to a WAV file.
 /// @param filename Filename of the WAV file.
 /*void sendMessageAndRecord(const char *filename)
@@ -634,7 +671,7 @@ void processFileWoDistance(const char *filename)
     // Start timer:
     chrono::time_point<chrono::high_resolution_clock> receivedTime;
     decodingStart = chrono::high_resolution_clock::now();
-    
+
     // Reading successfull, so decoding it:
     while (!feof(fileRead))
     {
