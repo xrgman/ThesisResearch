@@ -104,7 +104,7 @@ void AudioCodec::generateConvolutionFields(int robotId)
 int AudioCodec::getNumberOfBits()
 {
     // Message ID + Data + CRC + Padding
-    return 8 + 64 + 8 + 8;
+    return 8 + 64 + 8; // + 8;
 }
 
 /// @brief Get the size in bits of the hello world encoding.
@@ -267,10 +267,10 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
     uint8ToBits(crc, &data[dataLength - 16]);
 
     // Adding padding of 1's
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        data[dataLength - 8 + i] = 1;
-    }
+    // for (uint8_t i = 0; i < 8; i++)
+    // {
+    //     data[dataLength - 8 + i] = 1;
+    // }
 
     // Printing encoded bits if required:
     if (printCodedBits)
@@ -535,7 +535,7 @@ uint8_t AudioCodec::calculateCRC(const uint8_t *data, const int size)
 //******** Decoding *******************************
 //*************************************************
 
-void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_point<chrono::high_resolution_clock>& receivedTime)
+void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_point<chrono::high_resolution_clock> &receivedTime)
 {
     // Converting received value to double between -1 and 1:
     double value = int16ToDouble(bit);
@@ -699,8 +699,8 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_po
                 decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples;
 
                 // Checking if all bits are received (-8 because of padding in back):
-                if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits() - 8)
-                //if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits())
+                if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits())
+                // if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits() - 8)
                 {
                     // Save decoding time:
                     decodingResults[decodingResultIdx].decodingDoneTime = receivedTime;
@@ -973,8 +973,11 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult)
     }
 
     // Decoding CRC and checking if message was received successfully:
-    uint8_t crcInMessage = bitsToUint8(&decodingResult.decodedBits[getNumberOfBits() - 8]);
-    uint8_t crcCalculated = calculateCRC(&decodingResult.decodedBits[0], getNumberOfBits() - 8);
+    // uint8_t crcInMessage = bitsToUint8(&decodingResult.decodedBits[getNumberOfBits() - 8]);
+    // uint8_t crcCalculated = calculateCRC(&decodingResult.decodedBits[0], getNumberOfBits() - 8);
+
+    uint8_t crcInMessage = bitsToUint8(&decodingResult.decodedBits[getNumberOfBits()]);
+    uint8_t crcCalculated = calculateCRC(&decodingResult.decodedBits[0], getNumberOfBits());
 
     // cout << "Preamble found at: " << decodingResult.preambleDetectionPosition[0] << endl;
 
