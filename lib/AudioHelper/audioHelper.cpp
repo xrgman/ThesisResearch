@@ -376,6 +376,14 @@ bool AudioHelper::isDataAvailable(const int count)
     return true;
 }
 
+void AudioHelper::resetInputBuffers()
+{
+    for (uint8_t i = 0; i < NUM_CHANNELS; i++)
+    {
+        inputBuffers[i].reset();
+    }
+}
+
 //*************************************************
 //******** Misc ***********************************
 //*************************************************

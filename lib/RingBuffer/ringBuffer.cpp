@@ -28,6 +28,17 @@ void RingBuffer::initialize(int size)
     fillArrayWithZeros(buffer.data(), size);
 }
 
+/// @brief Reset the buffer.
+void RingBuffer::reset()
+{
+    this->head = 0;
+    this->tail = 0;
+    this->isEmpty = true;
+
+    buffer.clear();
+    receivedTimes.clear();
+}
+
 /// @brief Write a single element to the buffer.
 /// @param data Data element to write to the buffer.
 void RingBuffer::write(const int16_t data)
@@ -204,6 +215,12 @@ int RingBuffer::bufferSize()
 int RingBuffer::maximumSize()
 {
     return size;
+}
+
+/// @brief Print the current head and tail position of the buffer.
+void RingBuffer::printStats()
+{
+    spdlog::info("Ring buffer head: {}, tail: {}", head, tail);
 }
 
 /// @brief Output the data that is currently in the buffer to the console.

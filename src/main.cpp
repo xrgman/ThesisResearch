@@ -37,6 +37,7 @@ AudioCodec audioCodec(dataDecodedCallback, config.sampleRate, config.totalNumber
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool keepDecoding = true;
+bool pauseDecoding = false;
 
 // Distance to be used as long as we can't calculate it from the actual received message:
 bool processDecodedDataToPf = true; // TODO: set to false
@@ -177,16 +178,19 @@ void processDecodingResults()
             chrono::nanoseconds processingTimeRobotB = bitsToNanoseconds(decodingResult.decodedData);
 
             // Removing time from start of sending message:
-            chrono::nanoseconds timeDifference = chrono::duration_cast<chrono::nanoseconds>(decodingResult.decodingDoneTime - localizationBroadcastSend);
+            chrono::nanoseconds timeDifference = chrono::duration_cast<chrono::nanoseconds>(localizationRespondReceived - localizationBroadcastSend);
 
             // Calculating time in air:
-            chrono::nanoseconds actualAirTimeNs = timeDifference = processingTimeRobotB;
+            chrono::nanoseconds actualAirTimeNs = timeDifference - processingTimeRobotB;
 
-            double timeDiffS = actualAirTimeNs.count() / 1000000000;
+            double timeDiffS = (double)actualAirTimeNs.count() / 1000000000;
 
             // Calculate the actual distance:
-            double distanceInM = 343.0 * timeDiffS / 2;
+            double distanceInM = 343.0 * timeDiffS / 2.0;
 
+            spdlog::info("Processing time robot A {}", timeDifference.count());
+            spdlog::info("Processing time robot B {}", processingTimeRobotB.count());
+            spdlog::info("Air time: {}", actualAirTimeNs.count());
             spdlog::info("Robot is {} cm away.", distanceInM * 100);
 
             break;
@@ -303,50 +307,59 @@ void openAndPlayWavFile(const char *filename)
 
 void recordToWavFile(const char *filename, const int seconds)
 {
-    vector<int16_t> dataToWrite;
-    int iteration = 0;
+    const int nrOfSamplesTotal = config.sampleRate * seconds * config.numChannels;
+    int16_t recordedSamples[nrOfSamplesTotal];
+    int samplesRead = 0;
 
-    while ((iteration * FRAMES_PER_BUFFER) < (config.sampleRate * seconds))
+    bool recording = true;
+
+    //This switching works fine!
+    pauseDecoding = true;
+
+    while (recording)
     {
         // Checking if new data is available:
-        if (!audioHelper.readNextBatch(config.channels, 6))
+        if (!audioHelper.isDataAvailable(FRAMES_PER_BUFFER))
         {
             usleep(1);
 
             continue;
         }
 
-        audioHelper.setNextBatchRead(config.channels, 6);
+        //audioHelper.inputBuffers[0].printStats();
 
-        // Determine order of microphones, only executed once:
-        if (!audioHelper.determineMicrophoneOrder())
+        // Decoding newly read data:
+        for (int i = 0; i < FRAMES_PER_BUFFER; i++)
         {
-            cout << "Failed to determine microphone order! Stopping program.\n";
-
-            return;
-        }
-
-        // Preparing data to be written:
-        for (int sample = 0; sample < FRAMES_PER_BUFFER; sample++)
-        {
-            for (int channel = 0; channel < config.numChannels; channel++)
+            for (uint8_t channel = 0; channel < config.numChannels; channel++)
             {
-                uint8_t channelIdx = audioHelper.getMicrophonesOrdered()[channel];
-                int16_t *channelData = audioHelper.audioData[channelIdx];
+                recordedSamples[samplesRead] = audioHelper.inputBuffers[channel].read();
+                samplesRead++;
 
-                dataToWrite.push_back(channelData[sample]);
+                // Checking if we are done:
+                if (samplesRead >= nrOfSamplesTotal)
+                {
+                    pauseDecoding = false;
+                    recording = false;
+
+                    audioHelper.resetInputBuffers();
+
+                    break;
+                }
+            }
+
+            if (!recording)
+            {
+                break;
             }
         }
-
-        audioHelper.signalBatchProcessed(config.channels, 6);
-
-        iteration++;
     }
 
     // Write data to file:
-    writeWavFile(filename, dataToWrite.data(), dataToWrite.size(), config.sampleRate, 16, config.numChannels);
+    //Writing to file makes buffer somehow overflow
+    writeWavFile(filename, recordedSamples, nrOfSamplesTotal, config.sampleRate, 16, config.numChannels);
 
-    cout << "Successfully written " << seconds << " seconds to wav file '" << filename << "'\n";
+    spdlog::info("Sucessfully written {} seconds to the wav file {}.", seconds, filename);
 }
 
 void loadParticleFilter(bool initializeMapRenderer)
@@ -458,25 +471,24 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
     while (keepDecoding)
     {
         // Checking if new data is available:
-        if (!audioHelper.isDataAvailable(FRAMES_PER_BUFFER))
+        if (!audioHelper.isDataAvailable(FRAMES_PER_BUFFER) || pauseDecoding)
         {
             usleep(1);
 
             continue;
         }
 
+        //audioHelper.inputBuffers[0].printStats();
+
         // Decoding newly read data:
         for (int i = 0; i < FRAMES_PER_BUFFER; i++)
         {
             for (uint8_t channel = 0; channel < config.numChannels; channel++)
             {
-                if (audioHelper.inputBuffers[channel].isDataAvailable())
-                {
-                    chrono::time_point<chrono::high_resolution_clock> receivedTime;
-                    int16_t dataRead = audioHelper.inputBuffers[channel].read(receivedTime);
+                chrono::time_point<chrono::high_resolution_clock> receivedTime;
+                int16_t dataRead = audioHelper.inputBuffers[channel].read(receivedTime);
 
-                    audioCodec.decode(dataRead, channel, receivedTime);
-                }
+                audioCodec.decode(dataRead, channel, receivedTime);
 
                 // audioCodec.decode(data[channel][i], channel);
             }

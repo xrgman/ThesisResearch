@@ -33,6 +33,7 @@ public:
     void setNextBatchRead(const int *channels, int count);
     bool isDataAvailable(const int count);
     void signalBatchProcessed(const int *channels, int count);
+    void resetInputBuffers();
 
     //Misc:
     double getInputStreamLoad();

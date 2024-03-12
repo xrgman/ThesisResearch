@@ -13,6 +13,7 @@ public:
     ~RingBuffer();
 
     void initialize(int size);
+    void reset();
 
     void write(const int16_t data);
     void write(const int16_t data, chrono::time_point<chrono::high_resolution_clock> receivedTime);
@@ -27,6 +28,7 @@ public:
     chrono::time_point<chrono::high_resolution_clock> getEmptyTime();
     int bufferSize();
     int maximumSize();
+    void printStats();
     void printData();
 
 private:
