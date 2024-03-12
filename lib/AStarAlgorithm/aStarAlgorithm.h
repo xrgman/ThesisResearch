@@ -2,18 +2,20 @@
 #define ASTARALGORITHM_H
 
 #include "cell.h"
+#include "door.h"
 #include "aStarNode.h"
 
 class AStarAlgorithm
 {
 public:
-    AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &cells, bool allowDiagonal);
+    AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &cells, const std::vector<Door> &doors, bool allowDiagonal);
 
     double calculateShortestPathDistance();
 
 private:
     Cell startCell, stopCell;
     const std::vector<Cell> &cells;
+    const std::vector<Door> &doors;
     int directions;
 
     std::vector<AStarNode*> openNodes;

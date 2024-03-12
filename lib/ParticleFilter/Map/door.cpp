@@ -16,3 +16,12 @@ int Door::getWidth() {
 int Door::getHeight() {
     return stopY - startY;
 }
+
+/// @brief Check if the given x/y coordinate is inside the door.
+/// @param x X coordinate to check.
+/// @param y Y coordinate to check.
+/// @return Whether or not the coordinate is inside the door.
+bool Door::containsPoint(const int x, const int y) const
+{
+    return x >= startX && x <= stopX && y >= startY && y <= stopY;
+}

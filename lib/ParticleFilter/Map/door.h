@@ -17,6 +17,8 @@ public:
     int getWidth();
     int getHeight();
 
+    bool containsPoint(const int x, const int y) const;
+
     static void from_json(const json &j, Door &doorData);
 
 private:

@@ -3,7 +3,7 @@
 #include <cfloat>
 #include "util.h"
 
-AStarAlgorithm::AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &cells, bool allowDiagonal) : cells(cells)
+AStarAlgorithm::AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &cells, const std::vector<Door> &doors, bool allowDiagonal) : cells(cells), doors(doors)
 {
     this->startCell = start;
     this->stopCell = stop;
@@ -16,7 +16,7 @@ double AStarAlgorithm::calculateShortestPathDistance()
     int stopX = stopCell.getCenter().first;
     int stopY = stopCell.getCenter().second;
 
-    //For testing:
+    // For testing:
     int startX = startCell.getCenter().first;
     int startY = startCell.getCenter().second;
 
@@ -285,8 +285,17 @@ bool AStarAlgorithm::areNewCoordinatesAllowed(const int newX, const int newY)
         }
     }
 
+    // 3. Check if coordinate is in doorway:
+    for (int i = 0; i < doors.size(); i++)
+    {
+        if (doors[i].containsPoint(newX, newY))
+        {
+            return true;
+        }
+    }
+
     // 3. Check if not traversed a wall?
-    //Allow it to traverse doors, as they are techniqally not considered a cell :)
+    // Allow it to traverse doors, as they are techniqally not considered a cell :)
 
     return false;
 }

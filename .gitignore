@@ -40,3 +40,5 @@ Python/Audio_files/
 # Ignore changes to the config file:
 src/config.json
 
+realTimeTest/real_time_test
+

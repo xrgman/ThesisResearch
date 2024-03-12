@@ -38,7 +38,7 @@ void MapData::initialize()
 
             // From center of startcell to edge of destinationCell
 
-            //shortestPathsBetweenCells[startCell][destinationCell] = calculateShortestDistanceBetweenCells(startCell, destinationCell, getCells());
+            shortestPathsBetweenCells[startCell][destinationCell] = calculateShortestDistanceBetweenCells(startCell, destinationCell, getCells());
         }
     }
 }
@@ -133,7 +133,7 @@ void MapData::print()
 
         for (int j = 0; j < numberOfCells; j++)
         {
-            cout << shortestPathsBetweenCells[i][j] << "\t| ";
+            cout << (int) shortestPathsBetweenCells[i][j] << "\t| ";
         }
 
         cout << endl;
@@ -145,7 +145,7 @@ double MapData::calculateShortestDistanceBetweenCells(int originCellId, int dest
     Cell startCell = cells[originCellId];
     Cell endCell = cells[destinationCellId];
 
-    AStarAlgorithm algorithm(startCell, endCell, getCells(), true);
+    AStarAlgorithm algorithm(startCell, endCell, getCells(), getDoors(), true);
 
     return algorithm.calculateShortestPathDistance();
 }

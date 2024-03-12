@@ -22,6 +22,7 @@ public:
     int getHeight();
 
     bool isIntersectedBy(Line line);
+    bool containsPoint(const int x, const int y) const;
 
     static void from_json(const json &j, Wall &cellData);
 
