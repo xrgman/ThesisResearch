@@ -23,6 +23,10 @@ double AStarAlgorithm::calculateShortestPathDistance()
     openNodes.reserve(100);
     closedNodes.reserve(100);
 
+    if(startCell.id == 2 && stopCell.id == 3) {
+        int bla = 10;
+    }
+
     // 1. Add start node to the list:
     openNodes.push_back(new AStarNode(startCell.getCenter().first, startCell.getCenter().second));
 
@@ -98,8 +102,9 @@ double AStarAlgorithm::calculateShortestPathDistance()
         return 0.0;
     }
 
-    // Calculating the actual distance:
-    double distance = 0.0;
+    // Calculating the actual distance, starting with the distance from previous node to the end cell:
+    double distance = calculateEuclideanDistance(stopX, stopY, node->getParent()->getMiddlePointX(), node->getParent()->getMiddlePointY());
+    node = node->getParent();
 
     while (node->getParent() != nullptr)
     {
