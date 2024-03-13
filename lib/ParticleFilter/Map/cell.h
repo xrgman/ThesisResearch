@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <cmath>
 
 using json = nlohmann::json;
 
@@ -19,6 +20,8 @@ public:
     std::pair<int, int> getCenter();
 
     bool containsPoint(const int x, const int y) const;
+
+    int getRelativeAngleToCell(Cell &other) const;
 
     const char *getCellName();
 

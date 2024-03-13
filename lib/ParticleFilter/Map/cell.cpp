@@ -61,6 +61,34 @@ bool Cell::containsPoint(const int x, const int y) const
     return x >= startX && x <= stopX && y >= startY && y <= stopY;
 }
 
+int Cell::getRelativeAngleToCell(Cell &other) const
+{
+    // Calculate the differences in x and y coordinates
+    std::pair<int, int> otherCenter = other.getCenter();
+
+    int dx = otherCenter.first - centerX;
+    int32_t dy = otherCenter.second - centerY;
+
+    // Calculate the angle using atan2
+    double angleAccurate = std::atan2(dy, dx);
+
+    // Convert angle from radians to degrees
+    angleAccurate = angleAccurate * 180.0 / M_PI;
+
+    //Convert to integer to save on cumputational costs:
+    int angle = (int)angleAccurate;
+
+    // Ensure the angle is in the range [0, 360)
+    if (angle < 0)
+        angle += 360;
+
+
+
+
+
+    return (angle + 90) % 360;
+}
+
 /// @brief Get the name of the Cell, consisting out of C{ID}.
 /// @return The cell name that can be drawn inside the map.
 const char *Cell::getCellName()

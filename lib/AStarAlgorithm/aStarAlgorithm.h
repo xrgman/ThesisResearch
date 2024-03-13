@@ -10,7 +10,7 @@ class AStarAlgorithm
 public:
     AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &cells, const std::vector<Door> &doors, bool allowDiagonal);
 
-    double calculateShortestPathDistance();
+    double calculateMiddlePointPathDistance();
 
 private:
     Cell startCell, stopCell;
@@ -20,6 +20,8 @@ private:
 
     std::vector<AStarNode*> openNodes;
     std::vector<AStarNode*> closedNodes;
+
+    double calculatePathDistance(int startX, int startY, int stopX, int stopY);
 
     int findOpenNodeIndexWithLowestCost();
     void determineNewCoordinates(const int direction, const int oldX, const int oldY, int &newX, int &newY, int &gCostAddition);

@@ -2,6 +2,7 @@
 #include "util.h"
 #include "aStarAlgorithm.h"
 
+/// @brief Initialize map data by calculating the distances between cells and storing them in a 2D array.
 void MapData::initialize()
 {
     // Calculating smallest distances between cells:
@@ -25,8 +26,6 @@ void MapData::initialize()
                 continue;
             }
 
-            // Think we need euclidian distance for this
-
             // If we already know it, simply copy the value, maybe not do this as we look from center of cell:
             // if we do from center to center than this is quite alright
             if (destinationCell < startCell)
@@ -36,8 +35,9 @@ void MapData::initialize()
                 continue;
             }
 
-            // From center of startcell to edge of destinationCell
+            // TODO check if this is sufficient distance, maybe we need to find the maximum (or minimum distance?) distance
 
+            // From center of startcell to edge of destinationCell
             shortestPathsBetweenCells[startCell][destinationCell] = calculateShortestDistanceBetweenCells(startCell, destinationCell, getCells());
         }
     }
@@ -81,6 +81,11 @@ std::vector<Wall> &MapData::getWalls()
 std::vector<Door> &MapData::getDoors()
 {
     return doors;
+}
+
+double **&MapData::getShortestPathsBetweenCells()
+{
+    return shortestPathsBetweenCells;
 }
 
 /// @brief Print all available data of the map to the screen:
@@ -133,7 +138,7 @@ void MapData::print()
 
         for (int j = 0; j < numberOfCells; j++)
         {
-            cout << (int) shortestPathsBetweenCells[i][j] << "\t| ";
+            cout << (int)shortestPathsBetweenCells[i][j] << "\t| ";
         }
 
         cout << endl;
@@ -147,5 +152,5 @@ double MapData::calculateShortestDistanceBetweenCells(int originCellId, int dest
 
     AStarAlgorithm algorithm(startCell, endCell, getCells(), getDoors(), true);
 
-    return algorithm.calculateShortestPathDistance();
+    return algorithm.calculateMiddlePointPathDistance();
 }

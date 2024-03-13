@@ -40,6 +40,8 @@ public:
     std::vector<Wall> &getWalls();
     std::vector<Door> &getDoors();
 
+    double **&getShortestPathsBetweenCells();
+
     void print();
 
 private:

@@ -58,7 +58,7 @@ bool ParticleFilter::loadMap(const char *filename)
         std::cerr << "JSON parsing error: " << e.what() << std::endl;
     }
 
-    //Initialize map data after loading:
+    // Initialize map data after loading:
     mapData.initialize();
 
     mapData.print();
@@ -241,56 +241,79 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
         return;
     }
 
+    //TODO? Mark all as false beforehand.
+
     // 1. Adjust the angle to match the orientation of the map (YAW of robot).
     angle = positive_modulo((angle + robotAngle), 360.0);
 
     // 1.1 Allow for distance and angle errors:
-    double distanceLowerBound = distance - DISTANCE_ERROR_CM;
-    double distanceUpperBound = distance + DISTANCE_ERROR_CM;
+    double minDistanceTravelled = distance - DISTANCE_ERROR_CM;
+    double maxDistanceTravelled = distance + DISTANCE_ERROR_CM;
     double angleLowerBound = angle - ANGLE_ERROR_DEGREE;
     double angleUpperBound = angle + ANGLE_ERROR_DEGREE;
+
+    // Get reference to the 2D array containing shortest paths between cells:
+    double **&shortestPaths = mapData.getShortestPathsBetweenCells();
 
     // 2. Looping over all cells to fill localization table:
     for (int i = 0; i < mapData.getNumberOfCells(); i++)
     {
-        int ownCell = i;
+        int ownCellId = i;
+        Cell &ownCell = mapData.getCells()[ownCellId];
 
         // Option 0: No particles in starting cell, so no point in checking:
-        if (particlesPerCell[i] == 0)
+        if (particlesPerCell[ownCellId] == 0)
         {
             continue;
         }
 
-
-
         // Looping over all possible candidate cells:
         for (int j = 0; j < mapData.getNumberOfCells(); i++)
         {
-            int senderCell = j;
+            int senderCellId = j;
+            Cell &senderCell = mapData.getCells()[senderCellId];
 
             // Option 1: cells are the same can only happen if distance is smaller than cell:
-            if (ownCell == senderCell)
+            if (ownCellId == senderCellId)
             {
                 // For now we just check if diameter of cell is bigger then the lower bound of distance:
-                if (distanceLowerBound <= mapData.getCells()[i].getDiameter())
+                if (minDistanceTravelled > mapData.getCells()[i].getDiameter())
                 {
-                    localizationTables[senderId].markCellAsPossible(ownCell, senderCell);
+                    localizationTables[senderId].markCellAsPossible(ownCellId, senderCellId);
                 }
 
                 continue;
             }
 
-            //Now follow some kind of path algorithm pffffff
-            //DO the drawing with lines and check which cell we have then reached.
-            //Then check whether the actual distance between our cell and that cell is possible (if wall has been passed the anwser should be no!)
-            //Based on this we should get a good approximation.
+            // Grabbing shortest path between own and sender cell
+            double shortestPath = shortestPaths[ownCellId][senderCellId];
+            double diameterSenderCell = senderCell.getDiameter();
+
+            //If distance is great enough to reach that cell and small enough to not overshoot it in worst case:
+            if (maxDistanceTravelled >= shortestPath && minDistanceTravelled <= shortestPath + diameterSenderCell)
+            {
+                //Check if the angle to the cell is correct:
+                //Check if there is overlap between cell relative angles to eachother 
+
+
+
+                localizationTables[senderId].markCellAsPossible(ownCellId, senderCellId);
+            }
+
+            //DO something with the angle also
+
+            // DO the drawing with lines and check which cell we have then reached.
+            // Then check whether the actual distance between our cell and that cell is possible (if wall has been passed the anwser should be no!)
+            // Based on this we should get a good approximation.
 
             // Check if we can make it from own cell to sender cell
         }
     }
 
-    // CHeck for invalid cells, so a cell id for which the whole row states false;
-    // If found eliminate all particles in that cell.
+    //1. Save table some where and broadcast it to other robots
+
+    //2. If for a start cell all other cells are false, than we can immidiately remove all particles from it.
+
 }
 
 /// @brief Update all particles based on the movement of the robot.

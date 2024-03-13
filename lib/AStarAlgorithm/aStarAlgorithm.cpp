@@ -10,25 +10,25 @@ AStarAlgorithm::AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &c
     this->directions = allowDiagonal ? 8 : 4;
 }
 
-double AStarAlgorithm::calculateShortestPathDistance()
+double AStarAlgorithm::calculateMiddlePointPathDistance()
 {
-    // 0. Determine stop point:
-    int stopX = stopCell.getCenter().first;
-    int stopY = stopCell.getCenter().second;
-
-    // For testing:
+    // 0. Determine start & stop point:
     int startX = startCell.getCenter().first;
     int startY = startCell.getCenter().second;
 
+    int stopX = stopCell.getCenter().first;
+    int stopY = stopCell.getCenter().second;
+
+    return calculatePathDistance(startX, startY, stopX, stopY);
+}
+
+double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, int stopY)
+{
     openNodes.reserve(100);
     closedNodes.reserve(100);
 
-    if(startCell.id == 2 && stopCell.id == 3) {
-        int bla = 10;
-    }
-
     // 1. Add start node to the list:
-    openNodes.push_back(new AStarNode(startCell.getCenter().first, startCell.getCenter().second));
+    openNodes.push_back(new AStarNode(startX, startY));
 
     AStarNode *node = nullptr;
     bool finished = false;
