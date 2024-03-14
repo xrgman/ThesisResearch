@@ -8,6 +8,7 @@
 #include "cell.h"
 #include "wall.h"
 #include "door.h"
+#include "path.h"
 
 using json = nlohmann::json;
 
@@ -42,6 +43,8 @@ public:
 
     double **&getShortestPathsBetweenCells();
 
+    std::vector<int> &getPathBetweenCells(int startCellIdx, int stopCellIdx, bool& success);
+
     void print();
 
 private:
@@ -56,7 +59,11 @@ private:
 
     double **shortestPathsBetweenCells;
 
-    double calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, const std::vector<Cell> &cells);
+    std::vector<Path> pathsBetweenCells;
+
+    // Create an array storing the paths so we can use first cell in path for the angle it should have :)
+
+    double calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, const std::vector<Cell> &cells, Path &cellPath);
 
     friend void from_json(const json &j, MapData &mapData)
     {

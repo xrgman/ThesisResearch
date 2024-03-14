@@ -3,6 +3,7 @@
 #include <cfloat>
 #include "util.h"
 
+
 AStarAlgorithm::AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &cells, const std::vector<Door> &doors, bool allowDiagonal) : cells(cells), doors(doors)
 {
     this->startCell = start;
@@ -10,7 +11,7 @@ AStarAlgorithm::AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &c
     this->directions = allowDiagonal ? 8 : 4;
 }
 
-double AStarAlgorithm::calculateMiddlePointPathDistance()
+double AStarAlgorithm::calculateMiddlePointPathDistance(Path &cellPath)
 {
     // 0. Determine start & stop point:
     int startX = startCell.getCenter().first;
@@ -19,10 +20,10 @@ double AStarAlgorithm::calculateMiddlePointPathDistance()
     int stopX = stopCell.getCenter().first;
     int stopY = stopCell.getCenter().second;
 
-    return calculatePathDistance(startX, startY, stopX, stopY);
+    return calculatePathDistance(startX, startY, stopX, stopY, cellPath);
 }
 
-double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, int stopY)
+double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, int stopY, Path &cellPath)
 {
     openNodes.reserve(100);
     closedNodes.reserve(100);
@@ -102,6 +103,9 @@ double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, 
         return 0.0;
     }
 
+    // Storing cell path:
+    //Path cellPath(startCell.id, stopCell.id);
+
     // Calculating the actual distance, starting with the distance from previous node to the end cell:
     double distance = calculateEuclideanDistance(stopX, stopY, node->getParent()->getMiddlePointX(), node->getParent()->getMiddlePointY());
     node = node->getParent();
@@ -110,6 +114,14 @@ double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, 
     {
         distance += calculateEuclideanDistance(node->getMiddlePointX(), node->getMiddlePointY(),
                                                node->getParent()->getMiddlePointX(), node->getParent()->getMiddlePointY());
+
+        // Checking in which cell we are:
+        int cellId = findCellId(node->getMiddlePointX(), node->getMiddlePointY());
+
+        if (cellId >= 0 && !cellPath.containsCell(cellId))
+        {
+            cellPath.addPathFront(cellId);
+        }
 
         node = node->getParent();
     }
@@ -336,4 +348,21 @@ void AStarAlgorithm::clearNodeCollections()
     {
         delete closedNodes[i];
     }
+}
+
+/// @brief Find the ID of the cell which contains the given coordinates.
+/// @param x X coordinate.
+/// @param y Y coordinate.
+/// @return Cell ID or -1 if no cell is found.
+int AStarAlgorithm::findCellId(const int x, const int y)
+{
+    for (int i = 0; i < cells.size(); i++)
+    {
+        if (cells[i].containsPoint(x, y))
+        {
+            return i;
+        }
+    }
+
+    return -1;
 }

@@ -5,63 +5,63 @@
     "number_of_doors": 2,
     "cells": [
         {
-            "id": 1,
+            "id": 0,
             "startX": 79,
             "startY": 9,
             "stopX": 233,
             "stopY": 180
         },
         {
-            "id": 2,
+            "id": 1,
             "startX": 233,
             "startY": 9,
             "stopX": 479,
             "stopY": 180
         },
         {
-            "id": 3,
+            "id": 2,
             "startX": 233,
             "startY": 180,
             "stopX": 547,
             "stopY": 402
         },
         {
-            "id": 4,
+            "id": 3,
             "startX": 233,
             "startY": 402,
             "stopX": 547,
             "stopY": 624
         },
         {
-            "id": 5,
+            "id": 4,
             "startX": 233,
             "startY": 624,
             "stopX": 547,
             "stopY": 842
         },
         {
-            "id": 6,
+            "id": 5,
             "startX": 9,
             "startY": 624,
             "stopX": 233,
             "stopY": 842
         },
         {
-            "id": 7,
+            "id": 6,
             "startX": 123,
             "startY": 399,
             "stopX": 224,
             "stopY": 612
         },
         {
-            "id": 8,
+            "id": 7,
             "startX": 123,
             "startY": 307, 
             "stopX": 224, 
             "stopY": 390
         },
         {
-            "id": 9,
+            "id": 8,
             "startX": 9,
             "startY": 189,
             "stopX": 224,

@@ -942,6 +942,18 @@ void handleKeyboardInput()
                 continue;
             }
 
+            // Start particle filer:
+            if (words[0] == "pft")
+            {
+                int senderId = stoi(words[1]);
+                double angle = stod(words[2]);    // In degrees
+                double distance = stod(words[3]); // In cm
+
+                particleFilter.processMessageTable(senderId, distance, angle, 0);
+
+                continue;
+            }
+
             // Sending messages and recording to wav file simultanious.
             if (words[0] == "pfpf")
             {

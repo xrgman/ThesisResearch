@@ -241,7 +241,7 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
         return;
     }
 
-    //TODO? Mark all as false beforehand.
+    // TODO? Mark all as false beforehand.
 
     // 1. Adjust the angle to match the orientation of the map (YAW of robot).
     angle = positive_modulo((angle + robotAngle), 360.0);
@@ -268,7 +268,7 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
         }
 
         // Looping over all possible candidate cells:
-        for (int j = 0; j < mapData.getNumberOfCells(); i++)
+        for (int j = 0; j < mapData.getNumberOfCells(); j++)
         {
             int senderCellId = j;
             Cell &senderCell = mapData.getCells()[senderCellId];
@@ -289,18 +289,38 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
             double shortestPath = shortestPaths[ownCellId][senderCellId];
             double diameterSenderCell = senderCell.getDiameter();
 
-            //If distance is great enough to reach that cell and small enough to not overshoot it in worst case:
+            // If distance is great enough to reach that cell and small enough to not overshoot it in worst case:
             if (maxDistanceTravelled >= shortestPath && minDistanceTravelled <= shortestPath + diameterSenderCell)
             {
-                //Check if the angle to the cell is correct:
-                //Check if there is overlap between cell relative angles to eachother 
+                // Grabbing the path between the two cells:
+                bool success;
+                std::vector<int> &path = mapData.getPathBetweenCells(ownCellId, senderCellId, success);
 
+                if (!success)
+                {
+                    // stdlog::error("Path between cells {} and {} not found!", ownCellId, senderCellId);
 
+                    // ERROR
+                }
 
-                localizationTables[senderId].markCellAsPossible(ownCellId, senderCellId);
+                // So, we know we can reach this cell because of the distance. Now check which cell we need to pass first:
+                int firstCellIdxInPath = path[1];
+                Cell &firstCellInPath = mapData.getCells()[firstCellIdxInPath];
+
+                int relativeAngleBetweenCells = ownCell.getRelativeAngleToCell(firstCellInPath);
+                // int lowerBoundRelativeAngle = relativeAngleBetweenCells
+
+                // Now compare with DOA:
+                if (relativeAngleBetweenCells >= angleLowerBound && relativeAngleBetweenCells <= angleUpperBound)
+                {
+                    localizationTables[senderId]
+                        .markCellAsPossible(ownCellId, senderCellId);
+                }
+
+                // pft 1 110 500
             }
 
-            //DO something with the angle also
+            // DO something with the angle also
 
             // DO the drawing with lines and check which cell we have then reached.
             // Then check whether the actual distance between our cell and that cell is possible (if wall has been passed the anwser should be no!)
@@ -310,10 +330,9 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
         }
     }
 
-    //1. Save table some where and broadcast it to other robots
+    // 1. Save table some where and broadcast it to other robots
 
-    //2. If for a start cell all other cells are false, than we can immidiately remove all particles from it.
-
+    // 2. If for a start cell all other cells are false, than we can immidiately remove all particles from it.
 }
 
 /// @brief Update all particles based on the movement of the robot.

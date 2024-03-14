@@ -31,6 +31,7 @@ void MapData::initialize()
             if (destinationCell < startCell)
             {
                 shortestPathsBetweenCells[startCell][destinationCell] = shortestPathsBetweenCells[destinationCell][startCell];
+                // ALSO PATH
 
                 continue;
             }
@@ -38,7 +39,15 @@ void MapData::initialize()
             // TODO check if this is sufficient distance, maybe we need to find the maximum (or minimum distance?) distance
 
             // From center of startcell to edge of destinationCell
-            shortestPathsBetweenCells[startCell][destinationCell] = calculateShortestDistanceBetweenCells(startCell, destinationCell, getCells());
+            Path cellPath(startCell, destinationCell);
+
+            shortestPathsBetweenCells[startCell][destinationCell] = calculateShortestDistanceBetweenCells(startCell, destinationCell, getCells(), cellPath);
+
+            pathsBetweenCells.push_back(cellPath);
+            pathsBetweenCells.push_back(Path::createReversedPath(cellPath));
+
+    
+            int bla = 10;
         }
     }
 }
@@ -86,6 +95,23 @@ std::vector<Door> &MapData::getDoors()
 double **&MapData::getShortestPathsBetweenCells()
 {
     return shortestPathsBetweenCells;
+}
+
+std::vector<int> &MapData::getPathBetweenCells(int startCellIdx, int stopCellIdx, bool &success)
+{
+    success = false;
+
+    for (int i = 0; i < pathsBetweenCells.size(); i++)
+    {
+        Path &path = pathsBetweenCells[i];
+
+        if (path.getStartCellIdx() == startCellIdx && path.getStopCellIdx() == stopCellIdx)
+        {
+            success = true;
+
+            return path.getPath();
+        }
+    }
 }
 
 /// @brief Print all available data of the map to the screen:
@@ -145,12 +171,12 @@ void MapData::print()
     }
 }
 
-double MapData::calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, const std::vector<Cell> &cells)
+double MapData::calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, const std::vector<Cell> &cells, Path &cellPath)
 {
     Cell startCell = cells[originCellId];
     Cell endCell = cells[destinationCellId];
 
-    AStarAlgorithm algorithm(startCell, endCell, getCells(), getDoors(), true);
+    AStarAlgorithm algorithm(startCell, endCell, getCells(), getDoors(), false);
 
-    return algorithm.calculateMiddlePointPathDistance();
+    return algorithm.calculateMiddlePointPathDistance(cellPath);
 }
