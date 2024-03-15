@@ -1,10 +1,21 @@
 {
-    "robot_id": 4,
-    "total_number_of_robots": 8,
-    "sample_rate": 22050,
+    "robot_id": 0,
+    "total_number_of_robots": 2,
+    "sample_rate": 44100,
     "num_channels_raw": 8,
     "num_channels": 6,
+    "channels": [0, 1, 2, 3, 4, 5],
+
+    "preamble_samples": 8192,
+    "bit_samples": 512,
+    "preamble_undersampling_divisor": 4,
+
+    "freq_start_preamble": 1500.0,
+    "freq_stop_preamble": 4500.0,
+
+    "freq_start_bit": 4500.0,
+    "freq_stop_bit": 10500.0,
     
-    "filter_own_source": false,
+    "filter_own_source": true,
     "print_bits_encoding": false
 }

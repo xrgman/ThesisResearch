@@ -1087,7 +1087,7 @@ int main()
     spdlog::info("Logger initialized!");
 
     // FOR TESTING NOW:
-    loadParticleFilter(false);
+    //loadParticleFilter(false);
 
     // Killing running tasks:
     audioHelper.stopAndClose(false);
