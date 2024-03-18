@@ -1,7 +1,8 @@
 #include "cell.h"
 
 #include <iostream>
-#include "cell.h"
+#include <cfloat>
+#include "util.h"
 
 // @brief Default constructor, should not be used in practice!
 Cell::Cell() : id(-1), startX(-1), stopX(-1), startY(-1), stopY(-1)
@@ -194,7 +195,7 @@ const char *Cell::getCellName()
 /// @param coordinatesTo Pair containing X and Y coordinate in to cell.
 void Cell::getClosestCoordinates(const Cell &from, const Cell &to, std::pair<int, int> &coordinatesFrom, std::pair<int, int> &coordinatesTo)
 {
-    // double minDistance =
+    double minDistance = DBL_MAX;
 
     int nrCoordinatesFrom = from.borderCoordinates.size();
     int nrCoordinatesTo = to.borderCoordinates.size();
@@ -207,11 +208,18 @@ void Cell::getClosestCoordinates(const Cell &from, const Cell &to, std::pair<int
         // Looping over all coordinates of cell B:
         for (int j = 0; j < nrCoordinatesTo; j++)
         {
-            const std::pair<int, int> &toCoordinates = to.borderCoordinates[i];
+            const std::pair<int, int> &toCoordinates = to.borderCoordinates[j];
 
-            //Calculating distance between two coordinates:
-            
+            // Calculating distance between two coordinates:
+            double distance = calculateEuclideanDistance(fromCoordinates.first, fromCoordinates.second, toCoordinates.first, toCoordinates.second);
 
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+
+                coordinatesFrom = from.borderCoordinates[i];
+                coordinatesTo = to.borderCoordinates[j]; 
+            }
         }
     }
 }

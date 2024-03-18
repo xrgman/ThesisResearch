@@ -33,12 +33,16 @@ double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
     }
 
     // Calculate relative angle between the two cells:
-    int relativeAngleStartToStop = startCell.getRelativeAngleToCell(stopCell);
-    int relativeAngleStopToStart = stopCell.getRelativeAngleToCell(startCell);
+    // int relativeAngleStartToStop = startCell.getRelativeAngleToCell(stopCell);
+    // int relativeAngleStopToStart = stopCell.getRelativeAngleToCell(startCell);
 
-    // Determine closest boorder coordinates:
-    std::pair<int, int> &closestCoordinatesStart = startCell.getBorderCoordinatesBasedOnAngle(relativeAngleStartToStop);
-    std::pair<int, int> &closestCoordinatesStop = stopCell.getBorderCoordinatesBasedOnAngle(relativeAngleStopToStart);
+    // // Determine closest boorder coordinates:
+    // std::pair<int, int> &closestCoordinatesStart = startCell.getBorderCoordinatesBasedOnAngle(relativeAngleStartToStop);
+    // std::pair<int, int> &closestCoordinatesStop = stopCell.getBorderCoordinatesBasedOnAngle(relativeAngleStopToStart);0
+
+    std::pair<int, int> closestCoordinatesStart, closestCoordinatesStop;
+
+    Cell::getClosestCoordinates(startCell, stopCell, closestCoordinatesStart, closestCoordinatesStop);
 
     // Picking closest option to destination cell:
     int startX = closestCoordinatesStart.first;
@@ -158,7 +162,8 @@ double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, 
     clearNodeCollections();
 
     // If cells are adjecent, then simply return the minimum distance:
-    return cellPath.getNumberOfCellsInPath() == 1 ? MIN_DISTANCE_BETWEEN_CELLS : distance;
+    //return cellPath.getNumberOfCellsInPath() == 1 ? MIN_DISTANCE_BETWEEN_CELLS : distance;
+    return distance;
 }
 
 /// @brief Find the index of the node with the lowest overall cost.

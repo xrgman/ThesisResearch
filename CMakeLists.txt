@@ -42,23 +42,23 @@ link_directories(${PORTAUDIO_LIBRARY_DIRS})
 # FetchContent_MakeAvailable(portaudio) 
    
 #Find SDL2
-FetchContent_Declare(
-  SDL2
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-  GIT_TAG        release-2.30.1  # Or use a specific tag or commit hash
-)
+# FetchContent_Declare(
+#   SDL2
+#   GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+#   GIT_TAG        release-2.30.1  # Or use a specific tag or commit hash
+# )
 
-FetchContent_MakeAvailable(SDL2)
+# FetchContent_MakeAvailable(SDL2)
 
-# Fetch SDL2_ttf
-FetchContent_Declare(
-  SDL2_ttf
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
-  GIT_TAG        release-2.22.0  # Or use a specific tag or commit hash
-)
-FetchContent_MakeAvailable(SDL2_ttf)
-# find_package(SDL2 REQUIRED)    
-# find_package(SDL2_ttf REQUIRED)
+# # Fetch SDL2_ttf
+# FetchContent_Declare(
+#   SDL2_ttf
+#   GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
+#   GIT_TAG        release-2.22.0  # Or use a specific tag or commit hash
+# )
+# FetchContent_MakeAvailable(SDL2_ttf)
+find_package(SDL2 REQUIRED)    
+find_package(SDL2_ttf REQUIRED)
 # include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS})
 
 # Find Boost (required for gnuplot-iostream)
@@ -67,7 +67,7 @@ find_package(Threads REQUIRED)
 
 # Link pthread library
 find_package(Threads REQUIRED)
-
+ 
 # Link spdlog
 find_package(spdlog REQUIRED) 
 
