@@ -36,15 +36,15 @@ FetchContent_Declare(
   portaudio
   GIT_REPOSITORY https://github.com/PortAudio/portaudio.git
   GIT_TAG        master  # Or use a specific tag or commit hash
-)
+) 
 
-FetchContent_MakeAvailable(portaudio)
-
+FetchContent_MakeAvailable(portaudio) 
+   
 #Find SDL2
 FetchContent_Declare(
   SDL2
   GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-  GIT_TAG        main  # Or use a specific tag or commit hash
+  GIT_TAG        release-2.30.1  # Or use a specific tag or commit hash
 )
 
 FetchContent_MakeAvailable(SDL2)
@@ -53,7 +53,7 @@ FetchContent_MakeAvailable(SDL2)
 FetchContent_Declare(
   SDL2_ttf
   GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
-  GIT_TAG        main  # Or use a specific tag or commit hash
+  GIT_TAG        release-2.22.0  # Or use a specific tag or commit hash
 )
 FetchContent_MakeAvailable(SDL2_ttf)
 # find_package(SDL2 REQUIRED)   
