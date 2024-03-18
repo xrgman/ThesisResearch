@@ -5,6 +5,10 @@
 #include <nlohmann/json.hpp>
 #include <cmath>
 
+#define MIN_CELL_SIZE 60 //Minimum cell size is 60CM, else it wont work
+#define CELL_BORDER_PADDING 10 //In cm
+#define MIN_DISTANCE_BETWEEN_CELLS CELL_BORDER_PADDING*2
+
 using json = nlohmann::json;
 
 class Cell
@@ -18,6 +22,7 @@ public:
     int getDiameter();
 
     std::pair<int, int> getCenter();
+    std::pair<int, int>& getBorderCoordinatesBasedOnAngle(int angle);
 
     bool containsPoint(const int x, const int y) const;
 
@@ -37,6 +42,7 @@ public:
 private:
     int height, width, diameter;
     int centerX, centerY;
+    std::pair<int, int> borderCoordinates[8];
 };
 
 #endif

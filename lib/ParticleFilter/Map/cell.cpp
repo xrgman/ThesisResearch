@@ -13,6 +13,16 @@ Cell::Cell(int id, int startX, int stopX, int startY, int stopY)
     diameter = sqrt(width * width + height * height);
     centerX = (startX + stopX) / 2;
     centerY = (startY + stopY) / 2;
+
+    // Calculating border coordinates (idx 0 is north):
+    borderCoordinates[0] = std::pair<int, int>(centerX, startY + CELL_BORDER_PADDING);
+    borderCoordinates[1] = std::pair<int, int>(stopX - CELL_BORDER_PADDING, startY + CELL_BORDER_PADDING);
+    borderCoordinates[2] = std::pair<int, int>(stopX - CELL_BORDER_PADDING, centerY);
+    borderCoordinates[3] = std::pair<int, int>(stopX - CELL_BORDER_PADDING, stopY - CELL_BORDER_PADDING);
+    borderCoordinates[4] = std::pair<int, int>(centerX, stopY - CELL_BORDER_PADDING);
+    borderCoordinates[5] = std::pair<int, int>(startX + CELL_BORDER_PADDING, stopY - CELL_BORDER_PADDING);
+    borderCoordinates[6] = std::pair<int, int>(startX + CELL_BORDER_PADDING, centerY);
+    borderCoordinates[7] = std::pair<int, int>(startX + CELL_BORDER_PADDING, startY + CELL_BORDER_PADDING);
 }
 
 Cell Cell::fromJson(const json &jsonData)
@@ -52,6 +62,45 @@ std::pair<int, int> Cell::getCenter()
     return std::make_pair(centerX, centerY);
 }
 
+/// @brief Get the coordinates of the border based on a specific angle.
+/// @param angle Angle.
+/// @return Border coordinates at the given angle.
+std::pair<int, int>& Cell::getBorderCoordinatesBasedOnAngle(int angle)
+{
+    if (angle >= 338 || angle < 23)
+    {
+        return borderCoordinates[0];
+    }
+    else if (angle >= 23 && angle < 68)
+    {
+        return borderCoordinates[1];
+    }
+    else if (angle >= 68 && angle < 113)
+    {
+        return borderCoordinates[2];
+    }
+    else if (angle >= 113 && angle < 158)
+    {
+        return borderCoordinates[3];
+    }
+    else if (angle >= 158 && angle < 203)
+    {
+        return borderCoordinates[4];
+    }
+    else if (angle >= 203 && angle < 248)
+    {
+        return borderCoordinates[5];
+    }
+    else if (angle >= 248 && angle < 293)
+    {
+        return borderCoordinates[6];
+    }
+    else if (angle >= 293 && angle < 338)
+    {
+        return borderCoordinates[7];
+    }
+}
+
 /// @brief Check if the given x/y coordinate is inside the cell.
 /// @param x X coordinate to check.
 /// @param y Y coordinate to check.
@@ -75,16 +124,12 @@ int Cell::getRelativeAngleToCell(Cell &other) const
     // Convert angle from radians to degrees
     angleAccurate = angleAccurate * 180.0 / M_PI;
 
-    //Convert to integer to save on cumputational costs:
+    // Convert to integer to save on cumputational costs:
     int angle = (int)angleAccurate;
 
     // Ensure the angle is in the range [0, 360)
     if (angle < 0)
         angle += 360;
-
-
-
-
 
     return (angle + 90) % 360;
 }

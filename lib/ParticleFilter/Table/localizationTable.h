@@ -6,11 +6,13 @@
 class LocalizationTable
 {
 public:
-    LocalizationTable();
-    LocalizationTable(const int totalNumberOfCells, const int robotId, const int senderId);
+    // LocalizationTable();
+    // LocalizationTable(const int totalNumberOfCells, const int robotId, const int senderId);
     ~LocalizationTable();
 
-    void markCellAsPossible(int originCell, int destinationCell);
+    void initialize(const int totalNumberOfCells, const int robotId, const int senderId);
+
+    void markCellAsPossible(const int originCell, const int destinationCell);
 
     void printTable();
 

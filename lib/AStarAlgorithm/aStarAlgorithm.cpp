@@ -3,14 +3,16 @@
 #include <cfloat>
 #include "util.h"
 
-
-AStarAlgorithm::AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &cells, const std::vector<Door> &doors, bool allowDiagonal) : cells(cells), doors(doors)
+AStarAlgorithm::AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &cells, const std::vector<Door> &doors, const std::vector<Wall> &walls, bool allowDiagonal) : cells(cells), doors(doors), walls(walls)
 {
     this->startCell = start;
     this->stopCell = stop;
     this->directions = allowDiagonal ? 8 : 4;
 }
 
+/// @brief Calculate the shortest path between the midpoints of two cells.
+/// @param cellPath The path travelled between the two cells.
+/// @return The minimum distance between the middle points of the two cells.
 double AStarAlgorithm::calculateMiddlePointPathDistance(Path &cellPath)
 {
     // 0. Determine start & stop point:
@@ -19,6 +21,32 @@ double AStarAlgorithm::calculateMiddlePointPathDistance(Path &cellPath)
 
     int stopX = stopCell.getCenter().first;
     int stopY = stopCell.getCenter().second;
+
+    return calculatePathDistance(startX, startY, stopX, stopY, cellPath);
+}
+
+double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
+{
+    if (startCell.id == 0 && stopCell.id == 8)
+    {
+        int t = 10;
+    }
+
+    // Calculate relative angle between the two cells:
+    int relativeAngleStartToStop = startCell.getRelativeAngleToCell(stopCell);
+    int relativeAngleStopToStart = stopCell.getRelativeAngleToCell(startCell);
+
+    // Determine closest boorder coordinates:
+    std::pair<int, int> &closestCoordinatesStart = startCell.getBorderCoordinatesBasedOnAngle(relativeAngleStartToStop);
+    std::pair<int, int> &closestCoordinatesStop = stopCell.getBorderCoordinatesBasedOnAngle(relativeAngleStopToStart);
+
+    // Picking closest option to destination cell:
+    int startX = closestCoordinatesStart.first;
+    int startY = closestCoordinatesStart.second;
+
+    // Picking closes to source cell.
+    int stopX = closestCoordinatesStop.first;
+    int stopY = closestCoordinatesStop.second;
 
     return calculatePathDistance(startX, startY, stopX, stopY, cellPath);
 }
@@ -65,7 +93,7 @@ double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, 
             }
 
             // If new coordinates are not valid:
-            if (!areNewCoordinatesAllowed(newX, newY))
+            if (!areNewCoordinatesAllowed(node->getMiddlePointX(), node->getMiddlePointY(), newX, newY))
             {
                 continue;
             }
@@ -104,7 +132,7 @@ double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, 
     }
 
     // Storing cell path:
-    //Path cellPath(startCell.id, stopCell.id);
+    // Path cellPath(startCell.id, stopCell.id);
 
     // Calculating the actual distance, starting with the distance from previous node to the end cell:
     double distance = calculateEuclideanDistance(stopX, stopY, node->getParent()->getMiddlePointX(), node->getParent()->getMiddlePointY());
@@ -129,7 +157,8 @@ double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, 
     // Cleaning up:
     clearNodeCollections();
 
-    return distance;
+    // If cells are adjecent, then simply return the minimum distance:
+    return cellPath.getNumberOfCellsInPath() == 1 ? MIN_DISTANCE_BETWEEN_CELLS : distance;
 }
 
 /// @brief Find the index of the node with the lowest overall cost.
@@ -285,7 +314,7 @@ bool AStarAlgorithm::doesNodeExistInClosedNodes(const int newX, const int newY)
 /// @param newX New X coordinate.
 /// @param newY New Y coordinate.
 /// @return Whether the coordinate if valid.
-bool AStarAlgorithm::areNewCoordinatesAllowed(const int newX, const int newY)
+bool AStarAlgorithm::areNewCoordinatesAllowed(const int oldX, const int oldY, const int newX, const int newY)
 {
     // 1. Check if coordinates are positive:
     if (newX < 0 || newY < 0)
@@ -293,7 +322,18 @@ bool AStarAlgorithm::areNewCoordinatesAllowed(const int newX, const int newY)
         return false;
     }
 
-    // 2. Check if coordinate is in one of the cells:
+    // 2. Check if it did not travel through a wall:
+    for (int i = 0; i < walls.size(); i++)
+    {
+        Line line = {oldX, oldY, newX, newY};
+
+        if (walls[i].isIntersectedBy(line))
+        {
+            return false;
+        }
+    }
+
+    // 3. Check if coordinate is in one of the cells:
     for (int i = 0; i < cells.size(); i++)
     {
         if (cells[i].containsPoint(newX, newY))
@@ -302,7 +342,7 @@ bool AStarAlgorithm::areNewCoordinatesAllowed(const int newX, const int newY)
         }
     }
 
-    // 3. Check if coordinate is in doorway:
+    // 4. Check if coordinate is in doorway:
     for (int i = 0; i < doors.size(); i++)
     {
         if (doors[i].containsPoint(newX, newY))
@@ -310,9 +350,6 @@ bool AStarAlgorithm::areNewCoordinatesAllowed(const int newX, const int newY)
             return true;
         }
     }
-
-    // 3. Check if not traversed a wall?
-    // Allow it to traverse doors, as they are techniqally not considered a cell :)
 
     return false;
 }

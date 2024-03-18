@@ -77,7 +77,7 @@ bool ParticleFilter::loadMap(const char *filename)
             continue;
         }
 
-        localizationTables[i] = LocalizationTable(mapData.getNumberOfCells(), robotId, i);
+        localizationTables[i].initialize(mapData.getNumberOfCells(), robotId, i);
     }
 
     return true;
@@ -277,7 +277,7 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
             if (ownCellId == senderCellId)
             {
                 // For now we just check if diameter of cell is bigger then the lower bound of distance:
-                if (minDistanceTravelled > mapData.getCells()[i].getDiameter())
+                if (minDistanceTravelled <= mapData.getCells()[i].getDiameter())
                 {
                     localizationTables[senderId].markCellAsPossible(ownCellId, senderCellId);
                 }
@@ -294,7 +294,7 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
             {
                 // Grabbing the path between the two cells:
                 bool success;
-                std::vector<int> &path = mapData.getPathBetweenCells(ownCellId, senderCellId, success);
+                const std::vector<int> &path = mapData.getPathBetweenCells(ownCellId, senderCellId, success);
 
                 if (!success)
                 {
@@ -329,6 +329,11 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
             // Check if we can make it from own cell to sender cell
         }
     }
+
+    // Print table:
+    localizationTables[senderId].printTable();
+
+    int bla = 10;
 
     // 1. Save table some where and broadcast it to other robots
 

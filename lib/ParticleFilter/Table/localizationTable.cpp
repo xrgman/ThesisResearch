@@ -5,25 +5,25 @@
 using namespace std;
 
 /// @brief Default constructor, should not be used in practice!
-LocalizationTable::LocalizationTable() : totalNumberOfCells(-1), robotId(-1), senderId(-1)
-{
-}
+// LocalizationTable::LocalizationTable() : totalNumberOfCells(-1), robotId(-1), senderId(-1)
+// {
+// }
 
-LocalizationTable::LocalizationTable(const int totalNumberOfCells, const int robotId, const int senderId) : totalNumberOfCells(totalNumberOfCells), robotId(robotId), senderId(senderId)
-{
-    // Initializing table data:
-    table = new bool *[totalNumberOfCells];
+// LocalizationTable::LocalizationTable(const int totalNumberOfCells, const int robotId, const int senderId) : totalNumberOfCells(totalNumberOfCells), robotId(robotId), senderId(senderId)
+// {
+//     // Initializing table data:
+//     table = new bool *[totalNumberOfCells];
 
-    for (int i = 0; i < totalNumberOfCells; i++)
-    {
-        table[i] = new bool[totalNumberOfCells];
+//     for (int i = 0; i < totalNumberOfCells; i++)
+//     {
+//         table[i] = new bool[totalNumberOfCells];
 
-        for (int j = 0; j < totalNumberOfCells; j++)
-        {
-            table[i][j] = false;
-        }
-    }
-}
+//         for (int j = 0; j < totalNumberOfCells; j++)
+//         {
+//             table[i][j] = false;
+//         }
+//     }
+// }
 
 /// @brief Destructor, used to deallocate memory.
 LocalizationTable::~LocalizationTable()
@@ -39,7 +39,27 @@ LocalizationTable::~LocalizationTable()
     }
 }
 
-void LocalizationTable::markCellAsPossible(int originCell, int destinationCell)
+void LocalizationTable::initialize(const int totalNumberOfCells, const int robotId, const int senderId)
+{
+    this->totalNumberOfCells = totalNumberOfCells;
+    this->robotId = robotId;
+    this->senderId = senderId;
+
+    // Initializing table data:
+    table = new bool *[totalNumberOfCells];
+
+    for (int i = 0; i < totalNumberOfCells; i++)
+    {
+        table[i] = new bool[totalNumberOfCells];
+
+        for (int j = 0; j < totalNumberOfCells; j++)
+        {
+            table[i][j] = false;
+        }
+    }
+}
+
+void LocalizationTable::markCellAsPossible(const int originCell, const int destinationCell)
 {
     table[originCell][destinationCell] = true;
 }

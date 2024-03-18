@@ -40,6 +40,11 @@ vector<int> &Path::getPath()
     return path;
 }
 
+int Path::getNumberOfCellsInPath()
+{
+    return path.size();
+}
+
 int Path::getStartCellIdx()
 {
     return startCellIdx;

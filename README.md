@@ -25,6 +25,7 @@
       <li><s>Sends cell the robot is in.</s></li>
   </ol>
   <li>Implement simple wall detection</li>
+  <li>Check that we do not process message from own ID</li>
   <li>Implement driving up untill wall (north, south, east, west) and sending message functionality</li>
   <li>Add the ability to process wall message and update particle filter based on it</li>
   <li>Add the ability to process cell message and update particle filter based on it</li>

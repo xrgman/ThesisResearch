@@ -10,7 +10,8 @@
                 "${file}",
                 "-o",
                 "-fsanitize=address",
-                "${fileDirname}/${fileBasenameNoExtension}"
+                "${fileDirname}/${fileBasenameNoExtension}",
+                "-j 4"
             ],
             "options": {
                 "cwd": "${fileDirname}"

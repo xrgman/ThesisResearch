@@ -15,6 +15,7 @@ public:
     bool containsCell(int cellId);
     vector<int> &getPath();
 
+    int getNumberOfCellsInPath();
     int getStartCellIdx();
     int getStopCellIdx();
 

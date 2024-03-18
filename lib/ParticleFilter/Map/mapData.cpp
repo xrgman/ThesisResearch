@@ -112,6 +112,8 @@ std::vector<int> &MapData::getPathBetweenCells(int startCellIdx, int stopCellIdx
             return path.getPath();
         }
     }
+
+    //TODO: return something
 }
 
 /// @brief Print all available data of the map to the screen:
@@ -176,7 +178,8 @@ double MapData::calculateShortestDistanceBetweenCells(int originCellId, int dest
     Cell startCell = cells[originCellId];
     Cell endCell = cells[destinationCellId];
 
-    AStarAlgorithm algorithm(startCell, endCell, getCells(), getDoors(), false);
+    AStarAlgorithm algorithm(startCell, endCell, getCells(), getDoors(), getWalls(), false);
 
-    return algorithm.calculateMiddlePointPathDistance(cellPath);
+    return algorithm.calculateShortestDistance(cellPath);
+    //return algorithm.calculateMiddlePointPathDistance(cellPath);
 }

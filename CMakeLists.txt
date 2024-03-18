@@ -7,6 +7,7 @@ project(demo)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(COMPILE_DEFINITIONS -O2 -Wall)
+set(CMAKE_BUILD_PARALLEL_LEVEL 4)  # Use 4 parallel jobs
 
 #Linking to cmake file that locates PortAudio
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")

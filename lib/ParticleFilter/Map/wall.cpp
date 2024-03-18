@@ -29,7 +29,7 @@ int Wall::getHeight()
 /// https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
 /// @param line Line to check for intersection.
 /// @return Whether the wall is intersected by the line. 
-bool Wall::isIntersectedBy(Line line)
+bool Wall::isIntersectedBy(Line line) const
 {
     // Determine the four orientations needed:
     int o1 = determineOrientationThreePoints(startX, startY, stopX, stopY, line.startX, line.startY);
