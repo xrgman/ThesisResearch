@@ -33,6 +33,8 @@ public:
     // static void from_json(const json &j, Cell &cellData);
     static Cell fromJson(const json &j);
 
+    static void getClosestCoordinates(const Cell &from, const Cell &to, std::pair<int, int> &coordinatesFrom, std::pair<int, int> &coordinatesTo);
+
     int id;
     int startX;
     int startY;
@@ -42,7 +44,10 @@ public:
 private:
     int height, width, diameter;
     int centerX, centerY;
-    std::pair<int, int> borderCoordinates[8];
+    std::vector<std::pair<int, int>> borderCoordinates;
+    std::pair<int, int> borderCoordinates2[8];
+
+    void fillBorderCoordinates();
 };
 
 #endif

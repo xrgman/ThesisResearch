@@ -57,7 +57,7 @@ FetchContent_Declare(
   GIT_TAG        release-2.22.0  # Or use a specific tag or commit hash
 )
 FetchContent_MakeAvailable(SDL2_ttf)
-# find_package(SDL2 REQUIRED)   
+# find_package(SDL2 REQUIRED)    
 # find_package(SDL2_ttf REQUIRED)
 # include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS})
 
@@ -80,7 +80,7 @@ target_include_directories(demo PRIVATE ${PORTAUDIO_INCLUDE_DIRS})
 #target_include_directories(demo PRIVATE ${SDL2_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS})
 
 # Linking libraries
-target_link_libraries(demo PRIVATE ${Boost_LIBRARIES} Threads::Threads WavHelper AudioHelper kissfft FFTWrapper Util ParticleFilter nlohmann_json::nlohmann_json MapRenderer AudioCodec Config RingBuffer) 
+target_link_libraries(demo PRIVATE ${Boost_LIBRARIES} Threads::Threads WavHelper AudioHelper kissfft FFTWrapper Util ParticleFilter nlohmann_json::nlohmann_json MapRenderer AudioCodec Config RingBuffer MapRenderer) 
 target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES})
 #target_link_libraries(demo PRIVATE portaudio)
 #target_link_libraries(demo PRIVATE ${SDL2_LIBRARIES} ${SDL2_TTF_LIBRARIES} )
