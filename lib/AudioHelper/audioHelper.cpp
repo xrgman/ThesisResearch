@@ -108,7 +108,7 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
 /// @return Whether opening the streams was successfull.
 bool AudioHelper::initializeAndOpen()
 {
-    cout << "PortAudio version " << Pa_GetVersionText() << endl;
+    spdlog::info("PortAudio version {}", Pa_GetVersionText());
 
     // Initialize PortAudio
     PaError err = Pa_Initialize();
@@ -123,6 +123,9 @@ bool AudioHelper::initializeAndOpen()
     uint8_t deviceIdx;
 
     const PaDeviceInfo *start = Pa_GetDeviceInfo(Pa_GetDefaultInputDevice());
+
+    int deviceCount = Pa_GetDeviceCount();
+    spdlog::info("Found {} audio devices.", deviceCount);
 
     for (uint8_t i = 0; i < Pa_GetDeviceCount(); i++)
     {
@@ -139,7 +142,7 @@ bool AudioHelper::initializeAndOpen()
     // Checking if number of channels is allowed:
     if (numChannels > deviceInfo->maxInputChannels)
     {
-        cerr << "More channels requested than available\n";
+        spdlog::error("More channels requested than available!");
 
         return false;
     }
