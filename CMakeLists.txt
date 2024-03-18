@@ -29,16 +29,16 @@ FetchContent_MakeAvailable(json)
 add_subdirectory(lib) 
 
 # Find the PortAudio package
-# find_package(PortAudio REQUIRED) 
-# link_directories(${PORTAUDIO_LIBRARY_DIRS})
+find_package(PortAudio REQUIRED) 
+link_directories(${PORTAUDIO_LIBRARY_DIRS})
 
-FetchContent_Declare(
-  portaudio
-  GIT_REPOSITORY https://github.com/PortAudio/portaudio.git
-  GIT_TAG        master  # Or use a specific tag or commit hash
-) 
+# FetchContent_Declare(
+#   portaudio
+#   GIT_REPOSITORY https://github.com/PortAudio/portaudio.git
+#   GIT_TAG        master  # Or use a specific tag or commit hash
+# ) 
 
-FetchContent_MakeAvailable(portaudio) 
+# FetchContent_MakeAvailable(portaudio) 
    
 #Find SDL2
 FetchContent_Declare(
@@ -75,13 +75,13 @@ add_executable(demo src/main.cpp)
 
 # Include PortAudio headers
 target_include_directories(demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/lib/Config ${Boost_INCLUDE_DIRS} kissfft)
-# target_include_directories(demo PRIVATE ${PORTAUDIO_INCLUDE_DIRS}) 
+target_include_directories(demo PRIVATE ${PORTAUDIO_INCLUDE_DIRS}) 
 #target_include_directories(demo PRIVATE ${SDL2_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS})
 
 # Linking libraries
 target_link_libraries(demo PRIVATE ${Boost_LIBRARIES} Threads::Threads WavHelper AudioHelper kissfft FFTWrapper Util ParticleFilter nlohmann_json::nlohmann_json MapRenderer AudioCodec Config RingBuffer) 
-# target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES})
-target_link_libraries(demo PRIVATE portaudio)
+target_link_libraries(demo PRIVATE ${PORTAUDIO_LIBRARIES})
+#target_link_libraries(demo PRIVATE portaudio)
 #target_link_libraries(demo PRIVATE ${SDL2_LIBRARIES} ${SDL2_TTF_LIBRARIES} )
 target_link_libraries(demo PRIVATE SDL2 SDL2_ttf)
 target_link_libraries(demo PRIVATE spdlog::spdlog)
