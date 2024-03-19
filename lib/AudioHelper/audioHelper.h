@@ -14,7 +14,7 @@ using namespace std;
 class AudioHelper
 {
 public:
-    AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels);
+    AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels, void (*data_available_callback)());
     ~AudioHelper();
 
     // Initialization:
@@ -48,6 +48,7 @@ private:
     uint32_t sampleRate;
     uint16_t bitsPerSample;
     uint8_t numChannels;
+    void (*data_available_callback)();
 
     bool microphonesAreOrdered;
     uint8_t microphonesOrdered[6]; // Containing indexes of audiodata sorted correctly.

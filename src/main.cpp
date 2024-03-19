@@ -6,6 +6,8 @@
 #include <cmath>
 #include <string>
 #include <poll.h>
+#include <sched.h>
+#include <condition_variable>
 
 #include "main.h"
 #include "wavHelper.h"
@@ -24,10 +26,11 @@ Config config = Config::LoadConfig("../src/config.json");
 
 // Func defs:
 void dataDecodedCallback(AudioCodecResult result);
+void dataAvailableCallback();
 void sendLocalizationResponse(int receiverId);
 void sendLocalizationResponse2(chrono::nanoseconds processingTime);
 
-AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw);
+AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw, dataAvailableCallback);
 
 ParticleFilter particleFilter(config.totalNumberRobots, config.robotId);
 MapRenderer mapRenderer;
@@ -45,9 +48,12 @@ double currentProcessingDistance = 0;
 
 // Parallel processing of decoding:
 const int decodingThreadsCnt = 1;
-thread decodingThreads[decodingThreadsCnt];
+thread decodingThreads[decodingThreadsCnt + 1];
 
 vector<AudioCodecResult> decodingResults;
+
+std::mutex mtx_decoding, mtx_decodingResult;
+std::condition_variable cv_decoding, cv_decodingResult;
 
 // Fields in use for distance tracking:
 chrono::time_point<chrono::high_resolution_clock> localizationBroadcastSend, localizationRespondReceived;
@@ -75,135 +81,14 @@ void sigIntHandler(int signum)
 void dataDecodedCallback(AudioCodecResult result)
 {
     decodingResults.push_back(result);
+
+    cv_decodingResult.notify_one();
 }
 
-/// @brief Function that checks if there are decoding results left unprocessed and starts processing them.
-void processDecodingResults()
+// Notifies the decoding thread that new data is available:
+void dataAvailableCallback()
 {
-    while (decodingResults.size() > 0)
-    {
-        AudioCodecResult decodingResult = decodingResults[0];
-        double averageSignalEnergy = calculateAverage(decodingResult.signalEnergy, config.numChannels);
-
-        spdlog::info("Message received ({}) from robot {} at {} degrees with signal energy: {}", decodingResult.messageType, decodingResult.senderId, decodingResult.doa, averageSignalEnergy);
-
-        // Handling message based on its type:
-        switch (decodingResult.messageType)
-        {
-        case ENCODING_TEST:
-        {
-            char receivcedData[(DECODING_DATA_BITS / 8) + 1];
-            receivcedData[(DECODING_DATA_BITS / 8)] = '\0';
-
-            bitsToString(decodingResult.decodedData, DECODING_DATA_BITS, receivcedData);
-
-            spdlog::info("Received message: {}", receivcedData);
-
-            break;
-        }
-        case CELL_FOUND:
-        {
-            uint32_t cellId = bitsToUint32(decodingResult.decodedData);
-            spdlog::info("Robot has localized itself in cell: {},", cellId);
-
-            // Updating particle filter:
-            particleFilter.processCellDetectedOther(cellId);
-
-            break;
-        }
-        case WALL:
-        {
-            double wallAngle = (double)bitsToUint32(&decodingResult.decodedData[0]) / 1000;
-            double wallDistance = (double)bitsToUint32(&decodingResult.decodedData[32]) / 1000;
-
-            spdlog::info("Robot has seen a wall at {} degrees and {} cm.", wallAngle, wallDistance);
-
-            // Updating particle filter:
-            particleFilter.processWallDetectedOther(wallAngle, wallDistance);
-
-            break;
-        }
-        case LOCALIZE:
-        {
-            // spdlog::info("Robot has requested a localization response. Sending....");
-
-            // Sending localization response to requester:
-            sendLocalizationResponse(decodingResult.senderId);
-
-            chrono::nanoseconds processingTime = chrono::duration_cast<chrono::nanoseconds>(audioHelper.getOutputBufferEmptyTime() - decodingResult.decodingDoneTime);
-
-            spdlog::info("Time between receiving and completely sending: {}", processingTime.count());
-
-            // Send another message :)
-            sendLocalizationResponse2(processingTime);
-
-            break;
-        }
-        case LOCALIZE_RESPONSE:
-        {
-            // Decoding receiver ID and checking if message was meant for me:
-            uint8_t receiverId = bitsToUint8(decodingResult.decodedData);
-
-            if (receiverId == config.robotId)
-            {
-                localizationRespondReceived = decodingResult.decodingDoneTime;
-
-                // Removing time from start of sending message:
-                // auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(decodingResult.decodingDoneTime - localizationBroadcastSend);
-
-                // // We still need to substract the processing time inside the other robot....
-                // double timeDiffNs = timeDifference.count();
-
-                // spdlog::info("Time difference: {}", timeDifference.count());
-
-                // double averageProcessingTimeB = 1216903391.0;
-
-                // timeDiffNs -= averageProcessingTimeB;
-
-                // double timeDiffS = timeDiffNs / 1000000000;
-
-                // // Calculate the actual distance:
-                // double distanceInM = 343.0 * timeDiffS / 2;
-
-                // spdlog::info("Robot is {} cm away.", distanceInM * 100);
-
-                // // Saving calculated distance:
-                // distanceToOtherRobots[decodingResult.senderId] = distanceInM;
-                break;
-            }
-        }
-        case LOCALIZE_RESPONSE2:
-        {
-            // uint8_t receiverId = bitsToUint8(decodingResult.decodedData);
-            chrono::nanoseconds processingTimeRobotB = bitsToNanoseconds(decodingResult.decodedData);
-
-            // Removing time from start of sending message:
-            chrono::nanoseconds timeDifference = chrono::duration_cast<chrono::nanoseconds>(localizationRespondReceived - localizationBroadcastSend);
-
-            // Calculating time in air:
-            chrono::nanoseconds actualAirTimeNs = timeDifference - processingTimeRobotB;
-
-            double timeDiffS = (double)actualAirTimeNs.count() / 1000000000;
-
-            // Calculate the actual distance:
-            double distanceInM = 343.0 * timeDiffS / 2.0;
-
-            spdlog::info("Processing time robot A {}", timeDifference.count());
-            spdlog::info("Processing time robot B {}", processingTimeRobotB.count());
-            spdlog::info("Air time: {}", actualAirTimeNs.count());
-            spdlog::info("Robot is {} cm away.", distanceInM * 100);
-
-            break;
-        }
-        default:
-            spdlog::error("Received message type {} not yet implemented!", decodingResult.messageType);
-
-            break;
-        }
-
-        // Removing result from queue:
-        decodingResults.erase(decodingResults.begin());
-    }
+    cv_decoding.notify_one();
 }
 
 /// @brief Function that outputs an array of encoded data to the speaker and waits for all data to be played.
@@ -313,7 +198,7 @@ void recordToWavFile(const char *filename, const int seconds)
 
     bool recording = true;
 
-    //This switching works fine!
+    // This switching works fine!
     pauseDecoding = true;
 
     while (recording)
@@ -326,7 +211,7 @@ void recordToWavFile(const char *filename, const int seconds)
             continue;
         }
 
-        //audioHelper.inputBuffers[0].printStats();
+        // audioHelper.inputBuffers[0].printStats();
 
         // Decoding newly read data:
         for (int i = 0; i < FRAMES_PER_BUFFER; i++)
@@ -356,7 +241,7 @@ void recordToWavFile(const char *filename, const int seconds)
     }
 
     // Write data to file:
-    //Writing to file makes buffer somehow overflow
+    // Writing to file makes buffer somehow overflow
     writeWavFile(filename, recordedSamples, nrOfSamplesTotal, config.sampleRate, 16, config.numChannels);
 
     spdlog::info("Sucessfully written {} seconds to the wav file {}.", seconds, filename);
@@ -470,15 +355,21 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
 
     while (keepDecoding)
     {
-        // Checking if new data is available:
-        if (!audioHelper.isDataAvailable(FRAMES_PER_BUFFER) || pauseDecoding)
-        {
-            usleep(1);
+        // Wait for data availability or pause signal
+        std::unique_lock<std::mutex> lock(mtx_decoding);
+        cv_decoding.wait(lock, []
+                         { return audioHelper.isDataAvailable(FRAMES_PER_BUFFER) || pauseDecoding || !keepDecoding; });
 
-            continue;
+        // Check if decoding should continue
+        if (!keepDecoding)
+        {
+            break;
         }
 
-        //audioHelper.inputBuffers[0].printStats();
+        if (pauseDecoding)
+        {
+            continue;
+        }
 
         // Decoding newly read data:
         for (int i = 0; i < FRAMES_PER_BUFFER; i++)
@@ -489,9 +380,163 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
                 int16_t dataRead = audioHelper.inputBuffers[channel].read(receivedTime);
 
                 audioCodec.decode(dataRead, channel, receivedTime);
-
-                // audioCodec.decode(data[channel][i], channel);
             }
+        }
+    }
+}
+
+/// @brief Thread that processes new incomming decoding results:
+void processDecodingResultsThread()
+{
+    while (keepDecoding)
+    {
+        // Wait for data availability or pause signal
+        std::unique_lock<std::mutex> lock(mtx_decodingResult);
+        cv_decodingResult.wait(lock, []
+                         { return decodingResults.size() > 0 || mapRenderer.isInitialized() || !keepDecoding; });
+
+        // Check if decoding should continue
+        if (!keepDecoding)
+        {
+            break;
+        }
+
+        // Process decoding results:
+        while (decodingResults.size() > 0)
+        {
+            AudioCodecResult decodingResult = decodingResults[0];
+            double averageSignalEnergy = calculateAverage(decodingResult.signalEnergy, config.numChannels);
+
+            spdlog::info("Message received ({}) from robot {} at {} degrees with signal energy: {}", decodingResult.messageType, decodingResult.senderId, decodingResult.doa, averageSignalEnergy);
+
+            // Handling message based on its type:
+            switch (decodingResult.messageType)
+            {
+            case ENCODING_TEST:
+            {
+                char receivedData[(DECODING_DATA_BITS / 8) + 1];
+                receivedData[(DECODING_DATA_BITS / 8)] = '\0';
+
+                bitsToString(decodingResult.decodedData, DECODING_DATA_BITS, receivedData);
+
+                spdlog::info("Received message: {}", receivedData);
+
+                break;
+            }
+            case CELL_FOUND:
+            {
+                uint32_t cellId = bitsToUint32(decodingResult.decodedData);
+                spdlog::info("Robot has localized itself in cell: {},", cellId);
+
+                // Updating particle filter:
+                particleFilter.processCellDetectedOther(cellId);
+
+                break;
+            }
+            case WALL:
+            {
+                double wallAngle = (double)bitsToUint32(&decodingResult.decodedData[0]) / 1000;
+                double wallDistance = (double)bitsToUint32(&decodingResult.decodedData[32]) / 1000;
+
+                spdlog::info("Robot has seen a wall at {} degrees and {} cm.", wallAngle, wallDistance);
+
+                // Updating particle filter:
+                particleFilter.processWallDetectedOther(wallAngle, wallDistance);
+
+                break;
+            }
+            case LOCALIZE:
+            {
+                // spdlog::info("Robot has requested a localization response. Sending....");
+
+                // Sending localization response to requester:
+                sendLocalizationResponse(decodingResult.senderId);
+
+                chrono::nanoseconds processingTime = chrono::duration_cast<chrono::nanoseconds>(audioHelper.getOutputBufferEmptyTime() - decodingResult.decodingDoneTime);
+
+                spdlog::info("Time between receiving and completely sending: {}", processingTime.count());
+
+                // Send another message :)
+                sendLocalizationResponse2(processingTime);
+
+                break;
+            }
+            case LOCALIZE_RESPONSE:
+            {
+                // Decoding receiver ID and checking if message was meant for me:
+                uint8_t receiverId = bitsToUint8(decodingResult.decodedData);
+
+                if (receiverId == config.robotId)
+                {
+                    localizationRespondReceived = decodingResult.decodingDoneTime;
+
+                    // Removing time from start of sending message:
+                    // auto timeDifference = chrono::duration_cast<chrono::nanoseconds>(decodingResult.decodingDoneTime - localizationBroadcastSend);
+
+                    // // We still need to substract the processing time inside the other robot....
+                    // double timeDiffNs = timeDifference.count();
+
+                    // spdlog::info("Time difference: {}", timeDifference.count());
+
+                    // double averageProcessingTimeB = 1216903391.0;
+
+                    // timeDiffNs -= averageProcessingTimeB;
+
+                    // double timeDiffS = timeDiffNs / 1000000000;
+
+                    // // Calculate the actual distance:
+                    // double distanceInM = 343.0 * timeDiffS / 2;
+
+                    // spdlog::info("Robot is {} cm away.", distanceInM * 100);
+
+                    // // Saving calculated distance:
+                    // distanceToOtherRobots[decodingResult.senderId] = distanceInM;
+                    break;
+                }
+            }
+            case LOCALIZE_RESPONSE2:
+            {
+                // uint8_t receiverId = bitsToUint8(decodingResult.decodedData);
+                chrono::nanoseconds processingTimeRobotB = bitsToNanoseconds(decodingResult.decodedData);
+
+                // Removing time from start of sending message:
+                chrono::nanoseconds timeDifference = chrono::duration_cast<chrono::nanoseconds>(localizationRespondReceived - localizationBroadcastSend);
+
+                // Calculating time in air:
+                chrono::nanoseconds actualAirTimeNs = timeDifference - processingTimeRobotB;
+
+                double timeDiffS = (double)actualAirTimeNs.count() / 1000000000;
+
+                // Calculate the actual distance:
+                double distanceInM = 343.0 * timeDiffS / 2.0;
+
+                spdlog::info("Processing time robot A {}", timeDifference.count());
+                spdlog::info("Processing time robot B {}", processingTimeRobotB.count());
+                spdlog::info("Air time: {}", actualAirTimeNs.count());
+                spdlog::info("Robot is {} cm away.", distanceInM * 100);
+
+                break;
+            }
+            default:
+                spdlog::error("Received message type {} not yet implemented!", decodingResult.messageType);
+
+                break;
+            }
+
+            // Removing result from queue:
+            decodingResults.erase(decodingResults.begin());
+        }
+
+        // Keep updating the map, when it's needed:
+        if (mapRenderer.isInitialized())
+        {
+            if (!mapRenderer.updateMap(particleFilter.getParticles(), particleFilter.getNumberOfParticles(), particleFilter.getSelectedCellIdx()))
+            {
+                mapRenderer.stop();
+            }
+
+            // Processing keyboard presses:
+            processKeyBoard();
         }
     }
 }
@@ -711,9 +756,8 @@ void handleKeyboardInput()
     bool keepProcessing = true;
     string input;
 
-    struct pollfd fd;
-    fd.fd = STDIN_FILENO;
-    fd.events = POLLIN;
+    struct timespec sleepTime = {0, 1000000}; // Sleep for 1 millisecond
+    struct pollfd fd = {STDIN_FILENO, POLLIN};
 
     // Create array that can store encoded data:
     int size = audioCodec.getEncodingSize();
@@ -721,304 +765,286 @@ void handleKeyboardInput()
 
     while (keepProcessing)
     {
-        int ready = poll(&fd, 1, 0);
+        // int ready = poll(&fd, 1, 1);
 
-        if (ready)
-        {
-            // Reading the newly inputted line by the user:
-            getline(cin, input);
-
-            // Splitting readed input into words:
-            istringstream iss(input);
-            vector<string> words;
-
-            while (iss >> input)
-            {
-                words.push_back(input);
-            }
-
-            // Quit command:
-            if (words[0] == "q" || words[0] == "Q")
-            {
-                keepProcessing = false;
-                keepDecoding = false;
-
-                continue;
-            }
-
-            // Record command:
-            if (words[0] == "r" || words[0] == "R")
-            {
-                const char *filename = words[1].c_str();
-                int duration = stoi(words[2]);
-
-                cout << "Starting recording to file " << filename << " for " << duration << " seconds\n";
-
-                recordToWavFile(filename, duration);
-
-                continue;
-            }
-
-            // Play wav file:
-            if (words[0] == "p" || words[0] == "P")
-            {
-                const char *filename = words[1].c_str();
-
-                cout << "Start playing file " << filename << "\n";
-
-                openAndPlayWavFile(filename);
-
-                continue;
-            }
-
-            // Encode message:
-            if (words[0] == "e" || words[0] == "E")
-            {
-                const char *filename = words[1].c_str();
-
-                cout << "Starting encoding to file " << filename << endl;
-
-                encodeMessageForAudio(filename, config.robotId);
-
-                continue;
-            }
-
-            // Decode message:
-            if (words[0] == "d" || words[0] == "D")
-            {
-                const char *filename = words[1].c_str();
-
-                cout << "Starting decoding of file " << filename << endl;
-
-                decodeWavFile(filename);
-
-                continue;
-            }
-
-            // Start live decoding:
-            if (words[0] == "l" || words[0] == "L")
-            {
-                cout << "Starting live decoding.\n";
-
-                int channels[] = {0, 1, 2, 3, 4, 5};
-
-                decodingThread(channels, 6);
-
-                continue;
-            }
-
-            // Sending three messages needed for distance determination.
-            if (words[0] == "se")
-            {
-                cout << "Sending distance calculation messages.\n";
-
-                sendDistanceMessage();
-
-                continue;
-            }
-
-            // Sending messages and recording to wav file simultanious.
-            if (words[0] == "sr")
-            {
-                const char *filename = words[1].c_str();
-
-                cout << "Start recording own message to file " << filename << ".\n";
-
-                // sendMessageAndRecord(filename);
-
-                continue;
-            }
-
-            // Send a signal message:
-            if (words[0] == "s" || words[0] == "S")
-            {
-                cout << "Sending one signal message.\n";
-
-                // Encode the message:
-                audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
-
-                // Output message to speaker:
-                outputMessageToSpeaker(codedAudioData, size);
-
-                cout << "Done playing message.\n";
-
-                continue;
-            }
-
-            // Send multiple signal messages:
-            if (words[0] == "sm")
-            {
-                int amount = stoi(words[1]);
-
-                cout << "Sending " << amount << " messages.\n";
-
-                // Encode the message:
-                audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
-
-                // Sending amount number of messages:
-                for (int i = 0; i < amount; i++)
-                {
-                    outputMessageToSpeaker(codedAudioData, size);
-
-                    // Waiting 10ms for next:
-                    usleep(10000);
-                }
-
-                cout << "Done sending messages!\n";
-
-                continue;
-            }
-
-            // Send robot is in cell message:
-            if (words[0] == "sc")
-            {
-                int cellId = stoi(words[1]);
-
-                cout << "Sending robot localized in cell " << cellId << "\n";
-
-                // Encode the message:
-                audioCodec.encodeCellMessage(codedAudioData, config.robotId, cellId);
-
-                // Output message to speaker:
-                outputMessageToSpeaker(codedAudioData, size);
-
-                cout << "Done playing message.\n";
-
-                continue;
-            }
-
-            // Send robot has detected wall message:
-            if (words[0] == "sw")
-            {
-                double wallAngle = stod(words[1]);    // In degrees
-                double wallDistance = stod(words[2]); // In cm
-
-                cout << "Sending robot detected wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
-
-                // Encode the message:
-                audioCodec.encodeWallMessage(codedAudioData, config.robotId, wallAngle, wallDistance);
-
-                // Output message to speaker:
-                outputMessageToSpeaker(codedAudioData, size);
-
-                cout << "Done playing message.\n";
-
-                continue;
-            }
-
-            // send localization message:
-            if (words[0] == "sl")
-            {
-                cout << "Sending robot localization message.\n";
-
-                // Encode the message:
-                audioCodec.encodeLocalizeMessage(codedAudioData, config.robotId);
-
-                // Output message to speaker:
-                outputMessageToSpeaker(codedAudioData, size);
-
-                // Saving sending time:
-                localizationBroadcastSend = audioHelper.getOutputBufferEmptyTime();
-
-                cout << "Done playing message.\n";
-
-                continue;
-            }
-
-            // Start particle filer:
-            if (words[0] == "pfs")
-            {
-                bool doNotInitializeMapRenderer = false;
-
-                if (words.size() > 1)
-                {
-                    doNotInitializeMapRenderer = words[1] == "true";
-                }
-
-                cout << "Starting particle filter.\n";
-
-                loadParticleFilter(!doNotInitializeMapRenderer);
-
-                continue;
-            }
-
-            // Start particle filer:
-            if (words[0] == "pft")
-            {
-                int senderId = stoi(words[1]);
-                double angle = stod(words[2]);    // In degrees
-                double distance = stod(words[3]); // In cm
-
-                particleFilter.processMessageTable(senderId, distance, angle, 0);
-
-                continue;
-            }
-
-            // Sending messages and recording to wav file simultanious.
-            if (words[0] == "pfpf")
-            {
-                const char *filename = words[1].c_str();
-
-                cout << "Processing file " << filename << ".\n";
-
-                processFileWoDistance(filename);
-
-                continue;
-            }
-
-            // Reset particle filteR:
-            if (words[0] == "pfr")
-            {
-                cout << "Resetting particle filter.\n";
-
-                particleFilter.initializeParticlesUniformly();
-
-                continue;
-            }
-
-            // Particle filte update based on detected wall:
-            if (words[0] == "pfwd")
-            {
-                double wallAngle = stod(words[1]);    // In degrees
-                double wallDistance = stod(words[2]); // In cm
-
-                cout << "Processing fact that robot has seen a wall at " << wallAngle << " degrees and " << wallDistance << " cm\n";
-
-                particleFilter.processWallDetected(wallAngle, wallDistance);
-
-                continue;
-            }
-
-            if (words[0] == "pali")
-            {
-                double load = audioHelper.getInputStreamLoad();
-
-                cout << "Current input stream load: " << load << endl;
-            }
-        }
-
-        // Process decoding results:
-        processDecodingResults();
-
-        // Keep updating the map, when it's needed:
-        if (mapRenderer.isInitialized())
-        {
-            if (!mapRenderer.updateMap(particleFilter.getParticles(), particleFilter.getNumberOfParticles(), particleFilter.getSelectedCellIdx()))
-            {
-                mapRenderer.stop();
-            }
-
-            // Processing keyboard presses:
-            processKeyBoard();
-        }
-
-        // Marking batch as processed, to overcome spamming the console:
-        // if (audioHelper.readNextBatch())
+        // if (ready)
         // {
-        //     audioHelper.signalBatchProcessed();
+        // Reading the newly inputted line by the user:
+        getline(cin, input);
+
+        // Splitting readed input into words:
+        istringstream iss(input);
+        vector<string> words;
+
+        while (iss >> input)
+        {
+            words.push_back(input);
+        }
+
+        // Quit command:
+        if (words[0] == "q" || words[0] == "Q")
+        {
+            keepProcessing = false;
+            keepDecoding = false;
+
+            cv_decoding.notify_one();
+            cv_decodingResult.notify_one();
+
+            continue;
+        }
+
+        // Record command:
+        if (words[0] == "r" || words[0] == "R")
+        {
+            const char *filename = words[1].c_str();
+            int duration = stoi(words[2]);
+
+            cout << "Starting recording to file " << filename << " for " << duration << " seconds\n";
+
+            recordToWavFile(filename, duration);
+
+            continue;
+        }
+
+        // Play wav file:
+        if (words[0] == "p" || words[0] == "P")
+        {
+            const char *filename = words[1].c_str();
+
+            cout << "Start playing file " << filename << "\n";
+
+            openAndPlayWavFile(filename);
+
+            continue;
+        }
+
+        // Encode message:
+        if (words[0] == "e" || words[0] == "E")
+        {
+            const char *filename = words[1].c_str();
+
+            cout << "Starting encoding to file " << filename << endl;
+
+            encodeMessageForAudio(filename, config.robotId);
+
+            continue;
+        }
+
+        // Decode message:
+        if (words[0] == "d" || words[0] == "D")
+        {
+            const char *filename = words[1].c_str();
+
+            cout << "Starting decoding of file " << filename << endl;
+
+            decodeWavFile(filename);
+
+            continue;
+        }
+
+        // Start live decoding:
+        if (words[0] == "l" || words[0] == "L")
+        {
+            cout << "Starting live decoding.\n";
+
+            int channels[] = {0, 1, 2, 3, 4, 5};
+
+            decodingThread(channels, 6);
+
+            continue;
+        }
+
+        // Sending three messages needed for distance determination.
+        if (words[0] == "se")
+        {
+            cout << "Sending distance calculation messages.\n";
+
+            sendDistanceMessage();
+
+            continue;
+        }
+
+        // Sending messages and recording to wav file simultanious.
+        if (words[0] == "sr")
+        {
+            const char *filename = words[1].c_str();
+
+            cout << "Start recording own message to file " << filename << ".\n";
+
+            // sendMessageAndRecord(filename);
+
+            continue;
+        }
+
+        // Send a signal message:
+        if (words[0] == "s" || words[0] == "S")
+        {
+            cout << "Sending one signal message.\n";
+
+            // Encode the message:
+            audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
+
+            // Output message to speaker:
+            outputMessageToSpeaker(codedAudioData, size);
+
+            cout << "Done playing message.\n";
+
+            continue;
+        }
+
+        // Send multiple signal messages:
+        if (words[0] == "sm")
+        {
+            int amount = stoi(words[1]);
+
+            cout << "Sending " << amount << " messages.\n";
+
+            // Encode the message:
+            audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
+
+            // Sending amount number of messages:
+            for (int i = 0; i < amount; i++)
+            {
+                outputMessageToSpeaker(codedAudioData, size);
+
+                // Waiting 10ms for next:
+                usleep(10000);
+            }
+
+            cout << "Done sending messages!\n";
+
+            continue;
+        }
+
+        // Send robot is in cell message:
+        if (words[0] == "sc")
+        {
+            int cellId = stoi(words[1]);
+
+            cout << "Sending robot localized in cell " << cellId << "\n";
+
+            // Encode the message:
+            audioCodec.encodeCellMessage(codedAudioData, config.robotId, cellId);
+
+            // Output message to speaker:
+            outputMessageToSpeaker(codedAudioData, size);
+
+            cout << "Done playing message.\n";
+
+            continue;
+        }
+
+        // Send robot has detected wall message:
+        if (words[0] == "sw")
+        {
+            double wallAngle = stod(words[1]);    // In degrees
+            double wallDistance = stod(words[2]); // In cm
+
+            cout << "Sending robot detected wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
+
+            // Encode the message:
+            audioCodec.encodeWallMessage(codedAudioData, config.robotId, wallAngle, wallDistance);
+
+            // Output message to speaker:
+            outputMessageToSpeaker(codedAudioData, size);
+
+            cout << "Done playing message.\n";
+
+            continue;
+        }
+
+        // send localization message:
+        if (words[0] == "sl")
+        {
+            cout << "Sending robot localization message.\n";
+
+            // Encode the message:
+            audioCodec.encodeLocalizeMessage(codedAudioData, config.robotId);
+
+            // Output message to speaker:
+            outputMessageToSpeaker(codedAudioData, size);
+
+            // Saving sending time:
+            localizationBroadcastSend = audioHelper.getOutputBufferEmptyTime();
+
+            cout << "Done playing message.\n";
+
+            continue;
+        }
+
+        // Start particle filer:
+        if (words[0] == "pfs")
+        {
+            bool doNotInitializeMapRenderer = false;
+
+            if (words.size() > 1)
+            {
+                doNotInitializeMapRenderer = words[1] == "true";
+            }
+
+            cout << "Starting particle filter.\n";
+
+            loadParticleFilter(!doNotInitializeMapRenderer);
+
+            continue;
+        }
+
+        // Start particle filer:
+        if (words[0] == "pft")
+        {
+            int senderId = stoi(words[1]);
+            double angle = stod(words[2]);    // In degrees
+            double distance = stod(words[3]); // In cm
+
+            particleFilter.processMessageTable(senderId, distance, angle, 0);
+
+            continue;
+        }
+
+        // Sending messages and recording to wav file simultanious.
+        if (words[0] == "pfpf")
+        {
+            const char *filename = words[1].c_str();
+
+            cout << "Processing file " << filename << ".\n";
+
+            processFileWoDistance(filename);
+
+            continue;
+        }
+
+        // Reset particle filteR:
+        if (words[0] == "pfr")
+        {
+            cout << "Resetting particle filter.\n";
+
+            particleFilter.initializeParticlesUniformly();
+
+            continue;
+        }
+
+        // Particle filte update based on detected wall:
+        if (words[0] == "pfwd")
+        {
+            double wallAngle = stod(words[1]);    // In degrees
+            double wallDistance = stod(words[2]); // In cm
+
+            cout << "Processing fact that robot has seen a wall at " << wallAngle << " degrees and " << wallDistance << " cm\n";
+
+            particleFilter.processWallDetected(wallAngle, wallDistance);
+
+            continue;
+        }
+
+        if (words[0] == "pali")
+        {
+            double load = audioHelper.getInputStreamLoad();
+
+            cout << "Current input stream load: " << load << endl;
+        }
         // }
 
-        usleep(1);
+        // this_thread::sleep_for(chrono::milliseconds(100));
     }
 
     // Clearing map renderer:
@@ -1047,31 +1073,33 @@ void launchDecodingThreads()
         // Firing up the thread:
         decodingThreads[i] = thread(decodingThread, channelsForThread, channelsPerThread);
     }
+
+    decodingThreads[decodingThreadsCnt - 2] = thread(processDecodingResultsThread);
 }
 
-void launchDecodingThreads2()
+void setApplicationPriority()
 {
-    // Define CPU affinity masks for threads
-    // cpu_set_t cpuSet1, cpuSet2;
-    // CPU_ZERO(&cpuSet1);
-    // CPU_ZERO(&cpuSet2);
-    // CPU_SET(0, &cpuSet1); // Allow thread 1 to run on CPU core 0
-    // CPU_SET(1, &cpuSet2); // Allow thread 2 to run on CPU core 1
+    // Set the scheduling policy and priority for the current process
+    struct sched_param params;
+    memset(&params, 0, sizeof(params));
 
-    // int channelsForThread[3] = {0, 1, 2};
+    // Set the scheduling policy to SCHED_FIFO (FIFO scheduling)
+    int policy = SCHED_FIFO;
+    if (sched_setscheduler(0, policy, &params) == -1)
+    {
+        std::cerr << "Failed to set scheduling policy" << std::endl;
+    }
 
-    // Create threads
-    // pthread_t thread1, thread2;
-    // pthread_create(&thread1, NULL, decodingThread, channelsForThread, channelsPerThread);
-    // pthread_create(&thread2, NULL, decodingThread, channelsForThread, channelsPerThread);
+    // Set the priority to the maximum value allowed for the specified scheduling policy
+    int max_priority = sched_get_priority_max(policy);
+    params.sched_priority = max_priority;
 
-    // // Set CPU affinity for threads
-    // pthread_setaffinity_np(thread1, sizeof(cpu_set_t), &cpuSet1);
-    // pthread_setaffinity_np(thread2, sizeof(cpu_set_t), &cpuSet2);
+    if (sched_setparam(0, &params) == -1)
+    {
+        std::cerr << "Failed to set priority" << std::endl;
+    }
 
-    // // Wait for threads to finish
-    // pthread_join(thread1, NULL);
-    // pthread_join(thread2, NULL);
+    std::cout << "Process priority set to the highest level." << std::endl;
 }
 
 int main()
@@ -1086,8 +1114,10 @@ int main()
     spdlog::set_pattern("[%H:%M:%S.%e] [%l] %v");
     spdlog::info("Logger initialized!");
 
+    setApplicationPriority();
+
     // FOR TESTING NOW:
-    //loadParticleFilter(false);
+    // loadParticleFilter(false);
 
     // Killing running tasks:
     audioHelper.stopAndClose(false);

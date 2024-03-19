@@ -8,11 +8,12 @@
 #include "string.h"
 #include "util.h"
 
-AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels)
+AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels, void (*data_available_callback)())
 {
     this->sampleRate = sampleRate;
     this->bitsPerSample = bitsPerSample;
     this->numChannels = numChannels;
+    this->data_available_callback = data_available_callback;
 
     this->microphonesAreOrdered = false;
 
@@ -61,12 +62,20 @@ int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffe
     return paContinue;
 }
 
+chrono::time_point<chrono::high_resolution_clock> lastTime = chrono::high_resolution_clock::now();
+
 // InputData contains framesPerBuffer * numChannels elements.
 // So each channel has 2048 items in it.
 int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
     // Grabbing time of receiving current batch:
     chrono::time_point<chrono::high_resolution_clock> currentTime = chrono::high_resolution_clock::now();
+
+    chrono::nanoseconds timeDifference = chrono::duration_cast<chrono::nanoseconds>(currentTime - lastTime);
+
+    //spdlog::info("Input callback! {}", timeDifference.count());
+
+    lastTime = currentTime;
 
     // We want to put data into the outputbuffer as soon as this one is called.
     int16_t *inputData = (int16_t *)inputBuffer; // Not uint16_t but int16
@@ -96,6 +105,9 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
         setCompleteBatchAvailable();
         // setCompleteBatchUnprocessed();
     }
+
+    //Notifying decoding thread:
+    data_available_callback();
 
     return paContinue;
 }
