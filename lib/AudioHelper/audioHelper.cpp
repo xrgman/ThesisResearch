@@ -71,11 +71,11 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
     // Grabbing time of receiving current batch:
     chrono::time_point<chrono::high_resolution_clock> currentTime = chrono::high_resolution_clock::now();
 
-    chrono::nanoseconds timeDifference = chrono::duration_cast<chrono::nanoseconds>(currentTime - lastTime);
+    // chrono::nanoseconds timeDifference = chrono::duration_cast<chrono::nanoseconds>(currentTime - lastTime);
 
-    //spdlog::info("Input callback! {}", timeDifference.count());
+    // spdlog::info("Input callback! {}", timeDifference.count());
 
-    lastTime = currentTime;
+    // lastTime = currentTime;
 
     // We want to put data into the outputbuffer as soon as this one is called.
     int16_t *inputData = (int16_t *)inputBuffer; // Not uint16_t but int16
@@ -94,7 +94,6 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
                 int actualChannelId = microphonesOrdered[channel];
 
                 // Saving to buffer in correct order:
-                // inputBuffers[channel].write(inputData[i * numChannels + actualChannelId]);
                 inputBuffers[channel].write(inputData[i * numChannels + actualChannelId], currentTime);
             }
         }

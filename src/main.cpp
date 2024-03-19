@@ -1,7 +1,9 @@
 #include <iostream>
 #include <signal.h>
 #include <chrono>
-#include <thread>
+// #include <thread>
+#include <pthread.h>
+#include <sched.h>
 #include <SDL2/SDL.h>
 #include <cmath>
 #include <string>
@@ -20,6 +22,12 @@
 #include "config.h"
 
 using namespace std;
+
+struct decodingThreadArguments
+{
+    int numChannelsToDecode;
+    int *channelsForThread;
+};
 
 // Loading config file:
 Config config = Config::LoadConfig("../src/config.json");
@@ -49,7 +57,12 @@ double currentProcessingDistance = 0;
 
 // Parallel processing of decoding:
 const int decodingThreadsCnt = 1;
-thread decodingThreads[decodingThreadsCnt + 1];
+struct decodingThreadArguments decodingArguments[decodingThreadsCnt];
+
+pthread_t decodingThreads[decodingThreadsCnt + 1];
+pthread_attr_t decodingThreadAttr, decodingResultThreadAttr;
+
+struct sched_param decodingThreadAttrParam, decodingResultThreadAttrParam;
 
 vector<AudioCodecResult> decodingResults;
 
@@ -353,14 +366,17 @@ void decodeWavFile(const char *filename)
 }
 
 /// @brief Start running the decoding on live data received from the microphones.
-void decodingThread(int *channelsToDecode, int numChannelsToDecode)
+// void decodingThread(int *channelsToDecode, int numChannelsToDecode)
+void *decodingThread(void *arguments)
 {
-    const int *channels = new int[numChannelsToDecode];
+    struct decodingThreadArguments *argumentData = (struct decodingThreadArguments *)arguments;
+
+    const int *channels = new int[argumentData->numChannelsToDecode];
 
     int16_t data[NUM_CHANNELS][FRAMES_PER_BUFFER];
 
     // Storing copy of channels here:
-    std::memcpy(const_cast<int *>(channels), channelsToDecode, numChannelsToDecode * sizeof(int));
+    std::memcpy(const_cast<int *>(channels), argumentData->channelsForThread, argumentData->numChannelsToDecode * sizeof(int));
 
     while (keepDecoding)
     {
@@ -395,7 +411,8 @@ void decodingThread(int *channelsToDecode, int numChannelsToDecode)
 }
 
 /// @brief Thread that processes new incomming decoding results:
-void processDecodingResultsThread()
+// void processDecodingResultsThread()
+void *processDecodingResultsThread(void *args)
 {
     while (keepDecoding)
     {
@@ -461,7 +478,10 @@ void processDecodingResultsThread()
                 // Sending localization response to requester:
                 sendLocalizationResponse(decodingResult.senderId);
 
-                chrono::nanoseconds processingTime = chrono::duration_cast<chrono::nanoseconds>(audioHelper.getOutputBufferEmptyTime() - decodingResult.decodingDoneTime);
+                chrono::time_point<chrono::high_resolution_clock> sendResponseDone = chrono::high_resolution_clock::now();
+
+                // chrono::nanoseconds processingTime = chrono::duration_cast<chrono::nanoseconds>(audioHelper.getOutputBufferEmptyTime() - decodingResult.decodingDoneTime);
+                chrono::nanoseconds processingTime = chrono::duration_cast<chrono::nanoseconds>(sendResponseDone - decodingResult.decodingDoneTime);
 
                 spdlog::info("Time between receiving and completely sending: {}", processingTime.count());
 
@@ -857,7 +877,7 @@ void handleKeyboardInput()
 
             int channels[] = {0, 1, 2, 3, 4, 5};
 
-            decodingThread(channels, 6);
+            // decodingThread(channels, 6);
 
             continue;
         }
@@ -1064,25 +1084,64 @@ void launchDecodingThreads()
     // Starting decoding threads in the background:
     int channelsPerThread = config.numChannels / decodingThreadsCnt;
 
+    // for (int i = 0; i < decodingThreadsCnt; i++)
+    // {
+    //     // Grabbing channels for thread:
+    //     int *channelsForThread = new int[channelsPerThread];
+
+    //     cout << "Starting thread for channels: ";
+
+    //     for (int j = 0; j < channelsPerThread; j++)
+    //     {
+    //         channelsForThread[j] = config.channels[i * channelsPerThread + j];
+
+    //         cout << channelsForThread[j] << (j < channelsPerThread - 1 ? ", " : "\n");
+    //     }
+
+    //     // Firing up the thread:
+    //     decodingThreads[i] = thread(decodingThread, channelsForThread, channelsPerThread);
+    // }
+
+    // decodingThreads[decodingThreadsCnt - 2] = thread(processDecodingResultsThread);
+
+    // Configuring thread priority:
+    pthread_attr_init(&decodingThreadAttr);
+    pthread_attr_setschedpolicy(&decodingThreadAttr, SCHED_FIFO);
+    pthread_attr_getschedparam(&decodingThreadAttr, &decodingThreadAttrParam);
+
+    decodingThreadAttrParam.sched_priority = 98;
+
+    pthread_attr_setschedparam(&decodingThreadAttr, &decodingThreadAttrParam);
+
+    pthread_attr_init(&decodingResultThreadAttr);
+    pthread_attr_setschedpolicy(&decodingResultThreadAttr, SCHED_FIFO);
+    pthread_attr_getschedparam(&decodingResultThreadAttr, &decodingResultThreadAttrParam);
+
+    decodingResultThreadAttrParam.sched_priority = 98;
+
+    pthread_attr_setschedparam(&decodingResultThreadAttr, &decodingResultThreadAttrParam);
+
     for (int i = 0; i < decodingThreadsCnt; i++)
     {
         // Grabbing channels for thread:
-        int *channelsForThread = new int[channelsPerThread];
+        decodingArguments[i].numChannelsToDecode = channelsPerThread;
+        decodingArguments[i].channelsForThread = new int[channelsPerThread];
 
         cout << "Starting thread for channels: ";
 
         for (int j = 0; j < channelsPerThread; j++)
         {
-            channelsForThread[j] = config.channels[i * channelsPerThread + j];
+            decodingArguments[i].channelsForThread[j] = config.channels[i * channelsPerThread + j];
 
-            cout << channelsForThread[j] << (j < channelsPerThread - 1 ? ", " : "\n");
+            cout << decodingArguments[i].channelsForThread[j] << (j < channelsPerThread - 1 ? ", " : "\n");
         }
 
         // Firing up the thread:
-        decodingThreads[i] = thread(decodingThread, channelsForThread, channelsPerThread);
+        // decodingThreads[i] = thread(decodingThread, channelsForThread, channelsPerThread);
+        pthread_create(&decodingThreads[i], &decodingThreadAttr, decodingThread, (void *)&decodingArguments[i]);
     }
 
-    decodingThreads[decodingThreadsCnt - 2] = thread(processDecodingResultsThread);
+    pthread_create(&decodingThreads[decodingThreadsCnt - 2], &decodingResultThreadAttr, processDecodingResultsThread, nullptr);
 }
 
 void setApplicationPriority()
@@ -1165,8 +1224,11 @@ int main()
     // Waiting for threads to finish:
     for (int i = 0; i < decodingThreadsCnt; i++)
     {
-        decodingThreads[i].join();
+        // decodingThreads[i].join();
+        pthread_join(decodingThreads[i], nullptr);
     }
+
+    pthread_attr_destroy(&decodingThreadAttr);
 
     audioHelper.stopAndClose();
 
