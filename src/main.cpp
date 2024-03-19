@@ -39,6 +39,7 @@ AudioCodec audioCodec(dataDecodedCallback, config.sampleRate, config.totalNumber
                       config.frequencyStartPreamble, config.frequencyStopPreamble, config.frequencyStartBit, config.frequencyStopBit, config.printBitsEncoding, config.filterOwnSource);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
+bool keepProcessing = true;
 bool keepDecoding = true;
 bool pauseDecoding = false;
 
@@ -70,7 +71,15 @@ void sigIntHandler(int signum)
     // Stopping audio streams:
     audioHelper.stopAndClose();
 
-    cout << "Stopping program forcefully!\n";
+    // Killing threads:
+    keepDecoding = false;
+    keepProcessing = false;
+
+    cv_decoding.notify_one();
+    cv_decodingResult.notify_one();
+
+    // Warning the user:
+    spdlog::warn("Stopping program forcefully!");
 
     // Exit the program:
     exit(signum);
@@ -393,7 +402,7 @@ void processDecodingResultsThread()
         // Wait for data availability or pause signal
         std::unique_lock<std::mutex> lock(mtx_decodingResult);
         cv_decodingResult.wait(lock, []
-                         { return decodingResults.size() > 0 || mapRenderer.isInitialized() || !keepDecoding; });
+                               { return decodingResults.size() > 0 || mapRenderer.isInitialized() || !keepDecoding; });
 
         // Check if decoding should continue
         if (!keepDecoding)
@@ -753,7 +762,6 @@ void processFileWoDistance(const char *filename)
 
 void handleKeyboardInput()
 {
-    bool keepProcessing = true;
     string input;
 
     struct timespec sleepTime = {0, 1000000}; // Sleep for 1 millisecond
