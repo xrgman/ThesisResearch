@@ -52,7 +52,9 @@ Config Config::LoadConfig(const char *filename)
                       jsonData["freq_start_preamble"],
                       jsonData["freq_stop_preamble"],
                       jsonData["freq_start_bit"],
-                      jsonData["freq_stop_bit"]);
+                      jsonData["freq_stop_bit"],
+                      jsonData["calibrate_signal_energy_target"],
+                      jsonData["calibrate_signal_energy"]);
     }
     catch (const json::exception &e)
     {

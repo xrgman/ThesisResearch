@@ -34,6 +34,7 @@ Config config = Config::LoadConfig("../src/config.json");
 
 // Func defs:
 void dataDecodedCallback(AudioCodecResult result);
+void signalEnergyCallback(int channelId, double signalEnergy);
 void dataAvailableCallback();
 void sendLocalizationResponse(int receiverId);
 void sendLocalizationResponse2(chrono::nanoseconds processingTime);
@@ -43,7 +44,7 @@ AudioHelper audioHelper(config.sampleRate, 16, config.numChannelsRaw, dataAvaila
 ParticleFilter particleFilter(config.totalNumberRobots, config.robotId);
 MapRenderer mapRenderer;
 
-AudioCodec audioCodec(dataDecodedCallback, config.sampleRate, config.totalNumberRobots, config.robotId, config.preambleSamples, config.bitSamples, config.preambleUndersamplingDivisor,
+AudioCodec audioCodec(dataDecodedCallback, signalEnergyCallback, config.sampleRate, config.totalNumberRobots, config.robotId, config.preambleSamples, config.bitSamples, config.preambleUndersamplingDivisor,
                       config.frequencyStartPreamble, config.frequencyStopPreamble, config.frequencyStartBit, config.frequencyStopBit, config.printBitsEncoding, config.filterOwnSource);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
@@ -54,6 +55,12 @@ bool pauseDecoding = false;
 // Distance to be used as long as we can't calculate it from the actual received message:
 bool processDecodedDataToPf = true; // TODO: set to false
 double currentProcessingDistance = 0;
+
+// Calibration of signal energy fields:
+bool keepCalibratingSignalEnergy = true;
+uint8_t signalEnergyCalibrationMessagesSend = 0;
+
+double signalEnergyCollection[NUM_CHANNELS];
 
 // Parallel processing of decoding:
 const int decodingThreadsCnt = 1;
@@ -408,6 +415,8 @@ void *decodingThread(void *arguments)
             }
         }
     }
+
+    return nullptr;
 }
 
 /// @brief Thread that processes new incomming decoding results:
@@ -568,6 +577,8 @@ void *processDecodingResultsThread(void *args)
             processKeyBoard();
         }
     }
+
+    return nullptr;
 }
 
 /// @brief Send 3 messages, which can be used to calculate the distance between robots.
@@ -1000,6 +1011,15 @@ void handleKeyboardInput()
             continue;
         }
 
+        // Change the output volume of the speaker:
+        if (words[0] == "sv")
+        {
+            double newVolume = stod(words[1]);
+
+            audioCodec.setVolume(newVolume);
+            spdlog::info("Volume set to {}", newVolume);
+        }
+
         // Start particle filer:
         if (words[0] == "pfs")
         {
@@ -1169,6 +1189,124 @@ void setApplicationPriority()
     std::cout << "Process priority set to the highest level." << std::endl;
 }
 
+int signalEnergyDesired = 300;
+
+/// @brief Storing signal energy callback, used to calibrate.
+/// @param channelId The current channel ID.
+/// @param signalEnergy The detected channel energy.
+void signalEnergyCallback(int channelId, double signalEnergy)
+{
+    signalEnergyCollection[channelId] = signalEnergy;
+}
+
+/// @brief Method used to calibrate the signal energy for consistent results.
+void calibrateSignalEnergy()
+{
+    // Cleaning array:
+    fillArrayWithZeros(signalEnergyCollection, config.numChannels);
+
+    // Encode message:
+    int16_t encodedMessage[config.preambleSamples];
+
+    audioCodec.encodePreambleForSending(encodedMessage);
+
+    // Calibration fields:
+    uint8_t numberOfCalibrationRounds = 3;
+    bool sendNewMessage = true;
+    vector<double> signalEnergyStorage;
+
+    // 1455 - 1465 - 1475
+    double signalEnergyTargetLow = config.calibrateSignalEnergyTarget - 10.0;
+    double signalEnergyTargetHigh = config.calibrateSignalEnergyTarget + 10.0;
+    double K = 1503.89899; // Value used to calculate new volume value
+
+    // Stopping decoding in main thread:
+    pauseDecoding = true;
+
+    while (keepCalibratingSignalEnergy)
+    {
+        // Playing calibration message when ready:
+        if (sendNewMessage && signalEnergyCalibrationMessagesSend < 5)
+        {
+            signalEnergyCalibrationMessagesSend++;
+            sendNewMessage = false;
+
+            audioHelper.writeBytes(encodedMessage, config.preambleSamples);
+        }
+
+        // Checking if we received the signal energy values from all six channels:
+        if (allValuesGreaterThan(signalEnergyCollection, config.numChannels, 1))
+        {
+            // Calculating and storing the average signal energy over all channels:
+            double signalEnergy = calculateAverage(signalEnergyCollection, config.numChannels);
+            signalEnergyStorage.push_back(signalEnergy);
+
+            // spdlog::info("Average signal energy {}.", signalEnergy);
+
+            // Resetting and preparing for sending another calibration message:
+            fillArrayWithZeros(signalEnergyCollection, config.numChannels);
+            sendNewMessage = true;
+
+            // Checking if we received the desired number of calibration values:
+            if (signalEnergyCalibrationMessagesSend >= numberOfCalibrationRounds)
+            {
+                // Calculating the average over all collected average signal energy values:
+                signalEnergy = calculateAverage(signalEnergyStorage.data(), signalEnergyStorage.size());
+
+                spdlog::info("Average signal energy overall: {}.", signalEnergy);
+
+                // Grabbing the current volume value:
+                double currentVolume = audioCodec.getVolume();
+
+                // Checking if adjustment is needed:
+                if (signalEnergyTargetLow <= signalEnergy && signalEnergy <= signalEnergyTargetHigh)
+                {
+                    spdlog::info("Signal energy is in between the target bounds, stopping calibration. Final volume value: {}.", currentVolume);
+
+                    pauseDecoding = false;
+                    keepCalibratingSignalEnergy = false;
+                }
+                else if (currentVolume == 1.0 && signalEnergyTargetLow > signalEnergy)
+                {
+                    spdlog::error("Current volume is maxed out but target was not reached.");
+
+                    pauseDecoding = false;
+                    keepCalibratingSignalEnergy = false;
+                }
+                else
+                {
+                    double gainAdjust = sqrt(config.calibrateSignalEnergyTarget / K) - sqrt(signalEnergy / K);
+                    double newVolume = currentVolume + gainAdjust;
+
+                    audioCodec.setVolume(newVolume);
+                    audioCodec.encodePreambleForSending(encodedMessage);
+
+                    spdlog::info("Adjusting volume to {} and checking again.", newVolume);
+
+                    signalEnergyStorage.clear();
+                    signalEnergyCalibrationMessagesSend = 0;
+                }
+            }
+        }
+
+        // Checking if new data is available and processing it:
+        if (audioHelper.isDataAvailable(FRAMES_PER_BUFFER))
+        {
+            for (int i = 0; i < FRAMES_PER_BUFFER; i++)
+            {
+                for (uint8_t channel = 0; channel < config.numChannels; channel++)
+                {
+                    chrono::time_point<chrono::high_resolution_clock> receivedTime;
+                    int16_t dataRead = audioHelper.inputBuffers[channel].read(receivedTime);
+
+                    // data[channel].push_back(dataRead);
+                    audioCodec.decode(dataRead, channel, receivedTime, true);
+                }
+            }
+        }
+    }
+}
+
 int main()
 {
     // Catching sigint event:
@@ -1217,6 +1355,14 @@ int main()
     }
 
     audioHelper.signalBatchProcessed(config.channels, config.numChannels);
+
+    Pa_Sleep(100);
+
+    // Calibrating signal energy:
+    if (config.calibrateSignalEnergy)
+    {
+        calibrateSignalEnergy();
+    }
 
     // Running keyboard input function:
     handleKeyboardInput();

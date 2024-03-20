@@ -9,14 +9,15 @@
 #define REQUIRED_NUMBER_OF_CYCLES 5
 #define KAISER_WINDOW_BETA 4
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
                        double frequencyStopBit, bool printCodedBits, bool filterOwnSource) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
                                                                                              preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor)
 {
     this->printCodedBits = printCodedBits;
     this->filterOwnSource = filterOwnSource;
     this->data_decoded_callback = data_decoded_callback;
-    this->volume = 1.0;
+    this->signal_energy_callback = signal_energy_callback;
+    this->volume = 0.5;
     this->frequencyPairPreamble.startFrequency = frequencyStartPreamble;
     this->frequencyPairPreamble.stopFrequency = frequencyStopPreamble;
     this->frequencyPairBit.startFrequency = frequencyStartBit;
@@ -246,6 +247,22 @@ void AudioCodec::encodeLocalizeResponse2Message(int16_t *output, uint8_t senderI
 
     // Performing encoding as normal:
     encode(output, senderId, LOCALIZE_RESPONSE2, dataBits);
+}
+
+/// @brief Encode only the preamble.
+/// @param output Array op type int16_t containing only the preamble.
+void AudioCodec::encodePreambleForSending(int16_t *output)
+{
+    double encodedPreamble[preambleSamples];
+
+    // Encoding preamble:
+    encodePreamble(encodedPreamble, false);
+
+    // Convert outputBuffer to int16:
+    for (int i = 0; i < preambleSamples; i++)
+    {
+        output[i] = doubleToInt16(encodedPreamble[i]);
+    }
 }
 
 /// @brief The encoding function, does the actual encoding.
@@ -546,7 +563,7 @@ uint8_t AudioCodec::calculateCRC(const uint8_t *data, const int size)
 //******** Decoding *******************************
 //*************************************************
 
-void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_point<chrono::high_resolution_clock> &receivedTime)
+void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_point<chrono::high_resolution_clock> &receivedTime, bool onlyDecodePreamble)
 {
     // Converting received value to double between -1 and 1:
     double value = int16ToDouble(bit);
@@ -603,6 +620,14 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_po
             }
 
             double signalEnergy = calculateSignalEnergy(energyFrame, preambleSamples);
+
+            if (onlyDecodePreamble)
+            {
+                // Calling callback with energy:
+                signal_energy_callback(microphoneId, signalEnergy);
+
+                continue;
+            }
 
             // cout << "Signal energy: " << signalEnergy << endl;
 
@@ -1360,4 +1385,33 @@ double AudioCodec::calculateDistance(const int *arrivalTimes, const int size)
     // // Distance = c * TDOA / 2 (just comething I found)
 
     return 1.0;
+}
+
+/// @brief Get the current volume used in the encoding of messages.
+/// @return Current volume value between 0.0 and 1.0.
+double AudioCodec::getVolume()
+{
+    return this->volume;
+}
+
+/// @brief Set the volume of the encoded message, determines how loud the signal will be.
+/// @param volume The new volume of the signal.
+void AudioCodec::setVolume(double volume)
+{
+    this->volume = volume;
+
+    // Clipping volume:
+    if (this->volume < 0)
+    {
+        this->volume = 0;
+    }
+    else if (this->volume > 1.0)
+    {
+        this->volume = 1.0;
+    }
+
+    // Regenerate encoded sender ID and bits based on new volume:
+    encodeSenderId(encodedSenderId, frequencyPairOwn, false);
+    encodeBit(encodedBit0, 0, frequencyPairOwn, false);
+    encodeBit(encodedBit1, 1, frequencyPairOwn, false);
 }

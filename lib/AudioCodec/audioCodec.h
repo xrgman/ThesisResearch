@@ -124,7 +124,7 @@ struct AudioCodecFrequencyPair
 class AudioCodec
 {
 public:
-    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
+    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
            double frequencyStopBit, bool printCodedBits, bool filterOwnSource);
 
     ~AudioCodec()
@@ -171,11 +171,15 @@ public:
     void encodeLocalizeMessage(int16_t *output, uint8_t senderId);
     void encodeLocalizeResponseMessage(int16_t *output, uint8_t senderId, uint8_t receiverId);
     void encodeLocalizeResponse2Message(int16_t *output, uint8_t senderId, chrono::nanoseconds processingTime);
+    void encodePreambleForSending(int16_t *output);
 
-    void decode(int16_t bit, uint8_t microphoneId, const chrono::time_point<chrono::high_resolution_clock>& receivedTime);
+    void decode(int16_t bit, uint8_t microphoneId, const chrono::time_point<chrono::high_resolution_clock>& receivedTime, bool onlyDecodePreamble = false);
 
     void generateConvolutionFields(int robotId);
     void initializeBitEncodingData();
+
+    double getVolume();
+    void setVolume(double volume);
 
 private:
     const int sampleRate, totalNumberRobots, robotId;
@@ -184,6 +188,7 @@ private:
     double volume;
     AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBit, frequencyPairOwn;
     void (*data_decoded_callback)(AudioCodecResult);
+    void (*signal_energy_callback)(int, double);
 
     // FFT configurations convolution:
     FFTConfigStore fftConfigStoreHilPre, fftConfigStoreHilBit;
@@ -193,8 +198,8 @@ private:
     int getNumberOfBits();
     double getEncodingDuration();
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits);
-
     void encodePreamble(double *output, bool flipped);
+    
     void encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair& frequencies, bool flipped);
     void encodeSymbol(double *output, const int symbol);
     void encodeBits(double *output, uint8_t *bits, int numberOfBits);

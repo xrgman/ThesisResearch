@@ -44,6 +44,8 @@ double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
 
     Cell::getClosestCoordinates(startCell, stopCell, closestCoordinatesStart, closestCoordinatesStop);
 
+    //TO make it even better when executing algo and discovering other border coordinates of start cell, remove parent and take new start point :)
+
     // Picking closest option to destination cell:
     int startX = closestCoordinatesStart.first;
     int startY = closestCoordinatesStart.second;

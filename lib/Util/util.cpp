@@ -119,6 +119,24 @@ bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold)
     return false;
 }
 
+/// @brief Check whether all values in a collection are greater than a certain threshold.
+/// @param data The collection to be checked.
+/// @param size Size of the collection.
+/// @param threshold The threshold value.
+/// @return Whether or not all values are greater than threshold.
+bool allValuesGreaterThan(const double *data, const int size, int threshold)
+{
+    for (int i = 0; i < size; i++)
+    {
+        if (data[i] < threshold)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 /// @brief Find the index of the element with the highest value.
 /// @param array Array containing the elements.
 /// @param size Size of the array.
@@ -615,7 +633,7 @@ bool onSegment(int p1X, int p1Y, int p2X, int p2Y, int p3X, int p3Y)
 
 /// @brief Calculate the euclidean distance between two points.
 /// @param p1X X coordinate of the first point.
-/// @param p1Y Y coordinate of the first point. 
+/// @param p1Y Y coordinate of the first point.
 /// @param p2X X coordinate of the second point.
 /// @param p2Y Y coordinate of the second point.
 /// @return Euclidean distance between the two points.

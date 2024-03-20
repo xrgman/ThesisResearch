@@ -88,6 +88,8 @@ sudo ln -s /usr/local/lib/libportaudio.so /usr/lib/aarch64-linux-gnu/libportaudi
 
 sudo apt-get install libspdlog-dev libboost-all-dev libsdl2-ttf-dev libsdl2-dev
 
+Use alsamixer on rpi to increase volume to <b>81</b> of speaker.
+
 ### Stop tracking changes to config:
 git update-index --assume-unchanged src/config.json
 

@@ -17,6 +17,8 @@ double calculateDeviationAverage(const double *data, const int size, const doubl
 bool hasNegativeValue(const int16_t *data, uint16_t size);
 bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold);
 
+bool allValuesGreaterThan(const double *data, const int size, int threshold);
+
 int findMaxIndex(const int *array, int size);
 int findMaxIndex(const double *array, int size);
 
