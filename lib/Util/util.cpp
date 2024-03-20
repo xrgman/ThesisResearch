@@ -514,6 +514,18 @@ void bitsToString(const uint8_t *bits, const int nrOfBits, char *output)
     }
 }
 
+/// @brief Translate a number from one range to another.
+/// @param number Number to translate.
+/// @param minInput Minimum value of original range.
+/// @param maxInput Maximum value of original range.
+/// @param minOutput Minimal value of new range.
+/// @param maxOutput Maximum value of new range.
+/// @return Value of the number in new range.
+double translateToRange(double number, double minInput, double maxInput, double minOutput, double maxOutput)
+{
+    return minOutput + ((number - minInput) / (maxInput - minInput)) * (maxOutput - minOutput);
+}
+
 //*************************************************
 //******** File helpers ***************************
 //*************************************************

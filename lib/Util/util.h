@@ -52,6 +52,8 @@ chrono::nanoseconds bitsToNanoseconds(uint8_t bits[64]);
 void stringToBits(const char *data, int size, uint8_t *bits);
 void bitsToString(const uint8_t *bits, const int nrOfBits, char *output);
 
+double translateToRange(double number, double minInput, double maxInput, double minOutput, double maxOutput);
+
 bool openFile(const char *filename, FILE **file, const char *mode);
 long getFileSize(FILE *file);
 char *readFileText(FILE *file);

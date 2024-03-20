@@ -1189,8 +1189,6 @@ void setApplicationPriority()
     std::cout << "Process priority set to the highest level." << std::endl;
 }
 
-int signalEnergyDesired = 300;
-
 /// @brief Storing signal energy callback, used to calibrate.
 /// @param channelId The current channel ID.
 /// @param signalEnergy The detected channel energy.
@@ -1218,7 +1216,7 @@ void calibrateSignalEnergy()
     // 1455 - 1465 - 1475
     double signalEnergyTargetLow = config.calibrateSignalEnergyTarget - 10.0;
     double signalEnergyTargetHigh = config.calibrateSignalEnergyTarget + 10.0;
-    double K = 1503.89899; // Value used to calculate new volume value
+    // double K = 1503.89899; // Value used to calculate new volume value
 
     // Stopping decoding in main thread:
     pauseDecoding = true;
@@ -1275,7 +1273,10 @@ void calibrateSignalEnergy()
                 }
                 else
                 {
-                    double gainAdjust = sqrt(config.calibrateSignalEnergyTarget / K) - sqrt(signalEnergy / K);
+                    //double gainAdjust = sqrt(config.calibrateSignalEnergyTarget / K) - sqrt(signalEnergy / K);
+                    double gainAdjust = translateToRange(abs(config.calibrateSignalEnergyTarget - signalEnergy) / 2, 0.0, config.calibrateSignalEnergyTarget, 0.0, 0.5);
+                    gainAdjust *= config.calibrateSignalEnergyTarget < signalEnergy ? -1 : 1;
+
                     double newVolume = currentVolume + gainAdjust;
 
                     audioCodec.setVolume(newVolume);
