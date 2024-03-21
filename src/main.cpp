@@ -426,9 +426,12 @@ void *processDecodingResultsThread(void *args)
     while (keepDecoding)
     {
         // Wait for data availability or pause signal
-        std::unique_lock<std::mutex> lock(mtx_decodingResult);
-        cv_decodingResult.wait(lock, []
-                               { return decodingResults.size() > 0 || mapRenderer.isInitialized() || !keepDecoding; });
+        if (!mapRenderer.isInitialized())
+        {
+            std::unique_lock<std::mutex> lock(mtx_decodingResult);
+            cv_decodingResult.wait(lock, []
+                                   { return decodingResults.size() > 0 || mapRenderer.isInitialized() || !keepDecoding; });
+        }
 
         // Check if decoding should continue
         if (!keepDecoding)
@@ -566,16 +569,12 @@ void *processDecodingResultsThread(void *args)
         }
 
         // Keep updating the map, when it's needed:
-        if (mapRenderer.isInitialized())
-        {
-            if (!mapRenderer.updateMap(particleFilter.getParticles(), particleFilter.getNumberOfParticles(), particleFilter.getSelectedCellIdx()))
-            {
-                mapRenderer.stop();
-            }
+        // if (mapRenderer.isInitialized())
+        // {
 
-            // Processing keyboard presses:
-            processKeyBoard();
-        }
+        //}
+
+        usleep(1);
     }
 
     return nullptr;
@@ -804,295 +803,308 @@ void handleKeyboardInput()
 
     while (keepProcessing)
     {
-        // int ready = poll(&fd, 1, 1);
+        int ready = poll(&fd, 1, 1);
 
-        // if (ready)
-        // {
-        // Reading the newly inputted line by the user:
-        getline(cin, input);
-
-        // Splitting readed input into words:
-        istringstream iss(input);
-        vector<string> words;
-
-        while (iss >> input)
+        if (ready)
         {
-            words.push_back(input);
-        }
+            // Reading the newly inputted line by the user:
+            getline(cin, input);
 
-        // Quit command:
-        if (words[0] == "q" || words[0] == "Q")
-        {
-            keepProcessing = false;
-            keepDecoding = false;
+            // Splitting readed input into words:
+            istringstream iss(input);
+            vector<string> words;
 
-            cv_decoding.notify_one();
-            cv_decodingResult.notify_one();
-
-            continue;
-        }
-
-        // Record command:
-        if (words[0] == "r" || words[0] == "R")
-        {
-            const char *filename = words[1].c_str();
-            int duration = stoi(words[2]);
-
-            cout << "Starting recording to file " << filename << " for " << duration << " seconds\n";
-
-            recordToWavFile(filename, duration);
-
-            continue;
-        }
-
-        // Play wav file:
-        if (words[0] == "p" || words[0] == "P")
-        {
-            const char *filename = words[1].c_str();
-
-            cout << "Start playing file " << filename << "\n";
-
-            openAndPlayWavFile(filename);
-
-            continue;
-        }
-
-        // Encode message:
-        if (words[0] == "e" || words[0] == "E")
-        {
-            const char *filename = words[1].c_str();
-
-            cout << "Starting encoding to file " << filename << endl;
-
-            encodeMessageForAudio(filename, config.robotId);
-
-            continue;
-        }
-
-        // Decode message:
-        if (words[0] == "d" || words[0] == "D")
-        {
-            const char *filename = words[1].c_str();
-
-            cout << "Starting decoding of file " << filename << endl;
-
-            decodeWavFile(filename);
-
-            continue;
-        }
-
-        // Start live decoding:
-        if (words[0] == "l" || words[0] == "L")
-        {
-            cout << "Starting live decoding.\n";
-
-            int channels[] = {0, 1, 2, 3, 4, 5};
-
-            // decodingThread(channels, 6);
-
-            continue;
-        }
-
-        // Sending three messages needed for distance determination.
-        if (words[0] == "se")
-        {
-            cout << "Sending distance calculation messages.\n";
-
-            sendDistanceMessage();
-
-            continue;
-        }
-
-        // Sending messages and recording to wav file simultanious.
-        if (words[0] == "sr")
-        {
-            const char *filename = words[1].c_str();
-
-            cout << "Start recording own message to file " << filename << ".\n";
-
-            // sendMessageAndRecord(filename);
-
-            continue;
-        }
-
-        // Send a signal message:
-        if (words[0] == "s" || words[0] == "S")
-        {
-            cout << "Sending one signal message.\n";
-
-            // Encode the message:
-            audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
-
-            // Output message to speaker:
-            outputMessageToSpeaker(codedAudioData, size);
-
-            cout << "Done playing message.\n";
-
-            continue;
-        }
-
-        // Send multiple signal messages:
-        if (words[0] == "sm")
-        {
-            int amount = stoi(words[1]);
-
-            cout << "Sending " << amount << " messages.\n";
-
-            // Encode the message:
-            audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
-
-            // Sending amount number of messages:
-            for (int i = 0; i < amount; i++)
+            while (iss >> input)
             {
+                words.push_back(input);
+            }
+
+            // Quit command:
+            if (words[0] == "q" || words[0] == "Q")
+            {
+                keepProcessing = false;
+                keepDecoding = false;
+
+                cv_decoding.notify_one();
+                cv_decodingResult.notify_one();
+
+                continue;
+            }
+
+            // Record command:
+            if (words[0] == "r" || words[0] == "R")
+            {
+                const char *filename = words[1].c_str();
+                int duration = stoi(words[2]);
+
+                cout << "Starting recording to file " << filename << " for " << duration << " seconds\n";
+
+                recordToWavFile(filename, duration);
+
+                continue;
+            }
+
+            // Play wav file:
+            if (words[0] == "p" || words[0] == "P")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Start playing file " << filename << "\n";
+
+                openAndPlayWavFile(filename);
+
+                continue;
+            }
+
+            // Encode message:
+            if (words[0] == "e" || words[0] == "E")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Starting encoding to file " << filename << endl;
+
+                encodeMessageForAudio(filename, config.robotId);
+
+                continue;
+            }
+
+            // Decode message:
+            if (words[0] == "d" || words[0] == "D")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Starting decoding of file " << filename << endl;
+
+                decodeWavFile(filename);
+
+                continue;
+            }
+
+            // Start live decoding:
+            if (words[0] == "l" || words[0] == "L")
+            {
+                cout << "Starting live decoding.\n";
+
+                int channels[] = {0, 1, 2, 3, 4, 5};
+
+                // decodingThread(channels, 6);
+
+                continue;
+            }
+
+            // Sending three messages needed for distance determination.
+            if (words[0] == "se")
+            {
+                cout << "Sending distance calculation messages.\n";
+
+                sendDistanceMessage();
+
+                continue;
+            }
+
+            // Sending messages and recording to wav file simultanious.
+            if (words[0] == "sr")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Start recording own message to file " << filename << ".\n";
+
+                // sendMessageAndRecord(filename);
+
+                continue;
+            }
+
+            // Send a signal message:
+            if (words[0] == "s" || words[0] == "S")
+            {
+                cout << "Sending one signal message.\n";
+
+                // Encode the message:
+                audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
+
+                // Output message to speaker:
                 outputMessageToSpeaker(codedAudioData, size);
 
-                // Waiting 10ms for next:
-                usleep(10000);
+                cout << "Done playing message.\n";
+
+                continue;
             }
 
-            cout << "Done sending messages!\n";
-
-            continue;
-        }
-
-        // Send robot is in cell message:
-        if (words[0] == "sc")
-        {
-            int cellId = stoi(words[1]);
-
-            cout << "Sending robot localized in cell " << cellId << "\n";
-
-            // Encode the message:
-            audioCodec.encodeCellMessage(codedAudioData, config.robotId, cellId);
-
-            // Output message to speaker:
-            outputMessageToSpeaker(codedAudioData, size);
-
-            cout << "Done playing message.\n";
-
-            continue;
-        }
-
-        // Send robot has detected wall message:
-        if (words[0] == "sw")
-        {
-            double wallAngle = stod(words[1]);    // In degrees
-            double wallDistance = stod(words[2]); // In cm
-
-            cout << "Sending robot detected wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
-
-            // Encode the message:
-            audioCodec.encodeWallMessage(codedAudioData, config.robotId, wallAngle, wallDistance);
-
-            // Output message to speaker:
-            outputMessageToSpeaker(codedAudioData, size);
-
-            cout << "Done playing message.\n";
-
-            continue;
-        }
-
-        // send localization message:
-        if (words[0] == "sl")
-        {
-            cout << "Sending robot localization message.\n";
-
-            // Encode the message:
-            audioCodec.encodeLocalizeMessage(codedAudioData, config.robotId);
-
-            // Output message to speaker:
-            outputMessageToSpeaker(codedAudioData, size);
-
-            // Saving sending time:
-            localizationBroadcastSend = audioHelper.getOutputBufferEmptyTime();
-
-            cout << "Done playing message.\n";
-
-            continue;
-        }
-
-        // Change the output volume of the speaker:
-        if (words[0] == "sv")
-        {
-            double newVolume = stod(words[1]);
-
-            audioCodec.setVolume(newVolume);
-            spdlog::info("Volume set to {}", newVolume);
-        }
-
-        // Start particle filer:
-        if (words[0] == "pfs")
-        {
-            bool doNotInitializeMapRenderer = false;
-
-            if (words.size() > 1)
+            // Send multiple signal messages:
+            if (words[0] == "sm")
             {
-                doNotInitializeMapRenderer = words[1] == "true";
+                int amount = stoi(words[1]);
+
+                cout << "Sending " << amount << " messages.\n";
+
+                // Encode the message:
+                audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
+
+                // Sending amount number of messages:
+                for (int i = 0; i < amount; i++)
+                {
+                    outputMessageToSpeaker(codedAudioData, size);
+
+                    // Waiting 10ms for next:
+                    usleep(10000);
+                }
+
+                cout << "Done sending messages!\n";
+
+                continue;
             }
 
-            cout << "Starting particle filter.\n";
+            // Send robot is in cell message:
+            if (words[0] == "sc")
+            {
+                int cellId = stoi(words[1]);
 
-            loadParticleFilter(!doNotInitializeMapRenderer);
+                cout << "Sending robot localized in cell " << cellId << "\n";
 
-            continue;
+                // Encode the message:
+                audioCodec.encodeCellMessage(codedAudioData, config.robotId, cellId);
+
+                // Output message to speaker:
+                outputMessageToSpeaker(codedAudioData, size);
+
+                cout << "Done playing message.\n";
+
+                continue;
+            }
+
+            // Send robot has detected wall message:
+            if (words[0] == "sw")
+            {
+                double wallAngle = stod(words[1]);    // In degrees
+                double wallDistance = stod(words[2]); // In cm
+
+                cout << "Sending robot detected wall at " << wallAngle << " degrees and " << wallDistance << " cm.\n";
+
+                // Encode the message:
+                audioCodec.encodeWallMessage(codedAudioData, config.robotId, wallAngle, wallDistance);
+
+                // Output message to speaker:
+                outputMessageToSpeaker(codedAudioData, size);
+
+                cout << "Done playing message.\n";
+
+                continue;
+            }
+
+            // send localization message:
+            if (words[0] == "sl")
+            {
+                cout << "Sending robot localization message.\n";
+
+                // Encode the message:
+                audioCodec.encodeLocalizeMessage(codedAudioData, config.robotId);
+
+                // Output message to speaker:
+                outputMessageToSpeaker(codedAudioData, size);
+
+                // Saving sending time:
+                localizationBroadcastSend = audioHelper.getOutputBufferEmptyTime();
+
+                cout << "Done playing message.\n";
+
+                continue;
+            }
+
+            // Change the output volume of the speaker:
+            if (words[0] == "sv")
+            {
+                double newVolume = stod(words[1]);
+
+                audioCodec.setVolume(newVolume);
+                spdlog::info("Volume set to {}", newVolume);
+            }
+
+            // Start particle filer:
+            if (words[0] == "pfs")
+            {
+                bool doNotInitializeMapRenderer = false;
+
+                if (words.size() > 1)
+                {
+                    doNotInitializeMapRenderer = words[1] == "true";
+                }
+
+                cout << "Starting particle filter.\n";
+
+                loadParticleFilter(!doNotInitializeMapRenderer);
+
+                cv_decodingResult.notify_one();
+
+                continue;
+            }
+
+            // Start particle filer:
+            if (words[0] == "pft")
+            {
+                int senderId = stoi(words[1]);
+                double angle = stod(words[2]);    // In degrees
+                double distance = stod(words[3]); // In cm
+
+                particleFilter.processMessageTable(senderId, distance, angle, 0);
+
+                continue;
+            }
+
+            // Sending messages and recording to wav file simultanious.
+            if (words[0] == "pfpf")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Processing file " << filename << ".\n";
+
+                processFileWoDistance(filename);
+
+                continue;
+            }
+
+            // Reset particle filteR:
+            if (words[0] == "pfr")
+            {
+                cout << "Resetting particle filter.\n";
+
+                particleFilter.initializeParticlesUniformly();
+
+                continue;
+            }
+
+            // Particle filte update based on detected wall:
+            if (words[0] == "pfwd")
+            {
+                double wallAngle = stod(words[1]);    // In degrees
+                double wallDistance = stod(words[2]); // In cm
+
+                cout << "Processing fact that robot has seen a wall at " << wallAngle << " degrees and " << wallDistance << " cm\n";
+
+                particleFilter.processWallDetected(wallAngle, wallDistance);
+
+                continue;
+            }
+
+            if (words[0] == "pali")
+            {
+                double load = audioHelper.getInputStreamLoad();
+
+                cout << "Current input stream load: " << load << endl;
+            }
         }
 
-        // Start particle filer:
-        if (words[0] == "pft")
+        if (mapRenderer.isInitialized())
         {
-            int senderId = stoi(words[1]);
-            double angle = stod(words[2]);    // In degrees
-            double distance = stod(words[3]); // In cm
-
-            particleFilter.processMessageTable(senderId, distance, angle, 0);
-
-            continue;
+            if (!mapRenderer.updateMap(particleFilter.getParticles(), particleFilter.getNumberOfParticles(), particleFilter.getSelectedCellIdx()))
+            {
+                mapRenderer.stop();
+            }
         }
 
-        // Sending messages and recording to wav file simultanious.
-        if (words[0] == "pfpf")
-        {
-            const char *filename = words[1].c_str();
+        // Processing keyboard presses:
+        processKeyBoard();
 
-            cout << "Processing file " << filename << ".\n";
-
-            processFileWoDistance(filename);
-
-            continue;
-        }
-
-        // Reset particle filteR:
-        if (words[0] == "pfr")
-        {
-            cout << "Resetting particle filter.\n";
-
-            particleFilter.initializeParticlesUniformly();
-
-            continue;
-        }
-
-        // Particle filte update based on detected wall:
-        if (words[0] == "pfwd")
-        {
-            double wallAngle = stod(words[1]);    // In degrees
-            double wallDistance = stod(words[2]); // In cm
-
-            cout << "Processing fact that robot has seen a wall at " << wallAngle << " degrees and " << wallDistance << " cm\n";
-
-            particleFilter.processWallDetected(wallAngle, wallDistance);
-
-            continue;
-        }
-
-        if (words[0] == "pali")
-        {
-            double load = audioHelper.getInputStreamLoad();
-
-            cout << "Current input stream load: " << load << endl;
-        }
-        // }
-
-        // this_thread::sleep_for(chrono::milliseconds(100));
+        this_thread::sleep_for(chrono::milliseconds(100));
     }
 
     // Clearing map renderer:
@@ -1219,7 +1231,7 @@ void calibrateSignalEnergy()
     // double K = 1503.89899; // Value used to calculate new volume value
 
     // Stopping decoding in main thread:
-    pauseDecoding = true; 
+    pauseDecoding = true;
 
     while (keepCalibratingSignalEnergy)
     {
@@ -1273,7 +1285,7 @@ void calibrateSignalEnergy()
                 }
                 else
                 {
-                    //double gainAdjust = sqrt(config.calibrateSignalEnergyTarget / K) - sqrt(signalEnergy / K);
+                    // double gainAdjust = sqrt(config.calibrateSignalEnergyTarget / K) - sqrt(signalEnergy / K);
                     double gainAdjust = translateToRange(abs(config.calibrateSignalEnergyTarget - signalEnergy) / 2, 0.0, config.calibrateSignalEnergyTarget, 0.0, 0.5);
                     gainAdjust *= config.calibrateSignalEnergyTarget < signalEnergy ? -1 : 1;
 
@@ -1322,7 +1334,7 @@ int main()
 
     setApplicationPriority();
 
-    //Setting volume of speaker:
+    // Setting volume of speaker:
     system("amixer -c 3 set Speaker 90%");
 
     // FOR TESTING NOW:

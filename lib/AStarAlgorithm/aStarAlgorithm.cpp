@@ -22,12 +22,12 @@ double AStarAlgorithm::calculateMiddlePointPathDistance(Path &cellPath)
     int stopX = stopCell.getCenter().first;
     int stopY = stopCell.getCenter().second;
 
-    return calculatePathDistance(startX, startY, stopX, stopY, cellPath);
+    return calculatePathDistance(MIDDLEPOINT, startX, startY, stopX, stopY, cellPath);
 }
 
 double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
 {
-    if (startCell.id == 0 && stopCell.id == 8)
+    if (startCell.id == 3 && stopCell.id == 6)
     {
         int t = 10;
     }
@@ -44,7 +44,7 @@ double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
 
     Cell::getClosestCoordinates(startCell, stopCell, closestCoordinatesStart, closestCoordinatesStop);
 
-    //TO make it even better when executing algo and discovering other border coordinates of start cell, remove parent and take new start point :)
+    // TO make it even better when executing algo and discovering other border coordinates of start cell, remove parent and take new start point :)
 
     // Picking closest option to destination cell:
     int startX = closestCoordinatesStart.first;
@@ -54,10 +54,10 @@ double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
     int stopX = closestCoordinatesStop.first;
     int stopY = closestCoordinatesStop.second;
 
-    return calculatePathDistance(startX, startY, stopX, stopY, cellPath);
+    return calculatePathDistance(SHORTEST, startX, startY, stopX, stopY, cellPath);
 }
 
-double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, int stopY, Path &cellPath)
+double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX, int startY, int stopX, int stopY, Path &cellPath)
 {
     openNodes.reserve(100);
     closedNodes.reserve(100);
@@ -76,11 +76,17 @@ double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, 
         node = openNodes[lowestCostNodeIdx];
 
         // Check if this node contains the destination point:
-        if (node->containsPoint(stopX, stopY))
+        if (node->containsPoint(stopX, stopY) || (mode == SHORTEST && doesNodeContainBorderCoordinate(node, stopCell.getBorderCoordinates())))
         {
             finished = true;
 
             break;
+        }
+
+        // Checking if we encounter another border coordinate in shortest path mode:
+        if (mode == SHORTEST && node->getParent() != nullptr && doesNodeContainBorderCoordinate(node, startCell.getBorderCoordinates()))
+        {
+            node->setParent(nullptr);
         }
 
         // Generating node successors:
@@ -164,7 +170,7 @@ double AStarAlgorithm::calculatePathDistance(int startX, int startY, int stopX, 
     clearNodeCollections();
 
     // If cells are adjecent, then simply return the minimum distance:
-    //return cellPath.getNumberOfCellsInPath() == 1 ? MIN_DISTANCE_BETWEEN_CELLS : distance;
+    // return cellPath.getNumberOfCellsInPath() == 1 ? MIN_DISTANCE_BETWEEN_CELLS : distance;
     return distance;
 }
 
@@ -409,4 +415,21 @@ int AStarAlgorithm::findCellId(const int x, const int y)
     }
 
     return -1;
+}
+
+/// @brief Check whether a given node contains one of the border coordinates.
+/// @param node Node to check.
+/// @param borderCoordinates List with border coordinates to check.
+/// @return Whether the node contains one of the border coordinates.
+bool AStarAlgorithm::doesNodeContainBorderCoordinate(AStarNode *node, std::vector<std::pair<int, int>> &borderCoordinates)
+{
+    for (int i = 0; i < borderCoordinates.size(); i++)
+    {
+        if (node->containsPoint(borderCoordinates[i].first, borderCoordinates[i].second))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }

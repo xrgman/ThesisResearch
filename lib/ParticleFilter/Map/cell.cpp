@@ -145,6 +145,13 @@ std::pair<int, int> &Cell::getBorderCoordinatesBasedOnAngle(int angle)
     // TODO if we still use this :)
 }
 
+/// @brief Get the vector containing all border coordinates.
+/// @return Vector containing all border coordinates.
+std::vector<std::pair<int, int>> &Cell::getBorderCoordinates()
+{
+    return borderCoordinates;
+}
+
 /// @brief Check if the given x/y coordinate is inside the cell.
 /// @param x X coordinate to check.
 /// @param y Y coordinate to check.
@@ -218,7 +225,7 @@ void Cell::getClosestCoordinates(const Cell &from, const Cell &to, std::pair<int
                 minDistance = distance;
 
                 coordinatesFrom = from.borderCoordinates[i];
-                coordinatesTo = to.borderCoordinates[j]; 
+                coordinatesTo = to.borderCoordinates[j];
             }
         }
     }

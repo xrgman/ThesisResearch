@@ -23,6 +23,7 @@ public:
 
     std::pair<int, int> getCenter();
     std::pair<int, int>& getBorderCoordinatesBasedOnAngle(int angle);
+    std::vector<std::pair<int, int>> &getBorderCoordinates();
 
     bool containsPoint(const int x, const int y) const;
 

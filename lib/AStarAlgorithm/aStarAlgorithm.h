@@ -8,6 +8,12 @@
 #include "path.h"
 #include "aStarNode.h"
 
+enum AStarAlgorithmMode {
+    SHORTEST,
+    LONGEST,
+    MIDDLEPOINT
+};
+
 class AStarAlgorithm
 {
 public:
@@ -26,7 +32,7 @@ private:
     std::vector<AStarNode*> openNodes;
     std::vector<AStarNode*> closedNodes;
 
-    double calculatePathDistance(int startX, int startY, int stopX, int stopY, Path &cellPath);
+    double calculatePathDistance(AStarAlgorithmMode mode, int startX, int startY, int stopX, int stopY, Path &cellPath);
 
     int findOpenNodeIndexWithLowestCost();
     void determineNewCoordinates(const int direction, const int oldX, const int oldY, int &newX, int &newY, int &gCostAddition);
@@ -34,6 +40,7 @@ private:
     bool areNewCoordinatesAllowed(const int oldX, const int oldY, const int newX, const int newY);
     AStarNode *findNodeInOpenNodes(const int x, const int y);
     void clearNodeCollections();
+    bool doesNodeContainBorderCoordinate(AStarNode *node, std::vector<std::pair<int, int>> &borderCoordinates);
 
     int findCellId(const int x, const int y);
 };
