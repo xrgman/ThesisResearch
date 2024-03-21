@@ -1219,7 +1219,7 @@ void calibrateSignalEnergy()
     // double K = 1503.89899; // Value used to calculate new volume value
 
     // Stopping decoding in main thread:
-    pauseDecoding = true;
+    pauseDecoding = true; 
 
     while (keepCalibratingSignalEnergy)
     {
@@ -1321,6 +1321,9 @@ int main()
     spdlog::info("Logger initialized!");
 
     setApplicationPriority();
+
+    //Setting volume of speaker:
+    system("amixer -c 3 set Speaker 90%");
 
     // FOR TESTING NOW:
     // loadParticleFilter(false);
