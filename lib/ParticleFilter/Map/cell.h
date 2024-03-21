@@ -22,8 +22,8 @@ public:
     int getDiameter();
 
     std::pair<int, int> getCenter();
-    std::pair<int, int>& getBorderCoordinatesBasedOnAngle(int angle);
     std::vector<std::pair<int, int>> &getBorderCoordinates();
+    std::pair<int, int> &getBorderCoordinatesClosestTo(const int x, const int y);
 
     bool containsPoint(const int x, const int y) const;
 
@@ -46,7 +46,6 @@ private:
     int height, width, diameter;
     int centerX, centerY;
     std::vector<std::pair<int, int>> borderCoordinates;
-    std::pair<int, int> borderCoordinates2[8];
 
     void fillBorderCoordinates();
 };

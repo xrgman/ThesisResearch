@@ -18,19 +18,11 @@ Cell::Cell(int id, int startX, int stopX, int startY, int stopY)
     centerX = (startX + stopX) / 2;
     centerY = (startY + stopY) / 2;
 
-    // Calculating border coordinates (idx 0 is north):
-    borderCoordinates2[0] = std::pair<int, int>(centerX, startY + CELL_BORDER_PADDING);
-    borderCoordinates2[1] = std::pair<int, int>(stopX - CELL_BORDER_PADDING, startY + CELL_BORDER_PADDING);
-    borderCoordinates2[2] = std::pair<int, int>(stopX - CELL_BORDER_PADDING, centerY);
-    borderCoordinates2[3] = std::pair<int, int>(stopX - CELL_BORDER_PADDING, stopY - CELL_BORDER_PADDING);
-    borderCoordinates2[4] = std::pair<int, int>(centerX, stopY - CELL_BORDER_PADDING);
-    borderCoordinates2[5] = std::pair<int, int>(startX + CELL_BORDER_PADDING, stopY - CELL_BORDER_PADDING);
-    borderCoordinates2[6] = std::pair<int, int>(startX + CELL_BORDER_PADDING, centerY);
-    borderCoordinates2[7] = std::pair<int, int>(startX + CELL_BORDER_PADDING, startY + CELL_BORDER_PADDING);
-
+    // Calculating border coordinates:
     fillBorderCoordinates();
 }
 
+/// @brief Fill the array with border coordinates, equally spaced 10cm apart from each other and the bounds of the cell.
 void Cell::fillBorderCoordinates()
 {
     // Each cell has four sides, starting with the top one:
@@ -67,6 +59,9 @@ void Cell::fillBorderCoordinates()
     // int bla = 10;
 }
 
+/// @brief Create a cell object from a json data object.
+/// @param jsonData Json data containing cell information.
+/// @return Cell object filled with data from the json.
 Cell Cell::fromJson(const json &jsonData)
 {
     return Cell(jsonData["id"],
@@ -104,52 +99,35 @@ std::pair<int, int> Cell::getCenter()
     return std::make_pair(centerX, centerY);
 }
 
-/// @brief Get the coordinates of the border based on a specific angle.
-/// @param angle Angle.
-/// @return Border coordinates at the given angle.
-std::pair<int, int> &Cell::getBorderCoordinatesBasedOnAngle(int angle)
-{
-    if (angle >= 338 || angle < 23)
-    {
-        return borderCoordinates2[0];
-    }
-    else if (angle >= 23 && angle < 68)
-    {
-        return borderCoordinates2[1];
-    }
-    else if (angle >= 68 && angle < 113)
-    {
-        return borderCoordinates2[2];
-    }
-    else if (angle >= 113 && angle < 158)
-    {
-        return borderCoordinates2[3];
-    }
-    else if (angle >= 158 && angle < 203)
-    {
-        return borderCoordinates2[4];
-    }
-    else if (angle >= 203 && angle < 248)
-    {
-        return borderCoordinates2[5];
-    }
-    else if (angle >= 248 && angle < 293)
-    {
-        return borderCoordinates2[6];
-    }
-    else if (angle >= 293 && angle < 338)
-    {
-        return borderCoordinates2[7];
-    }
-
-    // TODO if we still use this :)
-}
-
 /// @brief Get the vector containing all border coordinates.
 /// @return Vector containing all border coordinates.
 std::vector<std::pair<int, int>> &Cell::getBorderCoordinates()
 {
     return borderCoordinates;
+}
+
+/// @brief Get the border coordinates that lay closest to the given x, y coordinates.
+/// @param x X coordinate.
+/// @param y Y coordinate.
+/// @return Closest border coordinate.
+std::pair<int, int> &Cell::getBorderCoordinatesClosestTo(const int x, const int y)
+{
+    double minDistance = DBL_MAX;
+    std::pair<int, int> &closestCoordinates = borderCoordinates[0];
+
+    for (int i = 0; i < borderCoordinates.size(); i++)
+    {
+        double distance = calculateEuclideanDistance(borderCoordinates[i].first, borderCoordinates[i].second, x, y);
+
+        if (distance < minDistance)
+        {
+            minDistance = distance;
+
+            closestCoordinates = borderCoordinates[i];
+        }
+    }
+
+    return closestCoordinates;
 }
 
 /// @brief Check if the given x/y coordinate is inside the cell.
@@ -161,6 +139,9 @@ bool Cell::containsPoint(const int x, const int y) const
     return x >= startX && x <= stopX && y >= startY && y <= stopY;
 }
 
+/// @brief Calculate the relative angle from this cell to another cell.
+/// @param other Cell to calculate relative angle to.
+/// @return Relative angle to the other cell.
 int Cell::getRelativeAngleToCell(Cell &other) const
 {
     // Calculate the differences in x and y coordinates

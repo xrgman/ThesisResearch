@@ -426,12 +426,9 @@ void *processDecodingResultsThread(void *args)
     while (keepDecoding)
     {
         // Wait for data availability or pause signal
-        if (!mapRenderer.isInitialized())
-        {
-            std::unique_lock<std::mutex> lock(mtx_decodingResult);
-            cv_decodingResult.wait(lock, []
-                                   { return decodingResults.size() > 0 || mapRenderer.isInitialized() || !keepDecoding; });
-        }
+        std::unique_lock<std::mutex> lock(mtx_decodingResult);
+        cv_decodingResult.wait(lock, []
+                               { return decodingResults.size() > 0 || mapRenderer.isInitialized() || !keepDecoding; });
 
         // Check if decoding should continue
         if (!keepDecoding)
@@ -568,13 +565,6 @@ void *processDecodingResultsThread(void *args)
             decodingResults.erase(decodingResults.begin());
         }
 
-        // Keep updating the map, when it's needed:
-        // if (mapRenderer.isInitialized())
-        // {
-
-        //}
-
-        usleep(1);
     }
 
     return nullptr;

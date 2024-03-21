@@ -32,19 +32,10 @@ double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
         int t = 10;
     }
 
-    // Calculate relative angle between the two cells:
-    // int relativeAngleStartToStop = startCell.getRelativeAngleToCell(stopCell);
-    // int relativeAngleStopToStart = stopCell.getRelativeAngleToCell(startCell);
-
-    // // Determine closest boorder coordinates:
-    // std::pair<int, int> &closestCoordinatesStart = startCell.getBorderCoordinatesBasedOnAngle(relativeAngleStartToStop);
-    // std::pair<int, int> &closestCoordinatesStop = stopCell.getBorderCoordinatesBasedOnAngle(relativeAngleStopToStart);0
-
+    // Find the two border coordinates that are closest together:
     std::pair<int, int> closestCoordinatesStart, closestCoordinatesStop;
 
     Cell::getClosestCoordinates(startCell, stopCell, closestCoordinatesStart, closestCoordinatesStop);
-
-    // TO make it even better when executing algo and discovering other border coordinates of start cell, remove parent and take new start point :)
 
     // Picking closest option to destination cell:
     int startX = closestCoordinatesStart.first;
@@ -76,7 +67,7 @@ double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX
         node = openNodes[lowestCostNodeIdx];
 
         // Check if this node contains the destination point:
-        if (node->containsPoint(stopX, stopY) || (mode == SHORTEST && doesNodeContainBorderCoordinate(node, stopCell.getBorderCoordinates())))
+        if (node->containsPoint(stopX, stopY) || (mode == SHORTEST && stopCell.containsPoint(node->getMiddlePointX(), node->getMiddlePointY())))
         {
             finished = true;
 
@@ -86,6 +77,7 @@ double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX
         // Checking if we encounter another border coordinate in shortest path mode:
         if (mode == SHORTEST && node->getParent() != nullptr && doesNodeContainBorderCoordinate(node, startCell.getBorderCoordinates()))
         {
+            node->setGCost(0);
             node->setParent(nullptr);
         }
 
@@ -143,10 +135,16 @@ double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX
         return 0.0;
     }
 
-    // Storing cell path:
-    // Path cellPath(startCell.id, stopCell.id);
-
     // Calculating the actual distance, starting with the distance from previous node to the end cell:
+    // Alter stop x and y to reflect closest border coordinate for
+    if (mode == SHORTEST)
+    {
+        std::pair<int, int> &closestCoordinates = stopCell.getBorderCoordinatesClosestTo(node->getMiddlePointX(), node->getMiddlePointY());
+
+        stopX = closestCoordinates.first;
+        stopY = closestCoordinates.second;
+    }
+
     double distance = calculateEuclideanDistance(stopX, stopY, node->getParent()->getMiddlePointX(), node->getParent()->getMiddlePointY());
     node = node->getParent();
 
