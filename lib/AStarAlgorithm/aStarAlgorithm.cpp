@@ -25,6 +25,9 @@ double AStarAlgorithm::calculateMiddlePointPathDistance(Path &cellPath)
     return calculatePathDistance(MIDDLEPOINT, startX, startY, stopX, stopY, cellPath);
 }
 
+/// @brief Calculate the shortest path between two cells.
+/// @param cellPath The path travelled between the two cells.
+/// @return Shortest path between two cells.
 double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
 {
     if (startCell.id == 3 && stopCell.id == 6)
@@ -46,6 +49,15 @@ double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
     int stopY = closestCoordinatesStop.second;
 
     return calculatePathDistance(SHORTEST, startX, startY, stopX, stopY, cellPath);
+}
+
+/// @brief Calculate the longest path between two cells.
+/// @param cellPath The path travelled between the two cells.
+/// @return Longest path between two cells.
+double AStarAlgorithm::calculateLongestDistance()
+{
+    //Determine worst case border coordinates
+    //Calculate border coordinates that lay fartest apart.
 }
 
 double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX, int startY, int stopX, int stopY, Path &cellPath)

@@ -21,6 +21,7 @@ public:
 
     double calculateMiddlePointPathDistance(Path &cellPath);
     double calculateShortestDistance(Path &cellPath);
+    double calculateLongestDistance();
 
 private:
     Cell startCell, stopCell;

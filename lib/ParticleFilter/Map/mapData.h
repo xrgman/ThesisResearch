@@ -12,21 +12,33 @@
 
 using json = nlohmann::json;
 
+static std::vector<int> emptyVec;
+
 class MapData
 {
 public:
     ~MapData()
     {
-        // delete[] cells;
-
-        if (shortestPathsBetweenCells != NULL)
+        //Removing shortest distances data:
+        if (shortestDistancessBetweenCells != NULL)
         {
             for (int i = 0; i < numberOfCells; i++)
             {
-                delete[] shortestPathsBetweenCells[i];
+                delete[] shortestDistancessBetweenCells[i];
             }
 
-            delete[] shortestPathsBetweenCells;
+            delete[] shortestDistancessBetweenCells;
+        }
+
+        //Removing longest distances data:
+        if (longestDistancessBetweenCells != NULL)
+        {
+            for (int i = 0; i < numberOfCells; i++)
+            {
+                delete[] longestDistancessBetweenCells[i];
+            }
+
+            delete[] longestDistancessBetweenCells;
         }
     }
 
@@ -41,7 +53,8 @@ public:
     std::vector<Wall> &getWalls();
     std::vector<Door> &getDoors();
 
-    double **&getShortestPathsBetweenCells();
+    double **&getShortestDistancessBetweenCells();
+    double **&getLongestDistancesBetweenCells();
 
     std::vector<int> &getPathBetweenCells(int startCellIdx, int stopCellIdx, bool& success);
 
@@ -57,13 +70,15 @@ private:
     std::vector<Wall> walls;
     std::vector<Door> doors;
 
-    double **shortestPathsBetweenCells;
+    double **shortestDistancessBetweenCells; //Shortest distance between two cells.
+    double **longestDistancessBetweenCells; //Longest distance between two cells, but still taking the shortest path.
 
     std::vector<Path> pathsBetweenCells;
 
     // Create an array storing the paths so we can use first cell in path for the angle it should have :)
 
-    double calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, const std::vector<Cell> &cells, Path &cellPath);
+    double calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, Path &cellPath);
+    double calculateLongestDistanceBetweenCells(int originCellId, int destinationCellId);
 
     friend void from_json(const json &j, MapData &mapData)
     {

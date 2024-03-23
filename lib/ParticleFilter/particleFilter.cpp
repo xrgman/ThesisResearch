@@ -253,7 +253,7 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
     double angleUpperBound = angle + ANGLE_ERROR_DEGREE;
 
     // Get reference to the 2D array containing shortest paths between cells:
-    double **&shortestPaths = mapData.getShortestPathsBetweenCells();
+    double **&shortestPaths = mapData.getShortestDistancessBetweenCells();
 
     // 2. Looping over all cells to fill localization table:
     for (int i = 0; i < mapData.getNumberOfCells(); i++)
