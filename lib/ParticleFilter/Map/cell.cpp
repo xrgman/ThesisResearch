@@ -130,6 +130,30 @@ std::pair<int, int> &Cell::getBorderCoordinatesClosestTo(const int x, const int 
     return closestCoordinates;
 }
 
+/// @brief Get the border coordinates that lay farthest away from the given x, y coordinates.
+/// @param x X coordinate.
+/// @param y Y coordinate.
+/// @return Farthest border coordinate.
+std::pair<int, int> &Cell::getBorderCoordinatesFarthestFrom(const int x, const int y)
+{
+    double maxDistance = 0;
+    std::pair<int, int> &closestCoordinates = borderCoordinates[0];
+
+    for (int i = 0; i < borderCoordinates.size(); i++)
+    {
+        double distance = calculateEuclideanDistance(borderCoordinates[i].first, borderCoordinates[i].second, x, y);
+
+        if (distance > maxDistance)
+        {
+            maxDistance = distance;
+
+            closestCoordinates = borderCoordinates[i];
+        }
+    }
+
+    return closestCoordinates;
+}
+
 /// @brief Check if the given x/y coordinate is inside the cell.
 /// @param x X coordinate to check.
 /// @param y Y coordinate to check.
@@ -204,6 +228,42 @@ void Cell::getClosestCoordinates(const Cell &from, const Cell &to, std::pair<int
             if (distance < minDistance)
             {
                 minDistance = distance;
+
+                coordinatesFrom = from.borderCoordinates[i];
+                coordinatesTo = to.borderCoordinates[j];
+            }
+        }
+    }
+}
+
+/// @brief Calculate the two coordinates for both cells that are farthest away from eachother.
+/// @param from Start cell.
+/// @param to End cell.
+/// @param coordinatesFrom Pair containing X and Y coordinate in from cell.
+/// @param coordinatesTo Pair containing X and Y coordinate in to cell.
+void Cell::getFarthestCoordinates(const Cell &from, const Cell &to, std::pair<int, int> &coordinatesFrom, std::pair<int, int> &coordinatesTo)
+{
+    double maxDistance = 0;
+
+    int nrCoordinatesFrom = from.borderCoordinates.size();
+    int nrCoordinatesTo = to.borderCoordinates.size();
+
+    // Looping over all coordinates of cell A:
+    for (int i = 0; i < nrCoordinatesFrom; i++)
+    {
+        const std::pair<int, int> &fromCoordinates = from.borderCoordinates[i];
+
+        // Looping over all coordinates of cell B:
+        for (int j = 0; j < nrCoordinatesTo; j++)
+        {
+            const std::pair<int, int> &toCoordinates = to.borderCoordinates[j];
+
+            // Calculating distance between two coordinates:
+            double distance = calculateEuclideanDistance(fromCoordinates.first, fromCoordinates.second, toCoordinates.first, toCoordinates.second);
+
+            if (distance > maxDistance)
+            {
+                maxDistance = distance;
 
                 coordinatesFrom = from.borderCoordinates[i];
                 coordinatesTo = to.borderCoordinates[j];

@@ -13,7 +13,7 @@ AStarAlgorithm::AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &c
 /// @brief Calculate the shortest path between the midpoints of two cells.
 /// @param cellPath The path travelled between the two cells.
 /// @return The minimum distance between the middle points of the two cells.
-double AStarAlgorithm::calculateMiddlePointPathDistance(Path &cellPath)
+double AStarAlgorithm::calculateMiddlePointPathDistance(Path &cellPath, std::vector<std::pair<int, int>> &nodePath)
 {
     // 0. Determine start & stop point:
     int startX = startCell.getCenter().first;
@@ -22,13 +22,13 @@ double AStarAlgorithm::calculateMiddlePointPathDistance(Path &cellPath)
     int stopX = stopCell.getCenter().first;
     int stopY = stopCell.getCenter().second;
 
-    return calculatePathDistance(MIDDLEPOINT, startX, startY, stopX, stopY, cellPath);
+    return calculatePathDistance(MIDDLEPOINT, startX, startY, stopX, stopY, cellPath, nodePath);
 }
 
 /// @brief Calculate the shortest path between two cells.
 /// @param cellPath The path travelled between the two cells.
 /// @return Shortest path between two cells.
-double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
+double AStarAlgorithm::calculateShortestDistance(Path &cellPath, std::vector<std::pair<int, int>> &nodePath)
 {
     if (startCell.id == 3 && stopCell.id == 6)
     {
@@ -48,19 +48,50 @@ double AStarAlgorithm::calculateShortestDistance(Path &cellPath)
     int stopX = closestCoordinatesStop.first;
     int stopY = closestCoordinatesStop.second;
 
-    return calculatePathDistance(SHORTEST, startX, startY, stopX, stopY, cellPath);
+    return calculatePathDistance(SHORTEST, startX, startY, stopX, stopY, cellPath, nodePath);
 }
 
 /// @brief Calculate the longest path between two cells.
 /// @param cellPath The path travelled between the two cells.
 /// @return Longest path between two cells.
-double AStarAlgorithm::calculateLongestDistance()
+double AStarAlgorithm::calculateLongestDistance(std::vector<std::pair<int, int>> &nodePath)
 {
-    //Determine worst case border coordinates
-    //Calculate border coordinates that lay fartest apart.
+    if (startCell.id == 0 && stopCell.id == 5)
+    {
+        int t = 10;
+    }
+
+    // Calculate border coordinates that lay farthest apart:
+    std::pair<int, int> farthestCoordinatesStart, farthestCoordinatesStop;
+
+    Cell::getFarthestCoordinates(startCell, stopCell, farthestCoordinatesStart, farthestCoordinatesStop);
+
+    // Picking farthest option to destination cell:
+    int startX = farthestCoordinatesStart.first;
+    int startY = farthestCoordinatesStart.second;
+
+    // Picking farthest to source cell:
+    int stopX = farthestCoordinatesStop.first;
+    int stopY = farthestCoordinatesStop.second;
+
+    int width = abs(stopX - startX);
+    int height = abs(stopY - startY);
+
+    int diameter = sqrt(width * width + height * height); 
+
+    // TODO:
+    // 0-5: start coordinates are wrong, are currently on the right should be left.
+    // 0-6: stop coordinates are wrong, are currently on the right should be left
+
+    // Not doing anything with this:
+    Path cellPath(startCell.id, stopCell.id);
+
+    double distance = calculatePathDistance(LONGEST, startX, startY, stopX, stopY, cellPath, nodePath);
+
+    return distance;
 }
 
-double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX, int startY, int stopX, int stopY, Path &cellPath)
+double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX, int startY, int stopX, int stopY, Path &cellPath, std::vector<std::pair<int, int>> &nodePath)
 {
     openNodes.reserve(100);
     closedNodes.reserve(100);
@@ -70,6 +101,7 @@ double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX
 
     AStarNode *node = nullptr;
     bool finished = false;
+    bool stopCoordinatesUpdated = false;
 
     // Loop until done:
     while (openNodes.size() > 0)
@@ -77,6 +109,17 @@ double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX
         // Pick the node with the lowest cost:
         int lowestCostNodeIdx = findOpenNodeIndexWithLowestCost();
         node = openNodes[lowestCostNodeIdx];
+
+        // Checking if we reached destination cell in longest path mode and find the real farthest border coordinate:
+        if (mode == LONGEST && !stopCoordinatesUpdated && stopCell.containsPoint(node->getMiddlePointX(), node->getMiddlePointY()))
+        {
+            stopCoordinatesUpdated = true;
+
+            std::pair<int, int> &farthestCoordinates = stopCell.getBorderCoordinatesFarthestFrom(node->getMiddlePointX(), node->getMiddlePointY());
+
+            // stopX = farthestCoordinates.first;
+            // stopY = farthestCoordinates.second;
+        }
 
         // Check if this node contains the destination point:
         if (node->containsPoint(stopX, stopY) || (mode == SHORTEST && stopCell.containsPoint(node->getMiddlePointX(), node->getMiddlePointY())))
@@ -160,6 +203,9 @@ double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX
     double distance = calculateEuclideanDistance(stopX, stopY, node->getParent()->getMiddlePointX(), node->getParent()->getMiddlePointY());
     node = node->getParent();
 
+    //Storing path:
+    nodePath.push_back(std::pair<int, int>(stopX, stopY));
+
     while (node->getParent() != nullptr)
     {
         distance += calculateEuclideanDistance(node->getMiddlePointX(), node->getMiddlePointY(),
@@ -173,8 +219,11 @@ double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX
             cellPath.addPathFront(cellId);
         }
 
+        nodePath.push_back(std::pair<int, int>(node->getMiddlePointX(), node->getMiddlePointY()));
         node = node->getParent();
     }
+
+    nodePath.push_back(std::pair<int, int>(node->getMiddlePointX(), node->getMiddlePointY()));
 
     // Cleaning up:
     clearNodeCollections();

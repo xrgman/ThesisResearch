@@ -24,6 +24,7 @@ public:
     std::pair<int, int> getCenter();
     std::vector<std::pair<int, int>> &getBorderCoordinates();
     std::pair<int, int> &getBorderCoordinatesClosestTo(const int x, const int y);
+    std::pair<int, int> &getBorderCoordinatesFarthestFrom(const int x, const int y);
 
     bool containsPoint(const int x, const int y) const;
 
@@ -35,6 +36,7 @@ public:
     static Cell fromJson(const json &j);
 
     static void getClosestCoordinates(const Cell &from, const Cell &to, std::pair<int, int> &coordinatesFrom, std::pair<int, int> &coordinatesTo);
+    static void getFarthestCoordinates(const Cell &from, const Cell &to, std::pair<int, int> &coordinatesFrom, std::pair<int, int> &coordinatesTo);
 
     int id;
     int startX;

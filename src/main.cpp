@@ -20,6 +20,7 @@
 #include "mapRenderer.h"
 #include "audioCodec.h"
 #include "config.h"
+#include "aStarAlgorithm.h"
 
 using namespace std;
 
@@ -80,6 +81,8 @@ std::condition_variable cv_decoding, cv_decodingResult;
 chrono::time_point<chrono::high_resolution_clock> localizationBroadcastSend, localizationRespondReceived;
 
 double distanceToOtherRobots[12];
+
+bool drawPath = false;
 
 // Some sort of array storing distance or response received times?
 
@@ -564,7 +567,6 @@ void *processDecodingResultsThread(void *args)
             // Removing result from queue:
             decodingResults.erase(decodingResults.begin());
         }
-
     }
 
     return nullptr;
@@ -778,6 +780,57 @@ void processFileWoDistance(const char *filename)
     fclose(fileRead);
 
     cout << "Done processing WAV file!\n";
+}
+
+void drawShortestPathBetweenCells(const int startCellId, const int stopCellId)
+{
+    if (!mapRenderer.isInitialized())
+    {
+        spdlog::error("Maprenderer not initialized, make sure to start pf first.");
+
+        return;
+    }
+
+    drawPath = true;
+
+    Cell &startCell = particleFilter.getMapData()->getCells()[startCellId];
+    Cell &stopCell = particleFilter.getMapData()->getCells()[stopCellId];
+
+    AStarAlgorithm algorithm(startCell, stopCell, particleFilter.getMapData()->getCells(), particleFilter.getMapData()->getDoors(), particleFilter.getMapData()->getWalls(), false);
+    Path cellPath(startCellId, stopCellId);
+    vector<pair<int, int>> nodePath;
+    nodePath.reserve(100);
+
+    double distance = algorithm.calculateShortestDistance(cellPath, nodePath);
+
+    mapRenderer.updateMap(nodePath);
+
+    spdlog::info("Path length: {}", distance);
+}
+
+void drawLongestPathBetweenCells(const int startCellId, const int stopCellId)
+{
+    if (!mapRenderer.isInitialized())
+    {
+        spdlog::error("Maprenderer not initialized, make sure to start pf first.");
+
+        return;
+    }
+
+    drawPath = true;
+
+    Cell &startCell = particleFilter.getMapData()->getCells()[startCellId];
+    Cell &stopCell = particleFilter.getMapData()->getCells()[stopCellId];
+
+    AStarAlgorithm algorithm(startCell, stopCell, particleFilter.getMapData()->getCells(), particleFilter.getMapData()->getDoors(), particleFilter.getMapData()->getWalls(), true);
+    vector<pair<int, int>> nodePath;
+    nodePath.reserve(100);
+
+    double distance = algorithm.calculateLongestDistance(nodePath);
+
+    mapRenderer.updateMap(nodePath);
+
+    spdlog::info("Path length: {}", distance);
 }
 
 void handleKeyboardInput()
@@ -1075,6 +1128,24 @@ void handleKeyboardInput()
                 continue;
             }
 
+            // Draw shortest path between two cells:
+            if (words[0] == "pfsp")
+            {
+                int startCellId = stoi(words[1]);
+                int stopCellId = stoi(words[2]);
+
+                drawShortestPathBetweenCells(startCellId, stopCellId);
+            }
+
+            // Draw longest path between two cells:
+            if (words[0] == "pflp")
+            {
+                int startCellId = stoi(words[1]);
+                int stopCellId = stoi(words[2]);
+
+                drawLongestPathBetweenCells(startCellId, stopCellId);
+            }
+
             if (words[0] == "pali")
             {
                 double load = audioHelper.getInputStreamLoad();
@@ -1083,7 +1154,7 @@ void handleKeyboardInput()
             }
         }
 
-        if (mapRenderer.isInitialized())
+        if (mapRenderer.isInitialized() && !drawPath)
         {
             if (!mapRenderer.updateMap(particleFilter.getParticles(), particleFilter.getNumberOfParticles(), particleFilter.getSelectedCellIdx()))
             {

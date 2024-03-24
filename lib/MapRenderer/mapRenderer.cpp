@@ -148,6 +148,22 @@ bool MapRenderer::updateMap(const Particle particles[], const int nrOfParticles,
     return true;
 }
 
+bool MapRenderer::updateMap(const std::vector<std::pair<int, int>> &nodePath)
+{
+    // Clear the screen
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderClear(renderer);
+
+    // Render map layout:
+    renderMap(renderer, font, scale, -1);
+
+    // Render particles on the map:
+    renderNodePath(renderer, nodePath);
+
+    // Present the renderer
+    SDL_RenderPresent(renderer);
+}
+
 /// @brief Cleanup function.
 void MapRenderer::stop()
 {
@@ -191,7 +207,7 @@ void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scal
             (int)std::ceil(wall.getHeight() / scale)};
         SDL_RenderFillRect(renderer, &rect);
 
-        //writeTextCenterRect(renderer, font, {0, 136, 17}, std::to_string((int)wall.orientation).c_str(), rect);
+        // writeTextCenterRect(renderer, font, {0, 136, 17}, std::to_string((int)wall.orientation).c_str(), rect);
     }
 
     // Drawing all cells:
@@ -296,4 +312,23 @@ void MapRenderer::writeTextCenterRect(SDL_Renderer *renderer, TTF_Font *font, SD
     SDL_RenderCopy(renderer, texture, nullptr, &textRect);
 
     SDL_DestroyTexture(texture);
+}
+
+void MapRenderer::renderNodePath(SDL_Renderer *renderer, const std::vector<std::pair<int, int>> &nodePath)
+{
+    // Set color to green
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+    for (int i = 0; i < nodePath.size(); i++)
+    {
+        std::pair<int, int> node = nodePath[i];
+        int size = 2;
+
+        // SDL_RenderDrawPoint(
+        //     renderer,
+        //     (int)std::ceil(node.first / scale) + BORDER_WIDTH,
+        //     (int)std::ceil(node.second / scale) + BORDER_HEIGHT);
+        SDL_Rect rect = {(node.first - size / 2) / scale + BORDER_WIDTH, (node.second - size / 2) / scale + BORDER_HEIGHT, size / scale, size / scale};
+        SDL_RenderFillRect(renderer, &rect);
+    }
 }

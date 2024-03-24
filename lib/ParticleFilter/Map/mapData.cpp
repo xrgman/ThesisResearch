@@ -42,12 +42,13 @@ void MapData::initialize()
                 continue;
             }
 
-            // From center of startcell to edge of destinationCell
+            // Calculating shortest and longest paths:
             Path cellPath(startCell, destinationCell);
 
             shortestDistancessBetweenCells[startCell][destinationCell] = calculateShortestDistanceBetweenCells(startCell, destinationCell, cellPath);
             longestDistancessBetweenCells[startCell][destinationCell] = calculateLongestDistanceBetweenCells(startCell, destinationCell);
 
+            // Storing path taken between the two cells:
             pathsBetweenCells.push_back(cellPath);
             pathsBetweenCells.push_back(Path::createReversedPath(cellPath));
 
@@ -182,7 +183,7 @@ void MapData::print()
         cout << "\t\t{ID: " << door.id << ", startX: " << door.startX << ", startY: " << door.startY << ", stopX: " << door.stopX << ", stopY: " << door.stopY << "}\n";
     }
 
-    cout << "Cell distances:\n";
+    cout << "Shortest distances between cells: \n";
     cout << "\t| ";
 
     for (int i = 0; i < numberOfCells; i++)
@@ -191,7 +192,6 @@ void MapData::print()
     }
 
     cout << endl;
-    cout << "Shortest distances between cells: \n";
 
     for (int i = 0; i < numberOfCells; i++)
     {
@@ -207,6 +207,14 @@ void MapData::print()
 
     cout << endl;
     cout << "Longest distances between cells: \n";
+    cout << "\t| ";
+
+    for (int i = 0; i < numberOfCells; i++)
+    {
+        cout << i << "\t| ";
+    }
+
+    cout << endl;
 
     for (int i = 0; i < numberOfCells; i++)
     {
@@ -228,7 +236,10 @@ double MapData::calculateShortestDistanceBetweenCells(int originCellId, int dest
 
     AStarAlgorithm algorithm(startCell, endCell, getCells(), getDoors(), getWalls(), false);
 
-    return algorithm.calculateShortestDistance(cellPath);
+    std::vector<std::pair<int, int>> nodePath;
+    nodePath.reserve(100);
+
+    return algorithm.calculateShortestDistance(cellPath, nodePath);
 }
 
 double MapData::calculateLongestDistanceBetweenCells(int originCellId, int destinationCellId)
@@ -236,7 +247,10 @@ double MapData::calculateLongestDistanceBetweenCells(int originCellId, int desti
     Cell startCell = cells[originCellId];
     Cell endCell = cells[destinationCellId];
 
-    AStarAlgorithm algorithm(startCell, endCell, getCells(), getDoors(), getWalls(), false);
+    AStarAlgorithm algorithm(startCell, endCell, getCells(), getDoors(), getWalls(), true);
 
-    return algorithm.calculateLongestDistance();
+    std::vector<std::pair<int, int>> nodePath;
+    nodePath.reserve(100);
+
+    return algorithm.calculateLongestDistance(nodePath);
 }
