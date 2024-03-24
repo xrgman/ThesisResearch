@@ -23,6 +23,8 @@ public:
 
     std::pair<int, int> getCenter();
     std::vector<std::pair<int, int>> &getBorderCoordinates();
+    std::vector<std::pair<int, int>> &getBorderCornerCoordinates();
+    std::vector<std::pair<int, int>> getBorderCornerCoordinatesPossibilities(const std::pair<int, int> &coordinates);
     std::pair<int, int> &getBorderCoordinatesClosestTo(const int x, const int y);
     std::pair<int, int> &getBorderCoordinatesFarthestFrom(const int x, const int y);
 
@@ -48,6 +50,7 @@ private:
     int height, width, diameter;
     int centerX, centerY;
     std::vector<std::pair<int, int>> borderCoordinates;
+    std::vector<std::pair<int, int>> borderCoordinatesCorners;
 
     void fillBorderCoordinates();
 };

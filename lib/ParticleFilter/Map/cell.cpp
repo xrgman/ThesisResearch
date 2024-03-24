@@ -31,6 +31,8 @@ void Cell::fillBorderCoordinates()
         int size = side % 2 == 0 ? width : height;
         int segments = size / CELL_BORDER_PADDING;
 
+        bool isCorner = true;
+
         for (int i = 0; i < segments - 1; i++)
         {
             int x, y;
@@ -50,13 +52,10 @@ void Cell::fillBorderCoordinates()
         }
     }
 
-    // for (int i = 0; i < borderCoordinates2.size(); i++)
-    // {
-    //     //spdlog::info("border coordinate: {}", borderCoordinates2[i]);
-    //     std::cout << borderCoordinates2[i].first << "," << borderCoordinates2[i].second << std::endl;
-    // }
-
-    // int bla = 10;
+    borderCoordinatesCorners.push_back(std::pair<int, int>(startX + CELL_BORDER_PADDING, startY + CELL_BORDER_PADDING));
+    borderCoordinatesCorners.push_back(std::pair<int, int>(stopX - CELL_BORDER_PADDING, startY + CELL_BORDER_PADDING));
+    borderCoordinatesCorners.push_back(std::pair<int, int>(stopX - CELL_BORDER_PADDING, stopY - CELL_BORDER_PADDING));
+    borderCoordinatesCorners.push_back(std::pair<int, int>(startX + CELL_BORDER_PADDING, stopY - CELL_BORDER_PADDING));
 }
 
 /// @brief Create a cell object from a json data object.
@@ -104,6 +103,65 @@ std::pair<int, int> Cell::getCenter()
 std::vector<std::pair<int, int>> &Cell::getBorderCoordinates()
 {
     return borderCoordinates;
+}
+
+/// @brief Get the array containing all the four border coordinates.
+/// @return Border coordinates of the corners of the cell.
+std::vector<std::pair<int, int>> &Cell::getBorderCornerCoordinates()
+{
+    return borderCoordinatesCorners;
+}
+
+std::vector<std::pair<int, int>> Cell::getBorderCornerCoordinatesPossibilities(const std::pair<int, int> &coordinates)
+{
+    uint8_t cornerIdx = 200;
+    int smallestDistance = INT_MAX;
+
+    // Finding corresponding border coordinate index:
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        double distance = calculateEuclideanDistance(borderCoordinatesCorners[i].first, borderCoordinatesCorners[i].second, coordinates.first, coordinates.second);
+
+        if (distance < smallestDistance)
+        {
+            smallestDistance = distance;
+
+            cornerIdx = i;
+        }
+    }
+
+    // Filling possible coordinates:
+    std::vector<std::pair<int, int>> possibleCoordinates;
+
+    switch (cornerIdx)
+    {
+    case 0:
+        possibleCoordinates.push_back(borderCoordinatesCorners[0]);
+        possibleCoordinates.push_back(borderCoordinatesCorners[1]);
+        possibleCoordinates.push_back(borderCoordinatesCorners[3]);
+
+        break;
+    case 1:
+        possibleCoordinates.push_back(borderCoordinatesCorners[0]);
+        possibleCoordinates.push_back(borderCoordinatesCorners[1]);
+        possibleCoordinates.push_back(borderCoordinatesCorners[2]);
+
+        break;
+    case 2:
+        possibleCoordinates.push_back(borderCoordinatesCorners[1]);
+        possibleCoordinates.push_back(borderCoordinatesCorners[2]);
+        possibleCoordinates.push_back(borderCoordinatesCorners[3]);
+
+        break;
+    case 3:
+        possibleCoordinates.push_back(borderCoordinatesCorners[0]);
+        possibleCoordinates.push_back(borderCoordinatesCorners[2]);
+        possibleCoordinates.push_back(borderCoordinatesCorners[3]);
+
+        break;
+    }
+
+    return possibleCoordinates;
 }
 
 /// @brief Get the border coordinates that lay closest to the given x, y coordinates.

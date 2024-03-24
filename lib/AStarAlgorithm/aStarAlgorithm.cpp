@@ -63,32 +63,41 @@ double AStarAlgorithm::calculateLongestDistance(std::vector<std::pair<int, int>>
 
     // Calculate border coordinates that lay farthest apart:
     std::pair<int, int> farthestCoordinatesStart, farthestCoordinatesStop;
-
-    Cell::getFarthestCoordinates(startCell, stopCell, farthestCoordinatesStart, farthestCoordinatesStop);
-
-    // Picking farthest option to destination cell:
-    int startX = farthestCoordinatesStart.first;
-    int startY = farthestCoordinatesStart.second;
-
-    // Picking farthest to source cell:
-    int stopX = farthestCoordinatesStop.first;
-    int stopY = farthestCoordinatesStop.second;
-
-    int width = abs(stopX - startX);
-    int height = abs(stopY - startY);
-
-    int diameter = sqrt(width * width + height * height); 
-
-    // TODO:
-    // 0-5: start coordinates are wrong, are currently on the right should be left.
-    // 0-6: stop coordinates are wrong, are currently on the right should be left
-
-    // Not doing anything with this:
+    std::vector<std::pair<int, int>> nodePathTemp;
     Path cellPath(startCell.id, stopCell.id);
 
-    double distance = calculatePathDistance(LONGEST, startX, startY, stopX, stopY, cellPath, nodePath);
+    // Test:
+    Cell::getFarthestCoordinates(startCell, stopCell, farthestCoordinatesStart, farthestCoordinatesStop);
 
-    return distance;
+    std::vector<std::pair<int, int>> borderCoordinatesCornerStart = startCell.getBorderCornerCoordinatesPossibilities(farthestCoordinatesStart);
+    std::vector<std::pair<int, int>> borderCoordinatesCornerStop = stopCell.getBorderCornerCoordinatesPossibilities(farthestCoordinatesStop);
+
+    double maxDistance = 0;
+
+    for (int i = 0; i < 9; i++)
+    {
+        int startX = borderCoordinatesCornerStart[i % 3].first;
+        int startY = borderCoordinatesCornerStart[i % 3].second;
+
+        // Picking farthest to source cell:
+        int stopX = borderCoordinatesCornerStop[i / 3].first;
+        int stopY = borderCoordinatesCornerStop[i / 3].second;
+
+        nodePathTemp.clear();
+        nodePathTemp.reserve(100);
+
+        double distance = calculatePathDistance(LONGEST, startX, startY, stopX, stopY, cellPath, nodePathTemp);
+
+        if (distance > maxDistance)
+        {
+            maxDistance = distance;
+
+            nodePath.clear();
+            nodePath.assign(nodePathTemp.begin(), nodePathTemp.end());
+        }
+    }
+
+    return maxDistance;
 }
 
 double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX, int startY, int stopX, int stopY, Path &cellPath, std::vector<std::pair<int, int>> &nodePath)
@@ -203,7 +212,7 @@ double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX
     double distance = calculateEuclideanDistance(stopX, stopY, node->getParent()->getMiddlePointX(), node->getParent()->getMiddlePointY());
     node = node->getParent();
 
-    //Storing path:
+    // Storing path:
     nodePath.push_back(std::pair<int, int>(stopX, stopY));
 
     while (node->getParent() != nullptr)
@@ -457,6 +466,9 @@ void AStarAlgorithm::clearNodeCollections()
     {
         delete closedNodes[i];
     }
+
+    openNodes.clear();
+    closedNodes.clear();
 }
 
 /// @brief Find the ID of the cell which contains the given coordinates.
