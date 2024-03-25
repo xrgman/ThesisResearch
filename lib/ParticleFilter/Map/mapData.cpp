@@ -379,42 +379,44 @@ bool MapData::loadCachedPathData(const char *filename)
         shortestDistancessBetweenCells = new double *[numberOfCells];
         longestDistancessBetweenCells = new double *[numberOfCells];
 
+        const json &shortestDistancesJson = jsonData["shortestPathsBetweenCells"];
+        const json &longestDistancesJson = jsonData["longestPathsBetweenCells"];
+
         for (int i = 0; i < numberOfCells; i++)
         {
             shortestDistancessBetweenCells[i] = new double[numberOfCells];
             longestDistancessBetweenCells[i] = new double[numberOfCells];
 
+            const json &shortestRow = shortestDistancesJson[i];
+            const json &longestRow = longestDistancesJson[i];
+
             for (int j = 0; j < numberOfCells; j++)
             {
+                shortestDistancessBetweenCells[i][j] = shortestRow[j];
+                longestDistancessBetweenCells[i][j] = longestRow[j];
             }
         }
 
-        // Extracting channels:
-        // const json &channelsJson = jsonData["channels"];
-        // int channels[channelsJson.size()];
+        // Extracting paths between cells:
+        int numberOfPathsBetweenCells = jsonData["numberOfPathsBetweenCells"];
+        const json &pathsJson = jsonData["paths"];
 
-        // for (uint8_t i = 0; i < channelsJson.size(); i++)
-        // {
-        //     channels[i] = channelsJson[i];
-        // }
+        pathsBetweenCells.reserve(numberOfPathsBetweenCells);
 
-        // return Config(jsonData["robot_id"],
-        //               jsonData["total_number_of_robots"],
-        //               jsonData["sample_rate"],
-        //               jsonData["num_channels_raw"],
-        //               jsonData["num_channels"],
-        //               jsonData["filter_own_source"],
-        //               jsonData["print_bits_encoding"],
-        //               channels,
-        //               jsonData["preamble_samples"],
-        //               jsonData["bit_samples"],
-        //               jsonData["preamble_undersampling_divisor"],
-        //               jsonData["freq_start_preamble"],
-        //               jsonData["freq_stop_preamble"],
-        //               jsonData["freq_start_bit"],
-        //               jsonData["freq_stop_bit"],
-        //               jsonData["calibrate_signal_energy_target"],
-        //               jsonData["calibrate_signal_energy"]);
+        for (int i = 0; i < numberOfPathsBetweenCells; i++)
+        {
+            const json &pathJson = pathsJson[i];
+            const json &pathDataJson = pathJson["data"];
+
+            Path path(pathJson["startCellId"], pathJson["stopCellId"]);
+
+            for (int j = 0; j < pathDataJson.size(); j++)
+            {
+                path.addPathBack(pathDataJson[j]);
+            }
+
+            pathsBetweenCells.push_back(path);
+        }
     }
     catch (const json::exception &e)
     {

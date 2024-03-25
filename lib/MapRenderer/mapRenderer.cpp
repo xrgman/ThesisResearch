@@ -162,6 +162,8 @@ bool MapRenderer::updateMap(const std::vector<std::pair<int, int>> &nodePath)
 
     // Present the renderer
     SDL_RenderPresent(renderer);
+
+    return true;
 }
 
 /// @brief Cleanup function.

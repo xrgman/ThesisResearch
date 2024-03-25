@@ -22,6 +22,11 @@ void Path::addPathFront(int cellId)
     path.insert(path.begin(), cellId);
 }
 
+void Path::addPathBack(int cellId)
+{
+    path.push_back(cellId);
+}
+
 bool Path::containsCell(int cellId)
 {
     for (int i = 0; i < path.size(); i++)
