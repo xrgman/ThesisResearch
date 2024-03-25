@@ -53,6 +53,8 @@ public:
     std::vector<Wall> &getWalls();
     std::vector<Door> &getDoors();
 
+    std::string getPathCacheFileName();
+
     double **&getShortestDistancessBetweenCells();
     double **&getLongestDistancesBetweenCells();
 
@@ -79,6 +81,9 @@ private:
 
     double calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, Path &cellPath);
     double calculateLongestDistanceBetweenCells(int originCellId, int destinationCellId);
+
+    void cachePathData(const char* filename);
+    bool loadCachedPathData(const char *filename);
 
     friend void from_json(const json &j, MapData &mapData)
     {

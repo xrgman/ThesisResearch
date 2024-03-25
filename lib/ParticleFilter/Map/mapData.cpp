@@ -2,9 +2,21 @@
 #include "util.h"
 #include "aStarAlgorithm.h"
 
+#include <string>
+
 /// @brief Initialize map data by calculating the distances between cells and storing them in a 2D array.
 void MapData::initialize()
 {
+    const std::string cacheFileName = getPathCacheFileName();
+
+    // Opening file and checking if it was successfull:
+    if (loadCachedPathData(cacheFileName.c_str()))
+    {
+        return;
+    }
+
+    // Check if json file exist with cached data, else generate new data and cache that:
+
     // Calculating distances between cells:
     shortestDistancessBetweenCells = new double *[numberOfCells];
     longestDistancessBetweenCells = new double *[numberOfCells];
@@ -51,10 +63,11 @@ void MapData::initialize()
             // Storing path taken between the two cells:
             pathsBetweenCells.push_back(cellPath);
             pathsBetweenCells.push_back(Path::createReversedPath(cellPath));
-
-            int bla = 10;
         }
     }
+
+    // Cache the generated path data:
+    cachePathData(cacheFileName.c_str());
 }
 
 /// @brief Get the name of the map.
@@ -109,6 +122,13 @@ std::vector<Wall> &MapData::getWalls()
 std::vector<Door> &MapData::getDoors()
 {
     return doors;
+}
+
+/// @brief Get the name of the path cache file.
+/// @return Path cache file name.
+std::string MapData::getPathCacheFileName()
+{
+    return "cache_" + name + ".json";
 }
 
 /// @brief Get a 2D array filled with the shortest distances between all cells.
@@ -253,4 +273,153 @@ double MapData::calculateLongestDistanceBetweenCells(int originCellId, int desti
     nodePath.reserve(100);
 
     return algorithm.calculateLongestDistance(nodePath);
+}
+
+/// @brief Write the calculate path distances to a cache json file.
+/// @param filename The name of the cache file.
+void MapData::cachePathData(const char *filename)
+{
+    json jsonData;
+
+    // Saving amount of cells:
+    jsonData["number_of_cells"] = numberOfCells;
+
+    // Saving shortest and longest path distances:
+    json shortestPathArray, longestPathArray;
+
+    for (int i = 0; i < numberOfCells; i++)
+    {
+        json shortestRow, longestRow;
+
+        for (int j = 0; j < numberOfCells; j++)
+        {
+            shortestRow.push_back(shortestDistancessBetweenCells[i][j]);
+            longestRow.push_back(longestDistancessBetweenCells[i][j]);
+        }
+
+        shortestPathArray.push_back(shortestRow);
+        longestPathArray.push_back(longestRow);
+    }
+
+    jsonData["shortestPathsBetweenCells"] = shortestPathArray;
+    jsonData["longestPathsBetweenCells"] = longestPathArray;
+
+    // Saving paths between cells:
+    jsonData["numberOfPathsBetweenCells"] = pathsBetweenCells.size();
+
+    json pathsArray;
+
+    for (int i = 0; i < pathsBetweenCells.size(); i++)
+    {
+        Path &path = pathsBetweenCells[i];
+
+        json pathObj;
+        pathObj["startCellId"] = path.getStartCellIdx();
+        pathObj["stopCellId"] = path.getStopCellIdx();
+
+        json pathData;
+
+        for (int j = 0; j < path.getNumberOfCellsInPath(); j++)
+        {
+            pathData.push_back(path.getPath()[j]);
+        }
+
+        pathObj["data"] = pathData;
+        pathsArray.push_back(pathObj);
+    }
+
+    jsonData["paths"] = pathsArray;
+
+    // Write the JSON data to a file:
+    FILE *cacheFile;
+
+    if (!openFile(filename, &cacheFile, "w"))
+    {
+        spdlog::error("Unable to write map cache, file couldn't be opened!");
+    }
+
+    fprintf(cacheFile, "%s", jsonData.dump().c_str());
+    fclose(cacheFile);
+}
+
+/// @brief Load the cached path data from a file into objects.
+/// @param filename Name of the file.
+/// @return Whether reading the cache was successfull.
+bool MapData::loadCachedPathData(const char *filename)
+{
+    FILE *cacheFile;
+
+    if (!openFile(filename, &cacheFile, "r"))
+    {
+        spdlog::warn("Cache file not found for current map, generating new data.");
+
+        return false;
+    }
+
+    // Reading data from json file and converting it to a string:
+    char *buffer = readFileText(cacheFile);
+
+    std::string fileContent(buffer);
+
+    delete[] buffer;
+
+    try
+    {
+        json jsonData = json::parse(fileContent);
+
+        int numCells = jsonData["number_of_cells"];
+
+        if (numCells != numberOfCells)
+        {
+            spdlog::warn("Number of cells mismatch, generating new data.");
+
+            return false;
+        }
+
+        shortestDistancessBetweenCells = new double *[numberOfCells];
+        longestDistancessBetweenCells = new double *[numberOfCells];
+
+        for (int i = 0; i < numberOfCells; i++)
+        {
+            shortestDistancessBetweenCells[i] = new double[numberOfCells];
+            longestDistancessBetweenCells[i] = new double[numberOfCells];
+
+            for (int j = 0; j < numberOfCells; j++)
+            {
+            }
+        }
+
+        // Extracting channels:
+        // const json &channelsJson = jsonData["channels"];
+        // int channels[channelsJson.size()];
+
+        // for (uint8_t i = 0; i < channelsJson.size(); i++)
+        // {
+        //     channels[i] = channelsJson[i];
+        // }
+
+        // return Config(jsonData["robot_id"],
+        //               jsonData["total_number_of_robots"],
+        //               jsonData["sample_rate"],
+        //               jsonData["num_channels_raw"],
+        //               jsonData["num_channels"],
+        //               jsonData["filter_own_source"],
+        //               jsonData["print_bits_encoding"],
+        //               channels,
+        //               jsonData["preamble_samples"],
+        //               jsonData["bit_samples"],
+        //               jsonData["preamble_undersampling_divisor"],
+        //               jsonData["freq_start_preamble"],
+        //               jsonData["freq_stop_preamble"],
+        //               jsonData["freq_start_bit"],
+        //               jsonData["freq_stop_bit"],
+        //               jsonData["calibrate_signal_energy_target"],
+        //               jsonData["calibrate_signal_energy"]);
+    }
+    catch (const json::exception &e)
+    {
+        std::cerr << "JSON parsing error: " << e.what() << std::endl;
+    }
+
+    return true;
 }

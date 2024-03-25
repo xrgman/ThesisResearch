@@ -30,6 +30,7 @@
   <li>Add the ability to process wall message and update particle filter based on it</li>
   <li>Add the ability to process cell message and update particle filter based on it</li>
   <li>Update particle filter based on data from audio</li>
+  <li>Cache distances between cells to a .json file to speed up particle filter</li>
   <li>Link movement from robot to movement in particle filter</li>
 </ol>
 

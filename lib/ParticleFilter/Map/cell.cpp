@@ -112,6 +112,7 @@ std::vector<std::pair<int, int>> &Cell::getBorderCornerCoordinates()
     return borderCoordinatesCorners;
 }
 
+//TODO: Check if we still use this in the end:
 std::vector<std::pair<int, int>> Cell::getBorderCornerCoordinatesPossibilities(const std::pair<int, int> &coordinates)
 {
     uint8_t cornerIdx = 200;

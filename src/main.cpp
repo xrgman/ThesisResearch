@@ -1146,6 +1146,21 @@ void handleKeyboardInput()
                 drawLongestPathBetweenCells(startCellId, stopCellId);
             }
 
+            // Remove pf cache:
+            if (words[0] == "pfrc")
+            {
+                std::string cacheFileName = particleFilter.getMapData()->getPathCacheFileName();
+
+                if (removeFile(cacheFileName.c_str()))
+                {
+                    spdlog::info("Successfully removed the file: {}", cacheFileName.c_str());
+                }
+                else
+                {
+                    spdlog::error("Unable to removed the file: {}", cacheFileName.c_str());
+                }
+            }
+
             if (words[0] == "pali")
             {
                 double load = audioHelper.getInputStreamLoad();

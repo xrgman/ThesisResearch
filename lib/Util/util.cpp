@@ -530,6 +530,22 @@ double translateToRange(double number, double minInput, double maxInput, double 
 //******** File helpers ***************************
 //*************************************************
 
+/// @brief Check whether a file exists.
+/// @param filename Name of the file.
+/// @return Whether the file exists.
+bool fileExists(const char *filename)
+{
+    FILE *fp = fopen(filename, "r");
+
+    if (fp != NULL)
+    {
+        fclose(fp); // close the file
+
+        return true;
+    }
+    return false;
+}
+
 /// @brief Open a file with a specific name.
 /// @param filename Name of the file.
 /// @param file Object to open the file into.
@@ -611,6 +627,13 @@ int readDistanceFromFileName(const char *filename)
     return -1;
 }
 
+/// @brief Remove a file based on its name.
+/// @param filename The name of the file.
+/// @return Whether removing the file was successfull.
+bool removeFile(const char *filename)
+{
+    return std::remove(filename) != 0;
+}
 //*************************************************
 //******** Coordinate helpers *********************
 //*************************************************
