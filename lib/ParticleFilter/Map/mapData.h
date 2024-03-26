@@ -9,6 +9,7 @@
 #include "wall.h"
 #include "door.h"
 #include "path.h"
+#include "rectangle.h"
 
 using json = nlohmann::json;
 
@@ -42,7 +43,7 @@ public:
         }
     }
 
-    void initialize();
+    void initialize(const int cellSize);
 
     const char *getName();
     int getNumberOfCells();
@@ -71,6 +72,7 @@ private:
     std::vector<Cell> cells;
     std::vector<Wall> walls;
     std::vector<Door> doors;
+    std::vector<Rectangle> allowedCoordinates;
 
     double **shortestDistancessBetweenCells; //Shortest distance between two cells.
     double **longestDistancessBetweenCells; //Longest distance between two cells, but still taking the shortest path.
@@ -81,6 +83,10 @@ private:
 
     double calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, Path &cellPath);
     double calculateLongestDistanceBetweenCells(int originCellId, int destinationCellId);
+
+    void generateCells(const int cellSize);
+    bool isCellInsideWalls(const Cell &cell);
+    bool checkCellIntersectionWalls(const Cell &cell);
 
     void cachePathData(const char* filename);
     bool loadCachedPathData(const char *filename);
@@ -138,6 +144,23 @@ private:
                 mapData.doors.push_back(door);
             }
         }
+
+        // Deserializing allowed coordinates:
+        if (j.find("allowedCoordinates") != j.end() && j["allowedCoordinates"].is_array())
+        {
+            int numAllowedCoordinates = j["allowedCoordinates"].size();
+
+            mapData.allowedCoordinates.reserve(numAllowedCoordinates);
+
+            for (int i = 0; i < numAllowedCoordinates; i++)
+            {
+                Rectangle allowedCoordinate = Rectangle::fromJson(j["allowedCoordinates"][i]);
+
+                mapData.allowedCoordinates.push_back(allowedCoordinate);
+            }
+        }
+
+        int bla = 10;
     };
 };
 

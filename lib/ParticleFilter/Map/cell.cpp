@@ -112,7 +112,7 @@ std::vector<std::pair<int, int>> &Cell::getBorderCornerCoordinates()
     return borderCoordinatesCorners;
 }
 
-//TODO: Check if we still use this in the end:
+// TODO: Check if we still use this in the end:
 std::vector<std::pair<int, int>> Cell::getBorderCornerCoordinatesPossibilities(const std::pair<int, int> &coordinates)
 {
     uint8_t cornerIdx = 200;
@@ -220,6 +220,14 @@ std::pair<int, int> &Cell::getBorderCoordinatesFarthestFrom(const int x, const i
 bool Cell::containsPoint(const int x, const int y) const
 {
     return x >= startX && x <= stopX && y >= startY && y <= stopY;
+}
+
+/// @brief Check whether the coordinates of a cell intersect with a wall.
+/// @param wall Wall to check against.
+/// @return Whether or not the two rectangles intersect.
+bool Cell::intersectsWall(Wall &wall) const
+{
+    return startX <= wall.stopX && stopX >= wall.startX && startY <= wall.stopY && stopY >= wall.startY;
 }
 
 /// @brief Calculate the relative angle from this cell to another cell.

@@ -25,7 +25,7 @@ public:
     ParticleFilter(const int totalNumberOfRobots, const int robotId);
     ~ParticleFilter();
 
-    bool loadMap(const char *filename);
+    bool loadMap(const char *filename, const int cellSize);
     const char* getMapName();
     Particle* getParticles();
     int getNumberOfParticles();

@@ -5,6 +5,8 @@
 #include <nlohmann/json.hpp>
 #include <cmath>
 
+#include "wall.h"
+
 #define MIN_CELL_SIZE 60 //Minimum cell size is 60CM, else it wont work
 #define CELL_BORDER_PADDING 10 //In cm
 #define MIN_DISTANCE_BETWEEN_CELLS CELL_BORDER_PADDING*2
@@ -29,6 +31,7 @@ public:
     std::pair<int, int> &getBorderCoordinatesFarthestFrom(const int x, const int y);
 
     bool containsPoint(const int x, const int y) const;
+    bool intersectsWall(Wall &wall) const;
 
     int getRelativeAngleToCell(Cell &other) const;
 

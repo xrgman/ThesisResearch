@@ -281,21 +281,21 @@ void recordToWavFile(const char *filename, const int seconds)
 
 void loadParticleFilter(bool initializeMapRenderer)
 {
-    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    // const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
     const uint8_t scale = 1;
 
     // const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
     // const uint8_t scale = 3;
 
-    if (!particleFilter.loadMap(filenameMap))
+    if (!particleFilter.loadMap(filenameMap, config.cellSize))
     {
-        cerr << "Failed to load map!\n";
+        spdlog::error("Failed to load the map {}.", filenameMap);
+
         return;
     }
-    else
-    {
-        cout << "Sucessfully loaded map " << particleFilter.getMapName() << endl;
-    }
+
+    spdlog::info("Successfully loaded the map {}.", filenameMap);
 
     // Initialize particle filter:
     particleFilter.initializeParticlesUniformly();
@@ -1084,8 +1084,6 @@ void handleKeyboardInput()
                 loadParticleFilter(!doNotInitializeMapRenderer);
 
                 cv_decodingResult.notify_one();
-
-                spdlog::info("Sucessfully started the particle filter.");
 
                 continue;
             }

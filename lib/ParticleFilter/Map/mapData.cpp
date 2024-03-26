@@ -5,16 +5,26 @@
 #include <string>
 
 /// @brief Initialize map data by calculating the distances between cells and storing them in a 2D array.
-void MapData::initialize()
+/// @param cellSize Size that the cells should be, if generated.
+void MapData::initialize(const int cellSize)
 {
     const std::string cacheFileName = getPathCacheFileName();
 
     // Opening file and checking if it was successfull:
     if (loadCachedPathData(cacheFileName.c_str()))
     {
-        //If loading cache was successfull, we don't need to generate any data so we return.
+        // If loading cache was successfull, we don't need to generate any data so we return.
         return;
     }
+
+    // When there are no cells in the json file, generate them ourselfs:
+    if (numberOfCells == 0)
+    {
+        generateCells(cellSize);
+    }
+
+    // TODO: remove this safeguard after cell generation is done :)
+    return;
 
     // Calculating distances between cells:
     shortestDistancessBetweenCells = new double *[numberOfCells];
@@ -272,6 +282,71 @@ double MapData::calculateLongestDistanceBetweenCells(int originCellId, int desti
     nodePath.reserve(100);
 
     return algorithm.calculateLongestDistance(nodePath);
+}
+
+void MapData::generateCells(const int cellSize)
+{
+    // Based on walls find outer boxes of map:
+    int minX = std::numeric_limits<int>::max();
+    int minY = std::numeric_limits<int>::max();
+    int maxX = std::numeric_limits<int>::min();
+    int maxY = std::numeric_limits<int>::min();
+
+    for (int i = 0; i < numberOfWalls; i++)
+    {
+        Wall &wall = getWalls()[i];
+
+        minX = std::min(minX, wall.stopX);
+        minY = std::min(minY, wall.stopY);
+        maxX = std::max(maxX, wall.startX);
+        maxY = std::max(maxY, wall.startY);
+    }
+
+    // Looping over all possible start and stop x, y coordinates within bounds:
+    int y = minY, x = minX;
+
+    while (y < maxY)
+    {
+        while (x < maxX)
+        {
+            Cell newCell(numberOfCells, x, x + cellSize, y, y + cellSize);
+
+            // Checking if cell intersects with a wall:
+            if (checkCellIntersectionWalls(newCell))
+            {
+                break;
+            }
+
+            cells.push_back(newCell);
+            numberOfCells++;
+
+            x += cellSize;
+        }
+
+        y += cellSize;
+    }
+
+    int bla = 10;
+}
+
+bool MapData::isCellInsideWalls(const Cell &cell)
+{
+    
+}
+
+bool MapData::checkCellIntersectionWalls(const Cell &cell)
+{
+    for (int i = 0; i < numberOfWalls; i++)
+    {
+        Wall &wall = getWalls()[i];
+
+        if (cell.intersectsWall(wall))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /// @brief Write the calculate path distances to a cache json file.

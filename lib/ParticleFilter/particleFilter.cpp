@@ -27,8 +27,9 @@ ParticleFilter::~ParticleFilter()
 
 /// @brief Load map data from a .json file into a mapData object.
 /// @param filename Name of the file containing the map data.
+/// @param cellSize Size that the cells should be, if generated.
 /// @return Whether decoding the map data was successfull.
-bool ParticleFilter::loadMap(const char *filename)
+bool ParticleFilter::loadMap(const char *filename, const int cellSize)
 {
     FILE *fileMapData;
 
@@ -59,7 +60,7 @@ bool ParticleFilter::loadMap(const char *filename)
     }
 
     // Initialize map data after loading:
-    mapData.initialize();
+    mapData.initialize(cellSize);
 
     mapData.print();
 
