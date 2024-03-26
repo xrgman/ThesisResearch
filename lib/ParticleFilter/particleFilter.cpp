@@ -8,7 +8,7 @@
 using json = nlohmann::json;
 
 /// @brief Constructor.
-ParticleFilter::ParticleFilter(const int totalNumberOfRobots, const int robotId) : generator(rd()), normal_distribution(NOISE_MEAN, NOISE_STDEV), totalNumberOfRobots(totalNumberOfRobots), robotId(robotId)
+ParticleFilter::ParticleFilter(const int totalNumberOfRobots, const int robotId) : generator(rd()), normal_distribution(NOISE_MEAN, NOISE_STDEV), totalNumberOfRobots(totalNumberOfRobots), robotId(robotId), particleWeightAddition((double)1 / NUMBER_OF_PARTICLES)
 {
     this->selectedCellIdx = -1;
     this->particlesInArray = 0;
@@ -176,7 +176,6 @@ void ParticleFilter::processMessage(double distance, double angle, double robotA
 
     std::vector<int> correctParticleIdxs;
     std::vector<int> incorrectParticleIdxs;
-    const double weigthAddition = (double)1 / NUMBER_OF_PARTICLES;
 
     // Keeping track of nr of particles in cell:
     resetParticlesPerCell();
@@ -202,7 +201,7 @@ void ParticleFilter::processMessage(double distance, double angle, double robotA
         if (isCoordinateAllowed(newXCoordinate, newYCoordinate, cellIdx) && !didParticleTravelThroughWall(particle.getXCoordinate(), particle.getYcoordinate(), newXCoordinate, newYCoordinate))
         {
             // Update weight of the particle:
-            particle.updateWeight(particle.getWeight() + weigthAddition);
+            particle.updateWeight(particle.getWeight() + particleWeightAddition);
 
             // Marking particle as correct:
             correctParticleIdxs.push_back(i);
@@ -231,17 +230,28 @@ void ParticleFilter::processMessage(double distance, double angle, double robotA
     // And reposition the invalid particles just like is in process movement.
 }
 
+/// @brief Process a received message from another robot, based on the table algorithm.
+/// @param senderId The id of the robot from who the message was received.
+/// @param distance The distance to the other robot.
+/// @param angle The angle at which the message was received.
+/// @param robotAngle Own current angle from IMU.
 void ParticleFilter::processMessageTable(int senderId, double distance, double angle, double robotAngle)
 {
     // 0. Checking if particle filter has been initialized:
     if (particlesInArray <= 0)
     {
-        std::cerr << "No particles found, make sure to initialize before processing any movement.\n";
+        spdlog::error("No particles found, make sure to initialize before processing any movement.");
 
         return;
     }
 
-    // TODO? Mark all as false beforehand.
+    // 0. Checking if sender id is valid:
+    if (senderId == robotId)
+    {
+        spdlog::error("Sender id is the same as own id, this should not be possible!");
+
+        return;
+    }
 
     // 1. Adjust the angle to match the orientation of the map (YAW of robot).
     angle = positive_modulo((angle + robotAngle), 360.0);
@@ -252,8 +262,15 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
     double angleLowerBound = angle - ANGLE_ERROR_DEGREE;
     double angleUpperBound = angle + ANGLE_ERROR_DEGREE;
 
-    // Get reference to the 2D array containing shortest paths between cells:
+    // Get reference to the 2D arrays containing shortest and longest paths between cells:
     double **&shortestPaths = mapData.getShortestDistancessBetweenCells();
+    double **&longestPaths = mapData.getLongestDistancesBetweenCells();
+
+    // Get a reference to the localization table:
+    LocalizationTable &localizationTable = localizationTables[senderId];
+
+    // Cleaning the table:
+    localizationTable.clear();
 
     // 2. Looping over all cells to fill localization table:
     for (int i = 0; i < mapData.getNumberOfCells(); i++)
@@ -277,9 +294,9 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
             if (ownCellId == senderCellId)
             {
                 // For now we just check if diameter of cell is bigger then the lower bound of distance:
-                if (minDistanceTravelled <= mapData.getCells()[i].getDiameter())
+                if (minDistanceTravelled <= longestPaths[ownCellId][senderCellId])
                 {
-                    localizationTables[senderId].markCellAsPossible(ownCellId, senderCellId);
+                    localizationTable.markCellAsPossible(ownCellId, senderCellId);
                 }
 
                 continue;
@@ -287,10 +304,10 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
 
             // Grabbing shortest path between own and sender cell
             double shortestPath = shortestPaths[ownCellId][senderCellId];
-            double diameterSenderCell = senderCell.getDiameter();
+            double longestPath = longestPaths[ownCellId][senderCellId];
 
             // If distance is great enough to reach that cell and small enough to not overshoot it in worst case:
-            if (maxDistanceTravelled >= shortestPath && minDistanceTravelled <= shortestPath + diameterSenderCell)
+            if (maxDistanceTravelled >= shortestPath && minDistanceTravelled <= longestPath)
             {
                 // Grabbing the path between the two cells:
                 bool success;
@@ -298,9 +315,9 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
 
                 if (!success)
                 {
-                    // stdlog::error("Path between cells {} and {} not found!", ownCellId, senderCellId);
+                    spdlog::error("Path between cells {} and {} not found!", ownCellId, senderCellId);
 
-                    // ERROR
+                    // ERROR, but should not happen
                 }
 
                 // So, we know we can reach this cell because of the distance. Now check which cell we need to pass first:
@@ -313,31 +330,78 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
                 // Now compare with DOA:
                 if (relativeAngleBetweenCells >= angleLowerBound && relativeAngleBetweenCells <= angleUpperBound)
                 {
-                    localizationTables[senderId]
-                        .markCellAsPossible(ownCellId, senderCellId);
+                    localizationTable.markCellAsPossible(ownCellId, senderCellId);
                 }
-
-                // pft 1 110 500
             }
-
-            // DO something with the angle also
-
-            // DO the drawing with lines and check which cell we have then reached.
-            // Then check whether the actual distance between our cell and that cell is possible (if wall has been passed the anwser should be no!)
-            // Based on this we should get a good approximation.
-
-            // Check if we can make it from own cell to sender cell
         }
     }
 
     // Print table:
-    localizationTables[senderId].printTable();
+    localizationTable.printTable();
+
+    // Based on the current data, we eliminate cells for which the whole row is false:
+    vector<int> invalidCells;
+
+    for (int i = 0; i < localizationTable.getNumberOfRows(); i++)
+    {
+        if (localizationTable.isRowInvalid(i))
+        {
+            spdlog::info("Cell {} has only negative values in its row, clearing particles.", i);
+
+            invalidCells.push_back(i);
+        }
+    }
+
+    std::vector<int> correctParticleIdxs;
+    std::vector<int> incorrectParticleIdxs;
+
+    // Loop over all particles here and check if they are in an invalid cell:
+    resetParticlesPerCell();
+    int cellIdx;
+
+    for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
+    {
+        Particle &particle = particles[i];
+
+        // Finding the cell that the particle is in:
+        isCoordinateAllowed(particle.getXCoordinate(), particle.getYcoordinate(), cellIdx);
+
+        // If cell id is valid, keep the particle and update its weight:
+        if (!binary_search(invalidCells.begin(), invalidCells.end(), cellIdx))
+        {
+            // Update weight of the particle:
+            particle.updateWeight(particle.getWeight() + particleWeightAddition);
+
+            // Marking particle as correct:
+            correctParticleIdxs.push_back(i);
+
+            // Marking the cell the particle is in:
+            if (cellIdx >= 0)
+            {
+                particlesPerCell[cellIdx]++;
+            }
+        }
+        else
+        {
+            incorrectParticleIdxs.push_back(i);
+        }
+    }
+
+    spdlog::info("In total {} particles are out of bound and {} particles are oke.", incorrectParticleIdxs.size(), correctParticleIdxs.size());
+
+    // Process new particle locations:
+    processNewParticleLocations(correctParticleIdxs.data(), incorrectParticleIdxs.data(), correctParticleIdxs.size(), incorrectParticleIdxs.size(), distance, particlesPerCell);
+
+    // Select cell with most particles in it:
+    determineLocalizationCell(particlesPerCell);
 
     int bla = 10;
 
     // 1. Save table some where and broadcast it to other robots
 
     // 2. If for a start cell all other cells are false, than we can immidiately remove all particles from it.
+
+    // pft 1 110 500
 }
 
 /// @brief Update all particles based on the movement of the robot.
@@ -354,7 +418,7 @@ void ParticleFilter::processMovement(double distance, int angle)
 
     calculateMovementAlongAxis(distance, angle, movementX, movementY);
 
-    std::cout << "Movement (" << distance << "cm) at " << angle << " degrees. X: " << movementX << ", Y: " << movementY << ".\n";
+    spdlog::info("Movement ({} cm) at {} degrees. X: {}, Y: {}", distance, angle, movementX, movementY);
 
     // Checking if there are any particles:
     if (particlesInArray <= 0)
@@ -369,7 +433,6 @@ void ParticleFilter::processMovement(double distance, int angle)
 
     std::vector<int> correctParticleIdxs;
     std::vector<int> incorrectParticleIdxs;
-    const double weigthAddition = (double)1 / NUMBER_OF_PARTICLES;
 
     // Keeping track of nr of particles in cell:
     resetParticlesPerCell();
@@ -396,7 +459,7 @@ void ParticleFilter::processMovement(double distance, int angle)
             particle.updateCoordinates(newXCoordinate, newYCoordinate);
 
             // Update weight of the particle:
-            particle.updateWeight(particle.getWeight() + weigthAddition);
+            particle.updateWeight(particle.getWeight() + particleWeightAddition);
 
             // Marking particle as correct:
             correctParticleIdxs.push_back(i);
@@ -413,7 +476,7 @@ void ParticleFilter::processMovement(double distance, int angle)
         }
     }
 
-    std::cout << "In total " << incorrectParticleIdxs.size() << " particles are out of bound and " << correctParticleIdxs.size() << " are ok.\n";
+    spdlog::info("In total {} particles are out of bound and {} particles are oke.", incorrectParticleIdxs.size(), correctParticleIdxs.size());
 
     // Process new particle locations:
     processNewParticleLocations(correctParticleIdxs.data(), incorrectParticleIdxs.data(), correctParticleIdxs.size(), incorrectParticleIdxs.size(), distance, particlesPerCell);

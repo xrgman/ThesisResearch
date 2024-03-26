@@ -11,8 +11,12 @@ public:
     ~LocalizationTable();
 
     void initialize(const int totalNumberOfCells, const int robotId, const int senderId);
+    void clear();
 
     void markCellAsPossible(const int originCell, const int destinationCell);
+
+    int getNumberOfRows();
+    bool isRowInvalid(int row);
 
     void printTable();
 

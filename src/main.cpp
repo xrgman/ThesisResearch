@@ -886,7 +886,7 @@ void handleKeyboardInput()
                 const char *filename = words[1].c_str();
                 int duration = stoi(words[2]);
 
-                cout << "Starting recording to file " << filename << " for " << duration << " seconds\n";
+                spdlog::info("Starting recording to file {} for {} seconds.", filename, duration);
 
                 recordToWavFile(filename, duration);
 
@@ -1525,7 +1525,7 @@ int main()
 
     audioHelper.stopAndClose();
 
-    cout << "End program reached!\n";
+    spdlog::info("End program reached!");
 
     return 0;
 }

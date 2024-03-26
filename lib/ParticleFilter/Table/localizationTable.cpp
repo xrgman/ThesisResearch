@@ -39,6 +39,10 @@ LocalizationTable::~LocalizationTable()
     }
 }
 
+/// @brief Initialize the table, sets all values to false.
+/// @param totalNumberOfCells Total number of cells in the map.
+/// @param robotId Own robot id.
+/// @param senderId Id of the sender robot.
 void LocalizationTable::initialize(const int totalNumberOfCells, const int robotId, const int senderId)
 {
     this->totalNumberOfCells = totalNumberOfCells;
@@ -59,9 +63,47 @@ void LocalizationTable::initialize(const int totalNumberOfCells, const int robot
     }
 }
 
+/// @brief Set all values back to false, cleaning the table.
+void LocalizationTable::clear()
+{
+    for (int i = 0; i < totalNumberOfCells; i++)
+    {
+        for (int j = 0; j < totalNumberOfCells; j++)
+        {
+            table[i][j] = false;
+        }
+    }
+}
+
+/// @brief Mark a certain cell combination as possible.
+/// @param originCell Cell the own robot could be in.
+/// @param destinationCell Cell the sender would be in.
 void LocalizationTable::markCellAsPossible(const int originCell, const int destinationCell)
 {
     table[originCell][destinationCell] = true;
+}
+
+/// @brief Get the amount of rows that the table has, which is based on the number of cells in the map.
+/// @return Number of rows in the table.
+int LocalizationTable::getNumberOfRows()
+{
+    return this->totalNumberOfCells;
+}
+
+/// @brief Check whether a given row is invalid (all columns marked false). This indicates that the robot cannot be in this cell.
+/// @param row Id of the row to check.
+/// @return Whether all columns are marked false in the specific row:
+bool LocalizationTable::isRowInvalid(int row)
+{
+    for (int i = 0; i < totalNumberOfCells; i++)
+    {
+        if (table[row][i])
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /// @brief Print out the contents of the table to the console.

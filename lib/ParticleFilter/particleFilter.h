@@ -44,6 +44,7 @@ public:
 
 private:
     const int totalNumberOfRobots, robotId;
+    const double particleWeightAddition;
 
     MapData mapData;
     int selectedCellIdx;
