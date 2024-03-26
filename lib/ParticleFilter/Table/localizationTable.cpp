@@ -4,10 +4,10 @@
 
 using namespace std;
 
-/// @brief Default constructor, should not be used in practice!
-// LocalizationTable::LocalizationTable() : totalNumberOfCells(-1), robotId(-1), senderId(-1)
-// {
-// }
+// @brief Default constructor, should not be used in practice!
+LocalizationTable::LocalizationTable() : totalNumberOfCells(-1), robotId(-1), senderId(-1)
+{
+}
 
 // LocalizationTable::LocalizationTable(const int totalNumberOfCells, const int robotId, const int senderId) : totalNumberOfCells(totalNumberOfCells), robotId(robotId), senderId(senderId)
 // {
@@ -28,7 +28,7 @@ using namespace std;
 /// @brief Destructor, used to deallocate memory.
 LocalizationTable::~LocalizationTable()
 {
-    if (table != NULL)
+    if (table != NULL && totalNumberOfCells > 0)
     {
         for (int i = 0; i < totalNumberOfCells; i++)
         {

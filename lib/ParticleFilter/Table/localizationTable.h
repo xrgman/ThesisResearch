@@ -6,7 +6,7 @@
 class LocalizationTable
 {
 public:
-    // LocalizationTable();
+    LocalizationTable();
     // LocalizationTable(const int totalNumberOfCells, const int robotId, const int senderId);
     ~LocalizationTable();
 

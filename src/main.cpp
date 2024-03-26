@@ -782,6 +782,9 @@ void processFileWoDistance(const char *filename)
     cout << "Done processing WAV file!\n";
 }
 
+/// @brief Draw the shortest path between two cells on a map.
+/// @param startCellId Start cell id.
+/// @param stopCellId Stop cell id.
 void drawShortestPathBetweenCells(const int startCellId, const int stopCellId)
 {
     if (!mapRenderer.isInitialized())
@@ -808,6 +811,9 @@ void drawShortestPathBetweenCells(const int startCellId, const int stopCellId)
     spdlog::info("Path length: {}", distance);
 }
 
+/// @brief Draw the longest path between two cells on a map.
+/// @param startCellId Start cell id.
+/// @param stopCellId Stop cell id.
 void drawLongestPathBetweenCells(const int startCellId, const int stopCellId)
 {
     if (!mapRenderer.isInitialized())
@@ -1059,7 +1065,10 @@ void handleKeyboardInput()
                 double newVolume = stod(words[1]);
 
                 audioCodec.setVolume(newVolume);
+
                 spdlog::info("Volume set to {}", newVolume);
+
+                continue;
             }
 
             // Start particle filer:
@@ -1072,11 +1081,11 @@ void handleKeyboardInput()
                     doNotInitializeMapRenderer = words[1] == "true";
                 }
 
-                cout << "Starting particle filter.\n";
-
                 loadParticleFilter(!doNotInitializeMapRenderer);
 
                 cv_decodingResult.notify_one();
+
+                spdlog::info("Sucessfully started the particle filter.");
 
                 continue;
             }
@@ -1084,9 +1093,18 @@ void handleKeyboardInput()
             // Start particle filer:
             if (words[0] == "pft")
             {
+                if (words.size() < 4)
+                {
+                    spdlog::error("Wrong input! Correct usage: pft <sender_id> <angle_degrees> <distance_cm>");
+
+                    continue;
+                }
+
                 int senderId = stoi(words[1]);
                 double angle = stod(words[2]);    // In degrees
                 double distance = stod(words[3]); // In cm
+
+                spdlog::info("Processing received message from robot {} at {} degrees and {} cm", senderId, angle, distance);
 
                 particleFilter.processMessageTable(senderId, distance, angle, 0);
 
@@ -1096,9 +1114,16 @@ void handleKeyboardInput()
             // Sending messages and recording to wav file simultanious.
             if (words[0] == "pfpf")
             {
+                if (words.size() < 2)
+                {
+                    spdlog::error("Wrong input! Correct usage: pfpf <filename>");
+
+                    continue;
+                }
+
                 const char *filename = words[1].c_str();
 
-                cout << "Processing file " << filename << ".\n";
+                spdlog::info("Processing file {}", filename);
 
                 processFileWoDistance(filename);
 
@@ -1108,9 +1133,9 @@ void handleKeyboardInput()
             // Reset particle filteR:
             if (words[0] == "pfr")
             {
-                cout << "Resetting particle filter.\n";
-
                 particleFilter.initializeParticlesUniformly();
+
+                spdlog::info("Successfully resetted the particle filter!");
 
                 continue;
             }
@@ -1118,10 +1143,17 @@ void handleKeyboardInput()
             // Particle filte update based on detected wall:
             if (words[0] == "pfwd")
             {
+                if (words.size() < 3)
+                {
+                    spdlog::error("Wrong input! Correct usage: pfwd <wall_angle_degrees> <wall_distance_cm>");
+
+                    continue;
+                }
+
                 double wallAngle = stod(words[1]);    // In degrees
                 double wallDistance = stod(words[2]); // In cm
 
-                cout << "Processing fact that robot has seen a wall at " << wallAngle << " degrees and " << wallDistance << " cm\n";
+                spdlog::info("Processing the fact that the robot has seen a wall at {} degrees and {} cm", wallAngle, wallDistance);
 
                 particleFilter.processWallDetected(wallAngle, wallDistance);
 
@@ -1131,19 +1163,37 @@ void handleKeyboardInput()
             // Draw shortest path between two cells:
             if (words[0] == "pfsp")
             {
+                if (words.size() < 3)
+                {
+                    spdlog::error("Wrong input! Correct usage: pfsp <start_cell_id> <stop_cell_id>");
+
+                    continue;
+                }
+
                 int startCellId = stoi(words[1]);
                 int stopCellId = stoi(words[2]);
 
                 drawShortestPathBetweenCells(startCellId, stopCellId);
+
+                continue;
             }
 
             // Draw longest path between two cells:
             if (words[0] == "pflp")
             {
+                if (words.size() < 3)
+                {
+                    spdlog::error("Wrong input! Correct usage: pflp <start_cell_id> <stop_cell_id>");
+
+                    continue;
+                }
+
                 int startCellId = stoi(words[1]);
                 int stopCellId = stoi(words[2]);
 
                 drawLongestPathBetweenCells(startCellId, stopCellId);
+
+                continue;
             }
 
             // Remove pf cache:
@@ -1159,13 +1209,18 @@ void handleKeyboardInput()
                 {
                     spdlog::error("Unable to removed the file: {}", cacheFileName.c_str());
                 }
+
+                continue;
             }
 
+            // Print input stream load to the console.
             if (words[0] == "pali")
             {
                 double load = audioHelper.getInputStreamLoad();
 
-                cout << "Current input stream load: " << load << endl;
+                spdlog::info("Current input stream load: {}", load);
+
+                continue;
             }
         }
 

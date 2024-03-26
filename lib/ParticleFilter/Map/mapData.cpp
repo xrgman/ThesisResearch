@@ -12,10 +12,9 @@ void MapData::initialize()
     // Opening file and checking if it was successfull:
     if (loadCachedPathData(cacheFileName.c_str()))
     {
+        //If loading cache was successfull, we don't need to generate any data so we return.
         return;
     }
-
-    // Check if json file exist with cached data, else generate new data and cache that:
 
     // Calculating distances between cells:
     shortestDistancessBetweenCells = new double *[numberOfCells];
