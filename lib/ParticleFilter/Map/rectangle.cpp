@@ -39,6 +39,13 @@ int Rectangle::getDiameter()
     return this->diameter;
 }
 
+/// @brief Get the center X and Y coordinate of a cell.
+/// @return Center coordinates cell.
+std::pair<int, int> Rectangle::getCenter() const
+{
+    return std::make_pair(centerX, centerY);
+}
+
 /// @brief Check if the given x/y coordinate is inside the rectangle.
 /// @param x X coordinate to check.
 /// @param y Y coordinate to check.

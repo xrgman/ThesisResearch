@@ -215,42 +215,42 @@ void MapRenderer::renderMap(SDL_Renderer *renderer, TTF_Font *font, uint8_t scal
     // Drawing all cells:
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
 
-    // for (int i = 0; i < mapData->getNumberOfCells(); i++)
-    // {
-    //     Cell cell = mapData->getCells()[i];
-
-    //     SDL_Rect rect = {
-    //         (int)std::ceil(cell.startX / scale) + BORDER_WIDTH,
-    //         (int)std::ceil(cell.startY / scale) + BORDER_HEIGHT,
-    //         (int)std::ceil(cell.getWidth() / scale),
-    //         (int)std::ceil(cell.getHeight() / scale)};
-
-    //     // Check if current cell is the converged cell, if so fill it in.
-    //     if (selectedCellIdx == i)
-    //     {
-    //         SDL_RenderFillRect(renderer, &rect);
-    //     }
-    //     else
-    //     {
-    //         SDL_RenderDrawRect(renderer, &rect);
-    //     }
-
-    //     writeTextCenterRect(renderer, font, {0, 0, 0}, cell.getCellName(), rect);
-    // }
-
-    // Draw allowed coordinates:
-    for (int i = 0; i < mapData->getAllowedCoordinates().size(); i++)
+    for (int i = 0; i < mapData->getNumberOfCells(); i++)
     {
-        Rectangle allowedCoordinate = mapData->getAllowedCoordinates()[i];
+        Cell cell = mapData->getCells()[i];
 
         SDL_Rect rect = {
-            (int)std::ceil(allowedCoordinate.startX / scale) + BORDER_WIDTH,
-            (int)std::ceil(allowedCoordinate.startY / scale) + BORDER_HEIGHT,
-            (int)std::ceil(allowedCoordinate.getWidth() / scale),
-            (int)std::ceil(allowedCoordinate.getHeight() / scale)};
+            (int)std::ceil(cell.startX / scale) + BORDER_WIDTH,
+            (int)std::ceil(cell.startY / scale) + BORDER_HEIGHT,
+            (int)std::ceil(cell.getWidth() / scale),
+            (int)std::ceil(cell.getHeight() / scale)};
 
-        SDL_RenderDrawRect(renderer, &rect);
+        // Check if current cell is the converged cell, if so fill it in.
+        if (selectedCellIdx == i)
+        {
+            SDL_RenderFillRect(renderer, &rect);
+        }
+        else
+        {
+            SDL_RenderDrawRect(renderer, &rect);
+        }
+
+        writeTextCenterRect(renderer, font, {0, 0, 0}, cell.getCellName(), rect);
     }
+
+    // Draw allowed coordinates:
+    // for (int i = 0; i < mapData->getAllowedCoordinates().size(); i++)
+    // {
+    //     Rectangle allowedCoordinate = mapData->getAllowedCoordinates()[i];
+
+    //     SDL_Rect rect = {
+    //         (int)std::ceil(allowedCoordinate.startX / scale) + BORDER_WIDTH,
+    //         (int)std::ceil(allowedCoordinate.startY / scale) + BORDER_HEIGHT,
+    //         (int)std::ceil(allowedCoordinate.getWidth() / scale),
+    //         (int)std::ceil(allowedCoordinate.getHeight() / scale)};
+
+    //     SDL_RenderDrawRect(renderer, &rect);
+    // }
 
     // Drawing all doors:
     std::vector<Door> doors = mapData->getDoors();

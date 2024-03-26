@@ -3,10 +3,8 @@
 #include <cfloat>
 #include "util.h"
 
-AStarAlgorithm::AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &cells, const std::vector<Door> &doors, const std::vector<Wall> &walls, bool allowDiagonal) : cells(cells), doors(doors), walls(walls)
+AStarAlgorithm::AStarAlgorithm(Cell &startCell, Cell &stopCell, const std::vector<Cell> &cells, const std::vector<Door> &doors, const std::vector<Wall> &walls, bool allowDiagonal) : startCell(startCell), stopCell(stopCell), cells(cells), doors(doors), walls(walls)
 {
-    this->startCell = start;
-    this->stopCell = stop;
     this->directions = allowDiagonal ? 8 : 4;
 }
 

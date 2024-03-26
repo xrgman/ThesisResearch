@@ -17,14 +17,15 @@ enum AStarAlgorithmMode {
 class AStarAlgorithm
 {
 public:
-    AStarAlgorithm(Cell start, Cell stop, const std::vector<Cell> &cells, const std::vector<Door> &doors, const std::vector<Wall> &walls, bool allowDiagonal);
+    AStarAlgorithm(Cell &startCell, Cell &stopCell, const std::vector<Cell> &cells, const std::vector<Door> &doors, const std::vector<Wall> &walls, bool allowDiagonal);
 
     double calculateMiddlePointPathDistance(Path &cellPath, std::vector<std::pair<int, int>> &nodePath);
     double calculateShortestDistance(Path &cellPath, std::vector<std::pair<int, int>> &nodePath);
     double calculateLongestDistance(std::vector<std::pair<int, int>> &nodePath);
 
 private:
-    Cell startCell, stopCell;
+    Cell &startCell;
+    Cell &stopCell;
     const std::vector<Cell> &cells;
     const std::vector<Door> &doors;
     const std::vector<Wall> &walls;

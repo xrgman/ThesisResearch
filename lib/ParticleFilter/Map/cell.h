@@ -13,24 +13,17 @@
 
 using json = nlohmann::json;
 
-class Cell
+class Cell : public Rectangle
 {
 public:
-    Cell();
     Cell(int id, int startX, int stopX, int startY, int stopY);
 
-    int getWidth();
-    int getHeight();
-    int getDiameter();
-
-    std::pair<int, int> getCenter();
     std::vector<std::pair<int, int>> &getBorderCoordinates();
     std::vector<std::pair<int, int>> &getBorderCornerCoordinates();
     std::vector<std::pair<int, int>> getBorderCornerCoordinatesPossibilities(const std::pair<int, int> &coordinates);
     std::pair<int, int> &getBorderCoordinatesClosestTo(const int x, const int y);
     std::pair<int, int> &getBorderCoordinatesFarthestFrom(const int x, const int y);
 
-    bool containsPoint(const int x, const int y) const;
     bool intersectsWall(Wall &wall) const;
 
     int getRelativeAngleToCell(Cell &other) const;
@@ -44,14 +37,9 @@ public:
     static void getFarthestCoordinates(const Cell &from, const Cell &to, std::pair<int, int> &coordinatesFrom, std::pair<int, int> &coordinatesTo);
 
     int id;
-    int startX;
-    int startY;
-    int stopX;
-    int stopY;
 
 private:
-    int height, width, diameter;
-    int centerX, centerY;
+
     std::vector<std::pair<int, int>> borderCoordinates;
     std::vector<std::pair<int, int>> borderCoordinatesCorners;
 

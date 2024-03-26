@@ -21,13 +21,15 @@ public:
     int getHeight();
     int getDiameter();
 
+    std::pair<int, int> getCenter() const;
+
     bool containsPoint(const int x, const int y) const;
     bool isInside(Rectangle &other) const;
     bool isIntersectedBy(Line line) const;
 
     static Rectangle fromJson(const json &j);
 
-private:
+protected:
     int height, width, diameter;
     int centerX, centerY;
 };
