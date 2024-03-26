@@ -4,29 +4,30 @@
 #include <stdint.h>
 #include <nlohmann/json.hpp>
 
+#include "rectangle.h"
 #include "line.h"
 
 using json = nlohmann::json;
 
-class Wall
+class Wall : public Rectangle
 {
 public:
+    Wall(int id, double orientation, int startX, int stopX, int startY, int stopY) : Rectangle(startX, stopX, startY, stopY)
+    {
+    }
+
     int id;
     double orientation;
-    int startX;
-    int startY;
-    int stopX;
-    int stopY;
 
-    int getWidth();
-    int getHeight();
-
-    bool isIntersectedBy(Line line) const;
-    bool containsPoint(const int x, const int y) const;
-
-    static void from_json(const json &j, Wall &cellData);
-
-private:
+    static Wall fromJson(const json &jsonData)
+    {
+        return Wall(jsonData["id"],
+                    jsonData["orientation"],
+                    jsonData["startX"],
+                    jsonData["stopX"],
+                    jsonData["startY"],
+                    jsonData["stopY"]);
+    }
 };
 
 #endif

@@ -18,10 +18,13 @@ static std::vector<int> emptyVec;
 class MapData
 {
 public:
+MapData();
+    MapData(std::string name, int numberOfCells, int numberOfWalls, int numberOfDoors, int numberOfAllowedCoordinates);
+
     ~MapData()
     {
-        //Removing shortest distances data:
-        if (shortestDistancessBetweenCells != NULL)
+        // Removing shortest distances data:
+        if (shortestDistancessBetweenCells != nullptr && *shortestDistancessBetweenCells != nullptr)
         {
             for (int i = 0; i < numberOfCells; i++)
             {
@@ -31,8 +34,8 @@ public:
             delete[] shortestDistancessBetweenCells;
         }
 
-        //Removing longest distances data:
-        if (longestDistancessBetweenCells != NULL)
+        // Removing longest distances data:
+        if (longestDistancessBetweenCells != nullptr && *longestDistancessBetweenCells != nullptr)
         {
             for (int i = 0; i < numberOfCells; i++)
             {
@@ -53,29 +56,33 @@ public:
     std::vector<Cell> &getCells();
     std::vector<Wall> &getWalls();
     std::vector<Door> &getDoors();
+    std::vector<Rectangle> &getAllowedCoordinates();
 
     std::string getPathCacheFileName();
 
     double **&getShortestDistancessBetweenCells();
     double **&getLongestDistancesBetweenCells();
 
-    std::vector<int> &getPathBetweenCells(int startCellIdx, int stopCellIdx, bool& success);
+    std::vector<int> &getPathBetweenCells(int startCellIdx, int stopCellIdx, bool &success);
 
     void print();
+
+    static MapData loadMapData(const char *filename, bool &success);
 
 private:
     std::string name;
     int numberOfCells;
     int numberOfWalls;
     int numberOfDoors;
+    int numberOfAllowedCoordinates;
 
     std::vector<Cell> cells;
     std::vector<Wall> walls;
     std::vector<Door> doors;
     std::vector<Rectangle> allowedCoordinates;
 
-    double **shortestDistancessBetweenCells; //Shortest distance between two cells.
-    double **longestDistancessBetweenCells; //Longest distance between two cells, but still taking the shortest path.
+    double **shortestDistancessBetweenCells = nullptr; // Shortest distance between two cells.
+    double **longestDistancessBetweenCells = nullptr;  // Longest distance between two cells, but still taking the shortest path.
 
     std::vector<Path> pathsBetweenCells;
 
@@ -88,80 +95,10 @@ private:
     bool isCellInsideWalls(const Cell &cell);
     bool checkCellIntersectionWalls(const Cell &cell);
 
-    void cachePathData(const char* filename);
+    void cachePathData(const char *filename);
     bool loadCachedPathData(const char *filename);
 
-    friend void from_json(const json &j, MapData &mapData)
-    {
-        j.at("map_name").get_to(mapData.name);
-        j.at("number_of_cells").get_to(mapData.numberOfCells);
-        j.at("number_of_walls").get_to(mapData.numberOfWalls);
-        j.at("number_of_doors").get_to(mapData.numberOfDoors);
-
-        // Deserializing cells:
-        if (j.find("cells") != j.end() && j["cells"].is_array())
-        {
-            int numCells = j["cells"].size();
-
-            mapData.cells.reserve(numCells);
-
-            for (int i = 0; i < numCells; i++)
-            {
-                Cell cell = Cell::fromJson(j["cells"][i]);
-
-                mapData.cells.push_back(cell);
-            }
-        }
-
-        // Deserializing walls:
-        if (j.find("walls") != j.end() && j["walls"].is_array())
-        {
-            int numWalls = j["walls"].size();
-
-            mapData.walls.reserve(numWalls);
-
-            for (int i = 0; i < numWalls; i++)
-            {
-                Wall wall;
-                Wall::from_json(j["walls"][i], wall);
-
-                mapData.walls.push_back(wall);
-            }
-        }
-
-        // Deserializing doors:
-        if (j.find("doors") != j.end() && j["doors"].is_array())
-        {
-            int numDoors = j["doors"].size();
-
-            mapData.doors.reserve(numDoors);
-
-            for (int i = 0; i < numDoors; i++)
-            {
-                Door door;
-                Door::from_json(j["doors"][i], door);
-
-                mapData.doors.push_back(door);
-            }
-        }
-
-        // Deserializing allowed coordinates:
-        if (j.find("allowedCoordinates") != j.end() && j["allowedCoordinates"].is_array())
-        {
-            int numAllowedCoordinates = j["allowedCoordinates"].size();
-
-            mapData.allowedCoordinates.reserve(numAllowedCoordinates);
-
-            for (int i = 0; i < numAllowedCoordinates; i++)
-            {
-                Rectangle allowedCoordinate = Rectangle::fromJson(j["allowedCoordinates"][i]);
-
-                mapData.allowedCoordinates.push_back(allowedCoordinate);
-            }
-        }
-
-        int bla = 10;
-    };
+    
 };
 
 #endif

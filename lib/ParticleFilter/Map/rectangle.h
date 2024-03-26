@@ -19,9 +19,11 @@ public:
 
     int getWidth();
     int getHeight();
+    int getDiameter();
 
-    bool isIntersectedBy(Line line) const;
     bool containsPoint(const int x, const int y) const;
+    bool isInside(Rectangle &other) const;
+    bool isIntersectedBy(Line line) const;
 
     static Rectangle fromJson(const json &j);
 

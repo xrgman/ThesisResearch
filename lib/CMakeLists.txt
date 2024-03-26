@@ -4,7 +4,7 @@ add_library(AudioHelper SHARED AudioHelper/audioHelper.cpp ${CMAKE_CURRENT_SOURC
 add_library(kissfft SHARED kissfft/kiss_fft.c kissfft/kiss_fftr.c)
 add_library(FFTWrapper SHARED FFTWrapper/fftWrapper.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../src/main.h)
 add_library(Util SHARED Util/util.cpp)
-add_library(ParticleFilter SHARED ParticleFilter/particleFilter.cpp  ${CMAKE_CURRENT_SOURCE_DIR}/../src/main.h ParticleFilter/particle.cpp ParticleFilter/Map/mapData.cpp ParticleFilter/Map/wall.cpp ParticleFilter/Map/door.cpp ParticleFilter/Map/path.cpp ParticleFilter/Map/line.h ParticleFilter/Map/rectangle.cpp ParticleFilter/Table/localizationTable.cpp) 
+add_library(ParticleFilter SHARED ParticleFilter/particleFilter.cpp  ${CMAKE_CURRENT_SOURCE_DIR}/../src/main.h ParticleFilter/particle.cpp ParticleFilter/Map/mapData.cpp ParticleFilter/Map/wall.h ParticleFilter/Map/door.h ParticleFilter/Map/path.cpp ParticleFilter/Map/line.h ParticleFilter/Map/rectangle.cpp ParticleFilter/Table/localizationTable.cpp) 
 add_library(Cell SHARED ParticleFilter/Map/cell.cpp)
 add_library(MapRenderer SHARED MapRenderer/mapRenderer.cpp)
 add_library(AudioCodec SHARED AudioCodec/audioCodec.cpp AudioCodec/audioCodecBits.cpp)

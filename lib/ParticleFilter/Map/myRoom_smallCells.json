@@ -1,69 +1,68 @@
 {
     "map_name": "My room - small cell",
-    "number_of_cells": 0,
-    "number_of_walls": 23, 
-    "number_of_doors": 2,
     "allowedCoordinates": [
         {
-            "startX": 79,
-            "startY": 9,
+            "startX": 80,
+            "startY": 10,
             "stopX": 233,
-            "stopY": 180
+            "stopY": 179
         },
         {
             "startX": 233,
-            "startY": 9,
-            "stopX": 479,
+            "startY": 10,
+            "stopX": 478,
             "stopY": 180
         },
         {
-            "startX": 479,
-            "startY": 132,
-            "stopX": 547,
+            "startX": 478,
+            "startY": 133,
+            "stopX": 546,
             "stopY": 180
         },
         {
-            "startX": 233,
+            "startX": 234,
             "startY": 180,
-            "stopX": 547,
+            "stopX": 546,
             "stopY": 402
         },
         {
-            "startX": 233,
+            "startX": 234,
             "startY": 402,
-            "stopX": 547,
+            "stopX": 546,
             "stopY": 624
         },
         {
             "startX": 233,
             "startY": 624,
-            "stopX": 547,
-            "stopY": 842
+            "stopX": 546,
+            "stopY": 841
         },
         {
-            "startX": 9,
-            "startY": 624,
+            "startX": 10,
+            "startY": 625,
             "stopX": 233,
-            "stopY": 842
+            "stopY": 841
         },
         {
-            "startX": 123,
-            "startY": 399,
-            "stopX": 224,
-            "stopY": 612
+            "startX": 124,
+            "startY": 400,
+            "stopX": 223,
+            "stopY": 611
         },
         {
-            "startX": 123,
-            "startY": 307, 
-            "stopX": 224, 
-            "stopY": 390
+            "startX": 124,
+            "startY": 306, 
+            "stopX": 223, 
+            "stopY": 389
         },
         {
-            "startX": 9,
-            "startY": 189,
-            "stopX": 224,
-            "stopY": 307
+            "startX": 10,
+            "startY": 190,
+            "stopX": 223,
+            "stopY": 306
         }
+    ],
+    "cells": [
     ],
     "walls": [
         {

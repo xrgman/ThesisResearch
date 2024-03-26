@@ -31,32 +31,14 @@ ParticleFilter::~ParticleFilter()
 /// @return Whether decoding the map data was successfull.
 bool ParticleFilter::loadMap(const char *filename, const int cellSize)
 {
-    FILE *fileMapData;
+    // Grabbing map data:
+    bool success;
 
-    // Opening file and checking if it was successfull:
-    if (!openFile(filename, &fileMapData, "r"))
+    mapData = MapData::loadMapData(filename, success);
+
+    if (!success)
     {
-        // TODO print error to console:
         return false;
-    }
-
-    // Reading data from json file and converting it to a string:
-    char *buffer = readFileText(fileMapData);
-
-    std::string fileContent(buffer);
-
-    delete[] buffer;
-
-    // Transforming data into map object:
-    try
-    {
-        mapData = json::parse(fileContent);
-
-        // mapData.print();
-    }
-    catch (const json::exception &e)
-    {
-        std::cerr << "JSON parsing error: " << e.what() << std::endl;
     }
 
     // Initialize map data after loading:

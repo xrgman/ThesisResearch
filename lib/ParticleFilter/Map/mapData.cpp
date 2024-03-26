@@ -4,6 +4,117 @@
 
 #include <string>
 
+MapData::MapData() : name("Unitialized"), numberOfCells(-1), numberOfWalls(-1), numberOfDoors(-1), numberOfAllowedCoordinates(-1)
+{
+}
+
+MapData::MapData(std::string name, int numberOfCells, int numberOfWalls, int numberOfDoors, int numberOfAllowedCoordinates)
+    : name(name), numberOfCells(numberOfCells), numberOfWalls(numberOfWalls), numberOfDoors(numberOfDoors), numberOfAllowedCoordinates(numberOfAllowedCoordinates)
+{
+    this->cells.reserve(numberOfCells);
+    this->walls.reserve(numberOfWalls);
+    this->doors.reserve(numberOfDoors);
+    this->allowedCoordinates.reserve(numberOfAllowedCoordinates);
+}
+
+MapData MapData::loadMapData(const char *filename, bool &success)
+{
+    success = false;
+
+    // Check if file exists:
+    FILE *fileMapData;
+
+    // Opening file and checking if it was successfull:
+    if (!openFile(filename, &fileMapData, "r"))
+    {
+        // TODO print error to console:
+        cout << "File with name " << filename << " does not exist!\n";
+        // return nullptr;
+    }
+
+    // Reading data from json file and converting it to a string:
+    char *buffer = readFileText(fileMapData);
+
+    string fileContent(buffer);
+
+    delete[] buffer;
+
+    // Transforming data into map object:
+    try
+    {
+        json jsonData = json::parse(fileContent);
+
+        MapData mapData(jsonData["map_name"],
+                        jsonData["cells"].size(),
+                        jsonData["walls"].size(),
+                        jsonData["doors"].size(),
+                        jsonData["allowedCoordinates"].size());
+
+        // Deserializing cells:
+        if (jsonData.find("cells") != jsonData.end() && jsonData["cells"].is_array())
+        {
+            int numCells = jsonData["cells"].size();
+
+            for (int i = 0; i < numCells; i++)
+            {
+                Cell cell = Cell::fromJson(jsonData["cells"][i]);
+
+                mapData.cells.push_back(cell);
+            }
+        }
+
+        // Deserializing walls:
+        if (jsonData.find("walls") != jsonData.end() && jsonData["walls"].is_array())
+        {
+            int numWalls = jsonData["walls"].size();
+
+            for (int i = 0; i < numWalls; i++)
+            {
+                Wall wall = Wall::fromJson(jsonData["walls"][i]);
+                ;
+
+                mapData.walls.push_back(wall);
+            }
+        }
+
+        // Deserializing doors:
+        if (jsonData.find("doors") != jsonData.end() && jsonData["doors"].is_array())
+        {
+            int numDoors = jsonData["doors"].size();
+
+            for (int i = 0; i < numDoors; i++)
+            {
+                Door door = Door::fromJson(jsonData["doors"][i]);
+
+                mapData.doors.push_back(door);
+            }
+        }
+
+        // Deserializing allowed coordinates:
+        if (jsonData.find("allowedCoordinates") != jsonData.end() && jsonData["allowedCoordinates"].is_array())
+        {
+            int numAllowedCoordinates = jsonData["allowedCoordinates"].size();
+
+            for (int i = 0; i < numAllowedCoordinates; i++)
+            {
+                Rectangle allowedCoordinate = Rectangle::fromJson(jsonData["allowedCoordinates"][i]);
+
+                mapData.allowedCoordinates.push_back(allowedCoordinate);
+            }
+        }
+
+        success = true;
+
+        return mapData;
+    }
+    catch (const json::exception &e)
+    {
+        spdlog::error("Mapdata json parsing error: {}", e.what());
+    }
+
+    return MapData();
+};
+
 /// @brief Initialize map data by calculating the distances between cells and storing them in a 2D array.
 /// @param cellSize Size that the cells should be, if generated.
 void MapData::initialize(const int cellSize)
@@ -131,6 +242,13 @@ std::vector<Wall> &MapData::getWalls()
 std::vector<Door> &MapData::getDoors()
 {
     return doors;
+}
+
+/// @brief Get a reference to the list containing all the allowed coordinates.
+/// @return Reference to the allowed coordinates list.
+std::vector<Rectangle> &MapData::getAllowedCoordinates()
+{
+    return this->allowedCoordinates;
 }
 
 /// @brief Get the name of the path cache file.
@@ -292,14 +410,14 @@ void MapData::generateCells(const int cellSize)
     int maxX = std::numeric_limits<int>::min();
     int maxY = std::numeric_limits<int>::min();
 
-    for (int i = 0; i < numberOfWalls; i++)
+    for (int i = 0; i < allowedCoordinates.size(); i++)
     {
-        Wall &wall = getWalls()[i];
+        Rectangle &allowedCoordinate = getAllowedCoordinates()[i];
 
-        minX = std::min(minX, wall.stopX);
-        minY = std::min(minY, wall.stopY);
-        maxX = std::max(maxX, wall.startX);
-        maxY = std::max(maxY, wall.startY);
+        minX = std::min(minX, allowedCoordinate.startX);
+        minY = std::min(minY, allowedCoordinate.startY);
+        maxX = std::max(maxX, allowedCoordinate.stopX);
+        maxY = std::max(maxY, allowedCoordinate.stopY);
     }
 
     // Looping over all possible start and stop x, y coordinates within bounds:
@@ -310,6 +428,9 @@ void MapData::generateCells(const int cellSize)
         while (x < maxX)
         {
             Cell newCell(numberOfCells, x, x + cellSize, y, y + cellSize);
+
+            //Checking if cell coordinates are allowed:
+            
 
             // Checking if cell intersects with a wall:
             if (checkCellIntersectionWalls(newCell))
@@ -331,7 +452,8 @@ void MapData::generateCells(const int cellSize)
 
 bool MapData::isCellInsideWalls(const Cell &cell)
 {
-    
+
+    return false;
 }
 
 bool MapData::checkCellIntersectionWalls(const Cell &cell)
