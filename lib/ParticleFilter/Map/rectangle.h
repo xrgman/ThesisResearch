@@ -10,8 +10,9 @@ using json = nlohmann::json;
 class Rectangle
 {
 public:
-    Rectangle(int startX, int stopX, int startY, int stopY);
+    Rectangle(int id, int startX, int stopX, int startY, int stopY);
 
+    int id;
     int startX;
     int startY;
     int stopX;
@@ -29,7 +30,7 @@ public:
     bool isIntersectedBy(Line line) const;
     bool isIntersectedBy(const Rectangle &other) const;
 
-    static Rectangle fromJson(const json &j);
+    static Rectangle fromJson(const int id, const json &j);
 
 protected:
     int height, width, diameter;

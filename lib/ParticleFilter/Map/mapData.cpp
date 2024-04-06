@@ -97,7 +97,7 @@ MapData MapData::loadMapData(const char *filename, bool &success)
 
             for (int i = 0; i < numAllowedCoordinates; i++)
             {
-                Rectangle allowedCoordinate = Rectangle::fromJson(jsonData["allowedCoordinates"][i]);
+                Rectangle allowedCoordinate = Rectangle::fromJson(i, jsonData["allowedCoordinates"][i]);
 
                 mapData.allowedCoordinates.push_back(allowedCoordinate);
             }
@@ -429,21 +429,17 @@ void MapData::generateCells(const int cellSize)
 
     while (y < maxY)
     {
-        // x = minX; TODODODOD
+        x = minX;
         validCellInRow = false;
 
         while (x < maxX)
         {
             Cell newCell(numberOfCells, x, x + cellSize, y, y + cellSize);
             int nrAllowedcoordinates = 0;
-
-            if (x == 460)
-            {
-                int t = 10;
-            }
+            set<int> allowedCoordinatesIds;
 
             // Checking if cell coordinates are allowed:
-            if (!areCellCoordinatesValid(newCell, nrAllowedcoordinates))
+            if (!areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds))
             {
                 // If no coordinates are allowed or there arn't any previous cells in this row, continue:
                 if (nrAllowedcoordinates == 0 || !validCellInRow)
@@ -453,28 +449,21 @@ void MapData::generateCells(const int cellSize)
                     continue;
                 }
 
-                // Finding walls with which this cell intersects:
-                vector<int> intersectedWallIds = getIntersectedWallIds(newCell);
 
+                //If most of the cell is allowed, create a new cell:
                 if (nrAllowedcoordinates >= newCell.getCoordinates().size() * 0.6)
                 {
-                    // Create a new cell to fill up to wall:
-                    int bla = 4;
+                    newCell = createCellFillAllowedSpace(x, y, cellSize, allowedCoordinatesIds);
                 }
                 else
                 {
-                    // Update previous
+                    // Most of the cell is not allowed, updating previous one:
                     int suz = 10;
+
+                    x++;
+
+                    continue;
                 }
-
-                // If nr of allowed coordinates is > 60% create cell, else update previous cell :)
-
-                // DO something to fill up the space:
-
-                // Updating x coordinate and trying again:
-                x++;
-
-                continue;
             }
 
             // Checking if cell intersects with a wall:
@@ -499,7 +488,7 @@ void MapData::generateCells(const int cellSize)
 /// @brief Checking if cell coordinates are valid by checking if the whole cell is inside one of the allowed coordinates.
 /// @param cell Cell to check.
 /// @return Whether the cell coordinates are allowed.
-bool MapData::areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordinates)
+bool MapData::areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordinates, set<int> &allowedCoordinatesIds)
 {
     std::vector<std::pair<int, int>> cellCoordinates = cell.getCoordinates();
     nrOfAllowedCoordinates = 0;
@@ -517,6 +506,8 @@ bool MapData::areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordina
             {
                 coordinatesAllowed = true;
                 nrOfAllowedCoordinates++;
+
+                allowedCoordinatesIds.insert(allowedCoordinate.id);
 
                 break;
             }
@@ -546,19 +537,30 @@ bool MapData::checkCellIntersectionWalls(const Cell &cell)
     return false;
 }
 
-vector<int> MapData::getIntersectedWallIds(const Cell &cell)
+Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds)
 {
-    vector<int> intersectedWalls;
+    int stopX = startX + cellSize;
+    int stopY = startY + cellSize;
 
-    for (Wall &wall : getWalls())
+    // Checking intersecting walls:
+    for (const int &allowedCoordinatesId : allowedCoordinatesIds)
     {
-        if (wall.isIntersectedBy(cell))
+        Rectangle &allowedCoordinate = getAllowedCoordinates()[allowedCoordinatesId];
+
+        if (stopX > allowedCoordinate.stopX)
         {
-            intersectedWalls.push_back(wall.id);
+            stopX = allowedCoordinate.stopX;
+        }
+
+        if (stopY > allowedCoordinate.stopY)
+        {
+            stopY = allowedCoordinate.stopY;
         }
     }
 
-    return intersectedWalls;
+    Cell filledCell(numberOfCells, startX, stopX, startY, stopY);
+
+    return filledCell;
 }
 
 /// @brief Write the calculate path distances to a cache json file.

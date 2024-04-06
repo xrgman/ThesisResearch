@@ -4,7 +4,7 @@
 #include <cfloat>
 #include "util.h"
 
-Cell::Cell(int id, int startX, int stopX, int startY, int stopY) : id(id), Rectangle(startX, stopX, startY, stopY)
+Cell::Cell(int id, int startX, int stopX, int startY, int stopY) : Rectangle(id, startX, stopX, startY, stopY)
 {
     // Calculating border coordinates:
     fillBorderCoordinates();

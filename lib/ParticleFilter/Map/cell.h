@@ -35,8 +35,6 @@ public:
     static void getClosestCoordinates(const Cell &from, const Cell &to, std::pair<int, int> &coordinatesFrom, std::pair<int, int> &coordinatesTo);
     static void getFarthestCoordinates(const Cell &from, const Cell &to, std::pair<int, int> &coordinatesFrom, std::pair<int, int> &coordinatesTo);
 
-    int id;
-
 private:
     std::vector<std::pair<int, int>> borderCoordinates;
     std::vector<std::pair<int, int>> borderCoordinatesCorners;

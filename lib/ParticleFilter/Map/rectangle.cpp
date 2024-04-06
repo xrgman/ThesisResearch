@@ -1,8 +1,8 @@
 #include "rectangle.h"
 #include "util.h"
 
-Rectangle::Rectangle(int startX, int stopX, int startY, int stopY)
-    : startX(startX), stopX(stopX), startY(startY), stopY(stopY)
+Rectangle::Rectangle(int id, int startX, int stopX, int startY, int stopY)
+    : id(id), startX(startX), stopX(stopX), startY(startY), stopY(stopY)
 {
     width = stopX - startX;
     height = stopY - startY;
@@ -11,9 +11,10 @@ Rectangle::Rectangle(int startX, int stopX, int startY, int stopY)
     centerY = (startY + stopY) / 2;
 }
 
-Rectangle Rectangle::fromJson(const json &jsonData)
+Rectangle Rectangle::fromJson(const int id, const json &jsonData)
 {
-    return Rectangle(jsonData["startX"],
+    return Rectangle(id,
+                     jsonData["startX"],
                      jsonData["stopX"],
                      jsonData["startY"],
                      jsonData["stopY"]);
@@ -62,7 +63,6 @@ std::vector<std::pair<int, int>> Rectangle::getCoordinates() const
 
     return coordinates;
 }
-
 
 /// @brief Check if the given x/y coordinate is inside the rectangle.
 /// @param x X coordinate to check.

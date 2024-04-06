@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <vector>
+#include <set>
 #include "cell.h"
 #include "wall.h"
 #include "door.h"
@@ -92,10 +93,10 @@ private:
     double calculateLongestDistanceBetweenCells(int originCellId, int destinationCellId);
 
     void generateCells(const int cellSize);
-    bool areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordinates);
+    bool areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordinates, set<int> &allowedCoordinatesIds);
     bool checkCellIntersectionWalls(const Cell &cell);
 
-    vector<int> getIntersectedWallIds(const Cell &cell);
+    Cell createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds);
 
     void cachePathData(const char *filename);
     bool loadCachedPathData(const char *filename);
