@@ -187,7 +187,7 @@ void MapData::initialize(const int cellSize)
     }
 
     // Cache the generated path data:
-    cachePathData(cacheFileName.c_str());
+    // cachePathData(cacheFileName.c_str());
 }
 
 /// @brief Get the name of the map.
@@ -330,6 +330,9 @@ void MapData::print()
         cout << "\t\t{ID: " << door.id << ", startX: " << door.startX << ", startY: " << door.startY << ", stopX: " << door.stopX << ", stopY: " << door.stopY << "}\n";
     }
 
+    // TODO: REMOVE:
+    return;
+
     cout << "Shortest distances between cells: \n";
     cout << "\t| ";
 
@@ -422,38 +425,110 @@ void MapData::generateCells(const int cellSize)
 
     // Looping over all possible start and stop x, y coordinates within bounds:
     int y = minY, x = minX;
+    bool validCellInRow;
 
     while (y < maxY)
     {
+        // x = minX; TODODODOD
+        validCellInRow = false;
+
         while (x < maxX)
         {
             Cell newCell(numberOfCells, x, x + cellSize, y, y + cellSize);
+            int nrAllowedcoordinates = 0;
 
-            //Checking if cell coordinates are allowed:
-            
+            if (x == 460)
+            {
+                int t = 10;
+            }
+
+            // Checking if cell coordinates are allowed:
+            if (!areCellCoordinatesValid(newCell, nrAllowedcoordinates))
+            {
+                // If no coordinates are allowed or there arn't any previous cells in this row, continue:
+                if (nrAllowedcoordinates == 0 || !validCellInRow)
+                {
+                    x++;
+
+                    continue;
+                }
+
+                // Finding walls with which this cell intersects:
+                vector<int> intersectedWallIds = getIntersectedWallIds(newCell);
+
+                if (nrAllowedcoordinates >= newCell.getCoordinates().size() * 0.6)
+                {
+                    // Create a new cell to fill up to wall:
+                    int bla = 4;
+                }
+                else
+                {
+                    // Update previous
+                    int suz = 10;
+                }
+
+                // If nr of allowed coordinates is > 60% create cell, else update previous cell :)
+
+                // DO something to fill up the space:
+
+                // Updating x coordinate and trying again:
+                x++;
+
+                continue;
+            }
 
             // Checking if cell intersects with a wall:
-            if (checkCellIntersectionWalls(newCell))
-            {
-                break;
-            }
+            // if (checkCellIntersectionWalls(newCell))
+            // {
+            //     break;
+            // }
 
             cells.push_back(newCell);
             numberOfCells++;
+            validCellInRow = true;
 
             x += cellSize;
         }
 
-        y += cellSize;
+        y += validCellInRow ? cellSize : 1;
     }
 
     int bla = 10;
 }
 
-bool MapData::isCellInsideWalls(const Cell &cell)
+/// @brief Checking if cell coordinates are valid by checking if the whole cell is inside one of the allowed coordinates.
+/// @param cell Cell to check.
+/// @return Whether the cell coordinates are allowed.
+bool MapData::areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordinates)
 {
+    std::vector<std::pair<int, int>> cellCoordinates = cell.getCoordinates();
+    nrOfAllowedCoordinates = 0;
 
-    return false;
+    for (int i = 0; i < cellCoordinates.size(); i++)
+    {
+        const std::pair<int, int> &coordinates = cellCoordinates[i];
+        bool coordinatesAllowed = false;
+
+        for (int j = 0; j < numberOfAllowedCoordinates; j++)
+        {
+            Rectangle &allowedCoordinate = getAllowedCoordinates()[j];
+
+            if (allowedCoordinate.containsPoint(coordinates.first, coordinates.second))
+            {
+                coordinatesAllowed = true;
+                nrOfAllowedCoordinates++;
+
+                break;
+            }
+        }
+
+        // if (!coordinatesAllowed)
+        // {
+        //     return false;
+        // }
+    }
+
+    return cellCoordinates.size() == nrOfAllowedCoordinates;
 }
 
 bool MapData::checkCellIntersectionWalls(const Cell &cell)
@@ -462,13 +537,28 @@ bool MapData::checkCellIntersectionWalls(const Cell &cell)
     {
         Wall &wall = getWalls()[i];
 
-        if (cell.intersectsWall(wall))
+        if (cell.isIntersectedBy(wall))
         {
             return true;
         }
     }
 
     return false;
+}
+
+vector<int> MapData::getIntersectedWallIds(const Cell &cell)
+{
+    vector<int> intersectedWalls;
+
+    for (Wall &wall : getWalls())
+    {
+        if (wall.isIntersectedBy(cell))
+        {
+            intersectedWalls.push_back(wall.id);
+        }
+    }
+
+    return intersectedWalls;
 }
 
 /// @brief Write the calculate path distances to a cache json file.

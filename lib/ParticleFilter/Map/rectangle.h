@@ -22,10 +22,12 @@ public:
     int getDiameter();
 
     std::pair<int, int> getCenter() const;
+    std::vector<std::pair<int, int>> getCoordinates() const;
 
     bool containsPoint(const int x, const int y) const;
     bool isInside(Rectangle &other) const;
     bool isIntersectedBy(Line line) const;
+    bool isIntersectedBy(const Rectangle &other) const;
 
     static Rectangle fromJson(const json &j);
 

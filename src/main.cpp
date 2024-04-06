@@ -281,8 +281,8 @@ void recordToWavFile(const char *filename, const int seconds)
 
 void loadParticleFilter(bool initializeMapRenderer)
 {
-    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
-    //const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
+    //const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
     const uint8_t scale = 1;
 
     // const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
@@ -298,7 +298,7 @@ void loadParticleFilter(bool initializeMapRenderer)
     spdlog::info("Successfully loaded the map {}.", filenameMap);
 
     // Initialize particle filter:
-    particleFilter.initializeParticlesUniformly();
+    //particleFilter.initializeParticlesUniformly();
 
     // Initialize map renderer:
     if (initializeMapRenderer)

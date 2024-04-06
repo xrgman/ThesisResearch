@@ -46,6 +46,24 @@ std::pair<int, int> Rectangle::getCenter() const
     return std::make_pair(centerX, centerY);
 }
 
+std::vector<std::pair<int, int>> Rectangle::getCoordinates() const
+{
+    std::vector<std::pair<int, int>> coordinates;
+
+    coordinates.reserve(width * height);
+
+    for (int y = startY; y <= stopY; y++)
+    {
+        for (int x = startX; x <= stopX; x++)
+        {
+            coordinates.push_back(std::pair<int, int>(x, y));
+        }
+    }
+
+    return coordinates;
+}
+
+
 /// @brief Check if the given x/y coordinate is inside the rectangle.
 /// @param x X coordinate to check.
 /// @param y Y coordinate to check.
@@ -103,4 +121,12 @@ bool Rectangle::isIntersectedBy(Line line) const
     }
 
     return false;
+}
+
+/// @brief Check if the current rectangle intersects with the other rectangle at any point.
+/// @param other The other rectangle.
+/// @return Whether the two rectangles intersect.
+bool Rectangle::isIntersectedBy(const Rectangle &other) const
+{
+    return startX <= other.stopX && stopX >= other.startX && startY <= other.stopY && stopY >= other.startY;
 }

@@ -11,6 +11,7 @@ class Door : public Rectangle
 public:
     Door(int id, int startX, int stopX, int startY, int stopY) : Rectangle(startX, stopX, startY, stopY)
     {
+        this->id = id;
     }
 
     int id;

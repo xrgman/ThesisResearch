@@ -17,7 +17,7 @@
 #define BORDER_HEIGHT 30
 
 #define FONT_PATH "/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf"
-#define FONT_SIZE 28
+#define FONT_SIZE 14
 
 class MapRenderer
 {

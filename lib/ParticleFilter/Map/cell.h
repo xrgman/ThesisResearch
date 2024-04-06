@@ -24,8 +24,7 @@ public:
     std::pair<int, int> &getBorderCoordinatesClosestTo(const int x, const int y);
     std::pair<int, int> &getBorderCoordinatesFarthestFrom(const int x, const int y);
 
-    bool intersectsWall(Wall &wall) const;
-
+    
     int getRelativeAngleToCell(Cell &other) const;
 
     const char *getCellName();
@@ -39,7 +38,6 @@ public:
     int id;
 
 private:
-
     std::vector<std::pair<int, int>> borderCoordinates;
     std::vector<std::pair<int, int>> borderCoordinatesCorners;
 

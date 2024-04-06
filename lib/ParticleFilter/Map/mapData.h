@@ -92,8 +92,10 @@ private:
     double calculateLongestDistanceBetweenCells(int originCellId, int destinationCellId);
 
     void generateCells(const int cellSize);
-    bool isCellInsideWalls(const Cell &cell);
+    bool areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordinates);
     bool checkCellIntersectionWalls(const Cell &cell);
+
+    vector<int> getIntersectedWallIds(const Cell &cell);
 
     void cachePathData(const char *filename);
     bool loadCachedPathData(const char *filename);

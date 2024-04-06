@@ -14,6 +14,8 @@ class Wall : public Rectangle
 public:
     Wall(int id, double orientation, int startX, int stopX, int startY, int stopY) : Rectangle(startX, stopX, startY, stopY)
     {
+        this->id = id;
+        this->orientation = orientation;
     }
 
     int id;

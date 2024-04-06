@@ -182,14 +182,6 @@ std::pair<int, int> &Cell::getBorderCoordinatesFarthestFrom(const int x, const i
 //******** TODO *********************
 //*************************************************
 
-/// @brief Check whether the coordinates of a cell intersect with a wall.
-/// @param wall Wall to check against.
-/// @return Whether or not the two rectangles intersect.
-// TODO MOVE THIS TO RECTANGLE !
-bool Cell::intersectsWall(Wall &wall) const
-{
-    return startX <= wall.stopX && stopX >= wall.startX && startY <= wall.stopY && stopY >= wall.startY;
-}
 
 /// @brief Calculate the relative angle from this cell to another cell.
 /// @param other Cell to calculate relative angle to.
@@ -222,8 +214,11 @@ int Cell::getRelativeAngleToCell(Cell &other) const
 /// @return The cell name that can be drawn inside the map.
 const char *Cell::getCellName()
 {
-    char *cellName = new char[5];
-    sprintf(cellName, "C%d", id);
+    // char *cellName = new char[5];
+    // sprintf(cellName, "C%d", id);
+
+     char *cellName = new char[3];
+    sprintf(cellName, "%d", id);
 
     return cellName;
 }
