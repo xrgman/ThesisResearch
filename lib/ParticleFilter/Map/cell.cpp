@@ -4,6 +4,10 @@
 #include <cfloat>
 #include "util.h"
 
+Cell::Cell() : Rectangle(-1, -1, -1, -1, -1)
+{
+}
+
 Cell::Cell(int id, int startX, int stopX, int startY, int stopY) : Rectangle(id, startX, stopX, startY, stopY)
 {
     // Calculating border coordinates:
@@ -182,7 +186,6 @@ std::pair<int, int> &Cell::getBorderCoordinatesFarthestFrom(const int x, const i
 //******** TODO *********************
 //*************************************************
 
-
 /// @brief Calculate the relative angle from this cell to another cell.
 /// @param other Cell to calculate relative angle to.
 /// @return Relative angle to the other cell.
@@ -217,7 +220,7 @@ const char *Cell::getCellName()
     // char *cellName = new char[5];
     // sprintf(cellName, "C%d", id);
 
-     char *cellName = new char[3];
+    char *cellName = new char[3];
     sprintf(cellName, "%d", id);
 
     return cellName;

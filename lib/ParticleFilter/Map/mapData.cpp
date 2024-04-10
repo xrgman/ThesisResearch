@@ -405,6 +405,8 @@ double MapData::calculateLongestDistanceBetweenCells(int originCellId, int desti
     return algorithm.calculateLongestDistance(nodePath);
 }
 
+/// @brief Generate cells for a given map.
+/// @param cellSize Size of each cell in cm.
 void MapData::generateCells(const int cellSize)
 {
     // Based on walls find outer boxes of map:
@@ -424,25 +426,22 @@ void MapData::generateCells(const int cellSize)
     }
 
     // Looping over all possible start and stop x, y coordinates within bounds:
-    int y = minY, x = minX;
+    int y = minY, x = minX, minStopY;
+    int cellHeight = cellSize;
     numberOfCells = 0;
-    bool validCellInRow;
+    bool validCellInRow, rowWithPossibleOverlap = false;
 
     while (y < maxY)
     {
         x = minX;
+        minStopY = y + cellHeight;
         validCellInRow = false;
 
         while (x < maxX)
         {
-            Cell newCell(numberOfCells, x, x + cellSize, y, y + cellSize);
+            Cell newCell(numberOfCells, x, x + cellSize, y, y + cellHeight);
             int nrAllowedcoordinates = 0;
             set<int> allowedCoordinatesIds;
-
-            if (numberOfCells == 624)
-            {
-                int t = 10;
-            }
 
             // Checking if cell coordinates are allowed:
             if (!areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds))
@@ -455,20 +454,44 @@ void MapData::generateCells(const int cellSize)
                     continue;
                 }
 
-                // If most of the cell is allowed, create a new cell:
-                if (nrAllowedcoordinates >= newCell.getCoordinates().size() * 0.1)
+                //  Updating start coordinates if needed:
+                int newStartX = newCell.startX;
+                int newStartY = newCell.startY;
+
+                bool validCellCoordinatesFound = findValidStartCoordinates(newCell.startX, newCell.startY, newStartX, newStartY, maxX, newCell.stopY);
+
+                if (!validCellCoordinatesFound)
                 {
-                    newCell = createCellFillAllowedSpace(x, y, cellSize, allowedCoordinatesIds, maxX, maxY);
+                    x++;
+
+                    continue;
+                }
+
+                if (newCell.id == 123)
+                {
+                    int vfd = 10;
+                }
+
+                // Creating new cell with newly found start coordinates:
+                newCell = Cell(numberOfCells, newStartX, newStartX + cellSize, newStartY, y + cellHeight);
+
+                bool cellValid = areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds);
+
+                // If most of the cell is allowed, create a new cell:
+                if (!cellValid && nrAllowedcoordinates >= newCell.getCoordinates().size() * 0.01)
+                {
+                    // Give height and width to this func
+                    newCell = createCellFillAllowedSpace(newStartX, newStartY, cellSize, allowedCoordinatesIds, newCell.stopY);
 
                     // Checking again if cell is valid:
-                    if (!areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds))
+                    if (newCell.id < 0 || newCell.getWidth() < 2 || !areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds))
                     {
                         x++;
 
                         continue;
                     }
                 }
-                else
+                else if (!cellValid)
                 {
                     x++;
 
@@ -476,12 +499,48 @@ void MapData::generateCells(const int cellSize)
                 }
             }
 
+            // Checking if cell overlaps with already existing cells:
+            if (rowWithPossibleOverlap && cellOverlapsExistingCell(newCell))
+            {
+                break;
+            }
+
+            // Adding cell:
             cells.push_back(newCell);
             numberOfCells++;
             validCellInRow = true;
             x = newCell.stopX;
+
+            // Determine minimum Y increase:
+            if (newCell.stopY < minStopY)
+            {
+                minStopY = newCell.stopY;
+            }
         }
 
+        if (rowWithPossibleOverlap)
+        {
+            y = minStopY;
+            cellHeight = cellSize;
+            rowWithPossibleOverlap = false;
+
+            continue;
+        }
+
+        if (validCellInRow && y + cellSize > minStopY)
+        {
+            cellHeight = y + cellSize - minStopY - 11;
+            y = minStopY + 11;
+            rowWithPossibleOverlap = true;
+
+            // Set y to minstopy?
+            // Mark that we have such a row
+            // Keep ghoing until there is cell overlap :)
+
+            continue;
+        }
+
+        rowWithPossibleOverlap = false;
         y += validCellInRow ? cellSize : 1;
     }
 }
@@ -533,44 +592,41 @@ bool MapData::checkCellIntersectionWalls(const Cell &cell)
     return false;
 }
 
-Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds, const int maxX, const int maxY)
+bool MapData::findValidStartCoordinates(const int startX, const int startY, int &newStartX, int &newStartY, const int maxX, const int stopY)
 {
-    int stopX = startX + cellSize;
-    int stopY = startY + cellSize;
-    int newStartX = startX;
-    int newStartY = startY;
-    bool stopYupdated = false;
-    int i = 0;
-
-    int x = startX, y = startY;
-
-    if (numberOfCells == 168) // Also 332
-    {
-        int i = 10;
-    }
-
-    // Updating start coordinates if needed:
     bool startXValid = false;
     bool startYValid = false;
+    bool updateX = true;
+
+    if (numberOfCells == 41) // 42
+    {
+        int g = 1;
+    }
 
     while (true)
     {
-        startXValid = false;
-        startYValid = false;
-        
-        for (const int &allowedCoordinatesId : allowedCoordinatesIds)
+        // for (const int &allowedCoordinatesId : allowedCoordinatesIds)
+        for (int j = 0; j < numberOfAllowedCoordinates; j++)
         {
-            Rectangle &allowedCoordinate = getAllowedCoordinates()[allowedCoordinatesId];
+            Rectangle &allowedCoordinate = getAllowedCoordinates()[j];
+
+            startXValid = false;
+            startYValid = false;
 
             // Checking start coordinates:
-            if (x > stopX || (allowedCoordinate.startX <= newStartX && allowedCoordinate.stopX > newStartX + 2))
+            if (allowedCoordinate.startX <= newStartX && allowedCoordinate.stopX > newStartX + 2)
             {
                 startXValid = true;
             }
 
-            if (y > stopY || (allowedCoordinate.startY <= newStartY && allowedCoordinate.stopY > newStartY + 2))
+            if (allowedCoordinate.startY <= newStartY && allowedCoordinate.stopY > newStartY + 2)
             {
                 startYValid = true;
+            }
+
+            if (startXValid && startYValid)
+            {
+                break;
             }
         }
 
@@ -580,15 +636,51 @@ Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, con
             break;
         }
 
-        // Updating start coordinates as needed:
-        newStartX = startXValid ? newStartX : newStartX + 1;
-        newStartY = startYValid ? newStartY : newStartY + 1;
+        // Updating x coordinate if possible:
+        if (updateX && newStartX < maxX)
+        {
+            newStartX++;
+        }
+        else if (newStartY < stopY)
+        {
+            // Resetting x:
+            updateX = false;
 
-        stopX = newStartX + cellSize;
+            newStartX = startX;
+
+            // Updating Y coordinate:
+            newStartY++;
+        }
+        else
+        {
+            return false;
+        }
     }
 
+    return true;
+}
+
+Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds, const int originalStopY)
+{
+    int stopX = startX + cellSize;
+    int stopY = originalStopY;
+    int newStartX = startX;
+    int newStartY = startY;
+    bool stopYupdated = false;
+    int i = 0;
+
+    int x = startX, y = startY;
+
+    if (numberOfCells == 46) // Also 332
+    {
+        int i = 10;
+    }
+
+    x = newStartX;
+    y = newStartY;
+
     // while ((x < stopX && x < newStartX + cellSize && x < maxX) && (y < stopY && y < startY + cellSize && y < maxY))
-    while ((x < stopX || y < stopY) && x < newStartX + cellSize && y < startY + cellSize && x < maxX && y < maxY)
+    while ((x < stopX || y < stopY) && x < newStartX + cellSize && y < originalStopY)
     {
         x = newStartX + i;
         y = newStartY + i;
@@ -602,21 +694,10 @@ Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, con
         {
             Rectangle &allowedCoordinate = getAllowedCoordinates()[allowedCoordinatesId];
 
-            // Checking start coordinates:
-            if (x > stopX || (allowedCoordinate.startX <= newStartX && allowedCoordinate.stopX > newStartX + 2))
-            {
-                startXValid = true;
-            }
-
-            if (y > stopY || (allowedCoordinate.startY <= newStartY && allowedCoordinate.stopY > newStartY + 2))
-            {
-                startYValid = true;
-            }
-
             // Check row:
             if (y < stopY && y >= allowedCoordinate.startY && y <= allowedCoordinate.stopY && newStopX < allowedCoordinate.stopX)
             {
-                if (!didTravelThroughWall(newStartX, y, allowedCoordinate.stopX, y + 1))
+                if (!didTravelThroughWall(newStartX, y, allowedCoordinate.stopX, y + 1) && !didTravelThroughDoor(newStartX, y, allowedCoordinate.stopX, y + 1))
                 {
                     newStopX = allowedCoordinate.stopX;
                 }
@@ -625,18 +706,11 @@ Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, con
             // Check column:
             if (x < stopX && x >= allowedCoordinate.startX && x <= allowedCoordinate.stopX && newStopY < allowedCoordinate.stopY)
             {
-                if (!didTravelThroughWall(x, newStartY, x + 1, allowedCoordinate.stopY))
+                if (!didTravelThroughWall(x, newStartY, x + 1, allowedCoordinate.stopY) && !didTravelThroughDoor(x, newStartY, x + 1, allowedCoordinate.stopY))
                 {
                     newStopY = allowedCoordinate.stopY;
                 }
-
-                if (stopY < allowedCoordinate.stopY)
-                {
-                    int t = 10;
-                }
             }
-
-            // Check if we can suddenly go down all the way and cap x coordinate that way:
         }
 
         i++;
@@ -658,9 +732,11 @@ Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, con
             stopY = newStopY;
             stopYupdated = true;
         }
-        else if (newStopY > 0 && stopYupdated && newStopY > stopY)
+        else if (newStopY > 0 && stopYupdated && newStopY > stopY + 2)
         {
-            int blat = 10;
+            stopX = x;
+
+            break;
         }
     }
 
@@ -685,6 +761,48 @@ bool MapData::didTravelThroughWall(int originalXCoordinate, int originalYCoordin
         Wall &wall = getWalls()[i];
 
         if (wall.isIntersectedBy(line))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/// @brief Check whether cell coordinates travel through one of the doors.
+/// @param originalXCoordinate Start X coordinate of cell.
+/// @param originalYCoordinate Start Y coordinate of cell.
+/// @param newXcoordinate Stop X coordinate of cell.
+/// @param newYCoordinate Stop Y coordinate of cell.
+/// @return Whether or not the cell overlaps a door.
+bool MapData::didTravelThroughDoor(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate)
+{
+    Line line = {originalXCoordinate, originalYCoordinate, newXcoordinate, newYCoordinate};
+
+    // Looping over all walls to check for intersection:
+    for (int i = 0; i < numberOfDoors; i++)
+    {
+        Door &door = getDoors()[i];
+
+        if (door.isIntersectedBy(line))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/// @brief Check if a cell overlaps another existing cell/
+/// @param cell Cell to check.
+/// @return Whether or not the cell intersects with an existing cell.c
+bool MapData::cellOverlapsExistingCell(const Cell &cell)
+{
+    for (int i = 0; i < numberOfCells; i++)
+    {
+        Cell &cellToCheck = getCells()[i];
+
+        if (cellToCheck.isIntersectedBy(cell, true))
         {
             return true;
         }

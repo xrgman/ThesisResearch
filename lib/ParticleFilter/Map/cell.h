@@ -16,6 +16,7 @@ using json = nlohmann::json;
 class Cell : public Rectangle
 {
 public:
+    Cell();
     Cell(int id, int startX, int stopX, int startY, int stopY);
 
     std::vector<std::pair<int, int>> &getBorderCoordinates();

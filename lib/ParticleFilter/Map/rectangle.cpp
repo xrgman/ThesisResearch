@@ -132,8 +132,13 @@ bool Rectangle::isIntersectedBy(Line line) const
 /// @brief Check if the current rectangle intersects with the other rectangle at any point.
 /// @param other The other rectangle.
 /// @return Whether the two rectangles intersect.
-bool Rectangle::isIntersectedBy(const Rectangle &other) const
+bool Rectangle::isIntersectedBy(const Rectangle &other, bool ignoreEdge) const
 {
+    if (ignoreEdge)
+    {
+        return startX < other.stopX && stopX > other.startX && startY < other.stopY && stopY > other.startY;
+    }
+
     return startX <= other.stopX && stopX >= other.startX && startY <= other.stopY && stopY >= other.startY;
 }
 
