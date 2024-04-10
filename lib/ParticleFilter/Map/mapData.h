@@ -96,7 +96,8 @@ private:
     bool areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordinates, set<int> &allowedCoordinatesIds);
     bool checkCellIntersectionWalls(const Cell &cell);
 
-    Cell createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds);
+    Cell createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds, const int maxX, const int maxY);
+    bool didTravelThroughWall(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate);
 
     void cachePathData(const char *filename);
     bool loadCachedPathData(const char *filename);

@@ -425,6 +425,7 @@ void MapData::generateCells(const int cellSize)
 
     // Looping over all possible start and stop x, y coordinates within bounds:
     int y = minY, x = minX;
+    numberOfCells = 0;
     bool validCellInRow;
 
     while (y < maxY)
@@ -438,51 +439,51 @@ void MapData::generateCells(const int cellSize)
             int nrAllowedcoordinates = 0;
             set<int> allowedCoordinatesIds;
 
+            if (numberOfCells == 624)
+            {
+                int t = 10;
+            }
+
             // Checking if cell coordinates are allowed:
             if (!areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds))
             {
                 // If no coordinates are allowed or there arn't any previous cells in this row, continue:
-                if (nrAllowedcoordinates == 0 || !validCellInRow)
+                if (nrAllowedcoordinates == 0) // || !validCellInRow)
                 {
                     x++;
 
                     continue;
                 }
 
-
-                //If most of the cell is allowed, create a new cell:
-                if (nrAllowedcoordinates >= newCell.getCoordinates().size() * 0.6)
+                // If most of the cell is allowed, create a new cell:
+                if (nrAllowedcoordinates >= newCell.getCoordinates().size() * 0.1)
                 {
-                    newCell = createCellFillAllowedSpace(x, y, cellSize, allowedCoordinatesIds);
+                    newCell = createCellFillAllowedSpace(x, y, cellSize, allowedCoordinatesIds, maxX, maxY);
+
+                    // Checking again if cell is valid:
+                    if (!areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds))
+                    {
+                        x++;
+
+                        continue;
+                    }
                 }
                 else
                 {
-                    // Most of the cell is not allowed, updating previous one:
-                    int suz = 10;
-
                     x++;
 
                     continue;
                 }
             }
 
-            // Checking if cell intersects with a wall:
-            // if (checkCellIntersectionWalls(newCell))
-            // {
-            //     break;
-            // }
-
             cells.push_back(newCell);
             numberOfCells++;
             validCellInRow = true;
-
-            x += cellSize;
+            x = newCell.stopX;
         }
 
         y += validCellInRow ? cellSize : 1;
     }
-
-    int bla = 10;
 }
 
 /// @brief Checking if cell coordinates are valid by checking if the whole cell is inside one of the allowed coordinates.
@@ -512,11 +513,6 @@ bool MapData::areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordina
                 break;
             }
         }
-
-        // if (!coordinatesAllowed)
-        // {
-        //     return false;
-        // }
     }
 
     return cellCoordinates.size() == nrOfAllowedCoordinates;
@@ -537,30 +533,164 @@ bool MapData::checkCellIntersectionWalls(const Cell &cell)
     return false;
 }
 
-Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds)
+Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds, const int maxX, const int maxY)
 {
     int stopX = startX + cellSize;
     int stopY = startY + cellSize;
+    int newStartX = startX;
+    int newStartY = startY;
+    bool stopYupdated = false;
+    int i = 0;
 
-    // Checking intersecting walls:
-    for (const int &allowedCoordinatesId : allowedCoordinatesIds)
+    int x = startX, y = startY;
+
+    if (numberOfCells == 168) // Also 332
     {
-        Rectangle &allowedCoordinate = getAllowedCoordinates()[allowedCoordinatesId];
+        int i = 10;
+    }
 
-        if (stopX > allowedCoordinate.stopX)
+    // Updating start coordinates if needed:
+    bool startXValid = false;
+    bool startYValid = false;
+
+    while (true)
+    {
+        startXValid = false;
+        startYValid = false;
+        
+        for (const int &allowedCoordinatesId : allowedCoordinatesIds)
         {
-            stopX = allowedCoordinate.stopX;
+            Rectangle &allowedCoordinate = getAllowedCoordinates()[allowedCoordinatesId];
+
+            // Checking start coordinates:
+            if (x > stopX || (allowedCoordinate.startX <= newStartX && allowedCoordinate.stopX > newStartX + 2))
+            {
+                startXValid = true;
+            }
+
+            if (y > stopY || (allowedCoordinate.startY <= newStartY && allowedCoordinate.stopY > newStartY + 2))
+            {
+                startYValid = true;
+            }
         }
 
-        if (stopY > allowedCoordinate.stopY)
+        // Checking if correct start coordinates are found:
+        if (startXValid && startYValid)
         {
-            stopY = allowedCoordinate.stopY;
+            break;
+        }
+
+        // Updating start coordinates as needed:
+        newStartX = startXValid ? newStartX : newStartX + 1;
+        newStartY = startYValid ? newStartY : newStartY + 1;
+
+        stopX = newStartX + cellSize;
+    }
+
+    // while ((x < stopX && x < newStartX + cellSize && x < maxX) && (y < stopY && y < startY + cellSize && y < maxY))
+    while ((x < stopX || y < stopY) && x < newStartX + cellSize && y < startY + cellSize && x < maxX && y < maxY)
+    {
+        x = newStartX + i;
+        y = newStartY + i;
+
+        int newStopX = -1;
+        int newStopY = -1;
+        bool startXValid = false;
+        bool startYValid = false;
+
+        for (const int &allowedCoordinatesId : allowedCoordinatesIds)
+        {
+            Rectangle &allowedCoordinate = getAllowedCoordinates()[allowedCoordinatesId];
+
+            // Checking start coordinates:
+            if (x > stopX || (allowedCoordinate.startX <= newStartX && allowedCoordinate.stopX > newStartX + 2))
+            {
+                startXValid = true;
+            }
+
+            if (y > stopY || (allowedCoordinate.startY <= newStartY && allowedCoordinate.stopY > newStartY + 2))
+            {
+                startYValid = true;
+            }
+
+            // Check row:
+            if (y < stopY && y >= allowedCoordinate.startY && y <= allowedCoordinate.stopY && newStopX < allowedCoordinate.stopX)
+            {
+                if (!didTravelThroughWall(newStartX, y, allowedCoordinate.stopX, y + 1))
+                {
+                    newStopX = allowedCoordinate.stopX;
+                }
+            }
+
+            // Check column:
+            if (x < stopX && x >= allowedCoordinate.startX && x <= allowedCoordinate.stopX && newStopY < allowedCoordinate.stopY)
+            {
+                if (!didTravelThroughWall(x, newStartY, x + 1, allowedCoordinate.stopY))
+                {
+                    newStopY = allowedCoordinate.stopY;
+                }
+
+                if (stopY < allowedCoordinate.stopY)
+                {
+                    int t = 10;
+                }
+            }
+
+            // Check if we can suddenly go down all the way and cap x coordinate that way:
+        }
+
+        i++;
+
+        if (newStartX == newStopX)
+        {
+            newStartY = y + 1;
+
+            continue;
+        }
+
+        if (newStopX > 0 && stopX > newStopX)
+        {
+            stopX = newStopX;
+        }
+
+        if (newStopY > 0 && stopY > newStopY)
+        {
+            stopY = newStopY;
+            stopYupdated = true;
+        }
+        else if (newStopY > 0 && stopYupdated && newStopY > stopY)
+        {
+            int blat = 10;
         }
     }
 
-    Cell filledCell(numberOfCells, startX, stopX, startY, stopY);
+    Cell filledCell(numberOfCells, newStartX, stopX, newStartY, stopY);
 
     return filledCell;
+}
+
+/// @brief Check whether cell coordinates travel through one of the walls.
+/// @param originalXCoordinate Start X coordinate of cell.
+/// @param originalYCoordinate Start Y coordinate of cell.
+/// @param newXcoordinate Stop X coordinate of cell.
+/// @param newYCoordinate Stop Y coordinate of cell.
+/// @return Whether or not the cell overlaps a wall.
+bool MapData::didTravelThroughWall(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate)
+{
+    Line line = {originalXCoordinate, originalYCoordinate, newXcoordinate, newYCoordinate};
+
+    // Looping over all walls to check for intersection:
+    for (int i = 0; i < numberOfWalls; i++)
+    {
+        Wall &wall = getWalls()[i];
+
+        if (wall.isIntersectedBy(line))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /// @brief Write the calculate path distances to a cache json file.

@@ -30,11 +30,16 @@ public:
     bool isIntersectedBy(Line line) const;
     bool isIntersectedBy(const Rectangle &other) const;
 
+    void updateStopX(const int newStopX);
+    void updateStopY(const int newStopY);
+
     static Rectangle fromJson(const int id, const json &j);
 
 protected:
     int height, width, diameter;
     int centerX, centerY;
+
+    void calculateRectangleProperties();
 };
 
 #endif

@@ -4,11 +4,7 @@
 Rectangle::Rectangle(int id, int startX, int stopX, int startY, int stopY)
     : id(id), startX(startX), stopX(stopX), startY(startY), stopY(stopY)
 {
-    width = stopX - startX;
-    height = stopY - startY;
-    diameter = sqrt(width * width + height * height);
-    centerX = (startX + stopX) / 2;
-    centerY = (startY + stopY) / 2;
+    calculateRectangleProperties();
 }
 
 Rectangle Rectangle::fromJson(const int id, const json &jsonData)
@@ -18,6 +14,16 @@ Rectangle Rectangle::fromJson(const int id, const json &jsonData)
                      jsonData["stopX"],
                      jsonData["startY"],
                      jsonData["stopY"]);
+}
+
+/// @brief Calculate rectangle properties like width and height.
+void Rectangle::calculateRectangleProperties()
+{
+    width = stopX - startX;
+    height = stopY - startY;
+    diameter = sqrt(width * width + height * height);
+    centerX = (startX + stopX) / 2;
+    centerY = (startY + stopY) / 2;
 }
 
 /// @brief Get the width of the rectangle.
@@ -129,4 +135,22 @@ bool Rectangle::isIntersectedBy(Line line) const
 bool Rectangle::isIntersectedBy(const Rectangle &other) const
 {
     return startX <= other.stopX && stopX >= other.startX && startY <= other.stopY && stopY >= other.startY;
+}
+
+/// @brief Update the stop coordinate of the rectangle.
+/// @param newStopX The new stop coordinate of the X-axis.
+void Rectangle::updateStopX(const int newStopX)
+{
+    this->stopX = stopX;
+
+    calculateRectangleProperties();
+}
+
+/// @brief Update the stop coordinate of the rectangle.
+/// @param newStopY The new stop coordinate of the Y-axis.
+void Rectangle::updateStopY(const int newStopY)
+{
+    this->stopY = stopY;
+
+    calculateRectangleProperties();
 }

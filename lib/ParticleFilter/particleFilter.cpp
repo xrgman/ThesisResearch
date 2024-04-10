@@ -628,7 +628,7 @@ bool ParticleFilter::didParticleTravelThroughWall(int originalXCoordinate, int o
     // Looping over all walls to check for intersection:
     for (int i = 0; i < mapData.getNumberOfWalls(); i++)
     {
-        Wall wall = mapData.getWalls()[i];
+        Wall &wall = mapData.getWalls()[i];
 
         // Only check walls in a certain angle range:
         if (wallAngle > 0)
