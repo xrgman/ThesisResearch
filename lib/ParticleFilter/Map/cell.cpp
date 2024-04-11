@@ -11,7 +11,10 @@ Cell::Cell() : Rectangle(-1, -1, -1, -1, -1)
 Cell::Cell(int id, int startX, int stopX, int startY, int stopY) : Rectangle(id, startX, stopX, startY, stopY)
 {
     // Calculating border coordinates:
-    fillBorderCoordinates();
+    if (width > 0 && height > 0)
+    {
+        fillBorderCoordinates();
+    }
 }
 
 /// @brief Create a cell object from a json data object.

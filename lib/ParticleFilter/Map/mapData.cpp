@@ -443,6 +443,11 @@ void MapData::generateCells(const int cellSize)
             int nrAllowedcoordinates = 0;
             set<int> allowedCoordinatesIds;
 
+            if (newCell.id == 125)
+            {
+                int vfd = 10;
+            }
+
             // Checking if cell coordinates are allowed:
             if (!areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds))
             {
@@ -458,7 +463,7 @@ void MapData::generateCells(const int cellSize)
                 int newStartX = newCell.startX;
                 int newStartY = newCell.startY;
 
-                bool validCellCoordinatesFound = findValidStartCoordinates(newCell.startX, newCell.startY, newStartX, newStartY, maxX, newCell.stopY);
+                bool validCellCoordinatesFound = findValidStartCoordinates(newCell.startX, newCell.startY, newStartX, newStartY, newCell.stopX, newCell.stopY);
 
                 if (!validCellCoordinatesFound)
                 {
@@ -467,13 +472,15 @@ void MapData::generateCells(const int cellSize)
                     continue;
                 }
 
-                if (newCell.id == 123)
-                {
-                    int vfd = 10;
-                }
-
                 // Creating new cell with newly found start coordinates:
                 newCell = Cell(numberOfCells, newStartX, newStartX + cellSize, newStartY, y + cellHeight);
+
+                if (newCell.getWidth() <= 0 || newCell.getHeight() <= 0)
+                {
+                    x++;
+
+                    continue;
+                }
 
                 bool cellValid = areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds);
 
@@ -482,6 +489,13 @@ void MapData::generateCells(const int cellSize)
                 {
                     // Give height and width to this func
                     newCell = createCellFillAllowedSpace(newStartX, newStartY, cellSize, allowedCoordinatesIds, newCell.stopY);
+
+                    if (newCell.getWidth() <= 0 || newCell.getHeight() <= 0)
+                    {
+                        x++;
+
+                        continue;
+                    }
 
                     // Checking again if cell is valid:
                     if (newCell.id < 0 || newCell.getWidth() < 2 || !areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds))
@@ -502,7 +516,9 @@ void MapData::generateCells(const int cellSize)
             // Checking if cell overlaps with already existing cells:
             if (rowWithPossibleOverlap && cellOverlapsExistingCell(newCell))
             {
-                break;
+                x++;
+
+                continue;
             }
 
             // Adding cell:
@@ -529,8 +545,9 @@ void MapData::generateCells(const int cellSize)
 
         if (validCellInRow && y + cellSize > minStopY)
         {
-            cellHeight = y + cellSize - minStopY - 11;
-            y = minStopY + 11;
+            cellHeight = y + cellSize - minStopY;// - 11;
+            y = minStopY;
+      //      +11;
             rowWithPossibleOverlap = true;
 
             // Set y to minstopy?
@@ -592,7 +609,7 @@ bool MapData::checkCellIntersectionWalls(const Cell &cell)
     return false;
 }
 
-bool MapData::findValidStartCoordinates(const int startX, const int startY, int &newStartX, int &newStartY, const int maxX, const int stopY)
+bool MapData::findValidStartCoordinates(const int startX, const int startY, int &newStartX, int &newStartY, const int stopX, const int stopY)
 {
     bool startXValid = false;
     bool startYValid = false;
@@ -637,7 +654,7 @@ bool MapData::findValidStartCoordinates(const int startX, const int startY, int 
         }
 
         // Updating x coordinate if possible:
-        if (updateX && newStartX < maxX)
+        if (updateX && newStartX < stopX)
         {
             newStartX++;
         }
