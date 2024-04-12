@@ -122,7 +122,7 @@ void MapData::initialize(const int cellSize)
     const std::string cacheFileName = getPathCacheFileName();
 
     // Opening file and checking if it was successfull:
-    if (loadCachedPathData(cacheFileName.c_str()))
+    if (loadCachedPathData(cacheFileName.c_str(), cellSize))
     {
         // If loading cache was successfull, we don't need to generate any data so we return.
         return;
@@ -133,9 +133,6 @@ void MapData::initialize(const int cellSize)
     {
         generateCells(cellSize);
     }
-
-    // TODO: remove this safeguard after cell generation is done :)
-    return;
 
     // Calculating distances between cells:
     shortestDistancessBetweenCells = new double *[numberOfCells];
@@ -187,7 +184,7 @@ void MapData::initialize(const int cellSize)
     }
 
     // Cache the generated path data:
-    // cachePathData(cacheFileName.c_str());
+    cachePathData(cacheFileName.c_str(), cellSize);
 }
 
 /// @brief Get the name of the map.
@@ -442,11 +439,6 @@ void MapData::generateCells(const int cellSize)
             Cell newCell(numberOfCells, x, x + cellSize, y, y + cellHeight);
             int nrAllowedcoordinates = 0;
             set<int> allowedCoordinatesIds;
-
-            if (newCell.id == 125)
-            {
-                int vfd = 10;
-            }
 
             // Checking if cell coordinates are allowed:
             if (!areCellCoordinatesValid(newCell, nrAllowedcoordinates, allowedCoordinatesIds))
@@ -816,10 +808,7 @@ void MapData::fillRemainingAllowedCoordinates()
             continue;
         }
 
-        // bool adjecent = x == previousX ? (y == previousY + 1) : y == previousY ? (x == previousX + 1) : false;
-
         // Checking adjecentcy:
-        // if ((x != previousX + 1 && y == previousY) && (y != previousY + 1 && x == previousX))
         if (x != previousX + 1 && y != previousY + 1 || startX > x)
         {
             if (startX > 0 && startY > 0)
@@ -834,12 +823,6 @@ void MapData::fillRemainingAllowedCoordinates()
             startX = x;
             startY = y;
         }
-        // else if(startX > x)
-        // {
-        //     // Checking if start coordinates are still correct:
-        //     startX = x;
-        //     startY = y;
-        // }
 
         previousX = x;
         previousY = y;
@@ -853,8 +836,6 @@ void MapData::fillRemainingAllowedCoordinates()
 
         createCellWithMinSize(startX - 1, startY, stopX, stopY + 1, 2, 2);
     }
-
-    int bla = 10;
 }
 
 /// @brief Create a cell and add it to the cells list if it has a minimum width and height.
@@ -972,12 +953,34 @@ bool MapData::isCoordinateInACell(const int x, const int y)
 
 /// @brief Write the calculate path distances to a cache json file.
 /// @param filename The name of the cache file.
-void MapData::cachePathData(const char *filename)
+void MapData::cachePathData(const char *filename, const int cellSize)
 {
     json jsonData;
 
     // Saving amount of cells:
     jsonData["number_of_cells"] = numberOfCells;
+
+    // Saving cell size:
+    jsonData["cell_size"] = cellSize;
+
+    // Saving cells:
+    json cellsArray;
+
+    for (int i = 0; i < numberOfCells; i++)
+    {
+        Cell &cell = getCells()[i];
+        json cellData;
+
+        cellData["id"] = cell.id;
+        cellData["startX"] = cell.startX;
+        cellData["startY"] = cell.startY;
+        cellData["stopX"] = cell.stopX;
+        cellData["stopY"] = cell.stopY;
+
+        cellsArray.push_back(cellData);
+    }
+
+    jsonData["cells"] = cellsArray;
 
     // Saving shortest and longest path distances:
     json shortestPathArray, longestPathArray;
@@ -1040,7 +1043,7 @@ void MapData::cachePathData(const char *filename)
 /// @brief Load the cached path data from a file into objects.
 /// @param filename Name of the file.
 /// @return Whether reading the cache was successfull.
-bool MapData::loadCachedPathData(const char *filename)
+bool MapData::loadCachedPathData(const char *filename, const int cellSize)
 {
     FILE *cacheFile;
 
@@ -1063,10 +1066,18 @@ bool MapData::loadCachedPathData(const char *filename)
         json jsonData = json::parse(fileContent);
 
         int numCells = jsonData["number_of_cells"];
+        int cellSize = jsonData["cell_size"];
 
         if (numCells != numberOfCells)
         {
             spdlog::warn("Number of cells mismatch, generating new data.");
+
+            return false;
+        }
+
+        if (cellSize != cellSize)
+        {
+            spdlog::warn("Cell size mismatch, generating new data.");
 
             return false;
         }

@@ -106,8 +106,8 @@ private:
     bool isCoordinateInACell(const int x, const int y);
     bool createCellWithMinSize(const int startX, const int startY, const int stopX, const int stopY, const int minWidth, const int minHeight);
 
-    void cachePathData(const char *filename);
-    bool loadCachedPathData(const char *filename);
+    void cachePathData(const char *filename, const int cellSize);
+    bool loadCachedPathData(const char *filename, const int cellSize);
 
     
 };
