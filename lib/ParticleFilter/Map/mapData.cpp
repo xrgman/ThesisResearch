@@ -124,6 +124,8 @@ void MapData::initialize(const int cellSize)
     // Opening file and checking if it was successfull:
     if (loadCachedPathData(cacheFileName.c_str(), cellSize))
     {
+        spdlog::info("Sucessfully loaded {} cells from cache.", numberOfCells);
+
         // If loading cache was successfull, we don't need to generate any data so we return.
         return;
     }
@@ -132,6 +134,8 @@ void MapData::initialize(const int cellSize)
     if (numberOfCells == 0)
     {
         generateCells(cellSize);
+
+        spdlog::info("Sucessfully generated {} cells.", numberOfCells);
     }
 
     // Calculating distances between cells:
@@ -184,6 +188,8 @@ void MapData::initialize(const int cellSize)
     }
 
     // Cache the generated path data:
+    spdlog::info("Caching map data...");
+
     cachePathData(cacheFileName.c_str(), cellSize);
 }
 
@@ -376,10 +382,20 @@ void MapData::print()
     }
 }
 
+/// @brief Calculate the shortest path between two cells.
+/// @param originCellId Start cell id.
+/// @param destinationCellId Stop cell id.
+/// @param cellPath The path between the two cells will be stored in this.
+/// @return The shortest path distance in cm.
 double MapData::calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, Path &cellPath)
 {
-    Cell startCell = cells[originCellId];
-    Cell endCell = cells[destinationCellId];
+    Cell &startCell = cells[originCellId];
+    Cell &endCell = cells[destinationCellId];
+
+    if (endCell.id == 115)
+    {
+        int ttt = 10;
+    }
 
     AStarAlgorithm algorithm(startCell, endCell, getCells(), getDoors(), getWalls(), false);
 
@@ -389,6 +405,10 @@ double MapData::calculateShortestDistanceBetweenCells(int originCellId, int dest
     return algorithm.calculateShortestDistance(cellPath, nodePath);
 }
 
+/// @brief Calculate the longest path between two cells.
+/// @param originCellId Start cell id.
+/// @param destinationCellId Stop cell id.
+/// @return The longest path distance in cm.
 double MapData::calculateLongestDistanceBetweenCells(int originCellId, int destinationCellId)
 {
     Cell startCell = cells[originCellId];
@@ -401,6 +421,10 @@ double MapData::calculateLongestDistanceBetweenCells(int originCellId, int desti
 
     return algorithm.calculateLongestDistance(nodePath);
 }
+
+//*************************************************
+//******** Cell generation ************************
+//*************************************************
 
 /// @brief Generate cells for a given map.
 /// @param cellSize Size of each cell in cm.
@@ -513,6 +537,11 @@ void MapData::generateCells(const int cellSize)
                 continue;
             }
 
+            if (numberOfCells == 115)
+            {
+                int g = 10;
+            }
+
             // Adding cell:
             cells.push_back(newCell);
             numberOfCells++;
@@ -582,21 +611,6 @@ bool MapData::areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordina
     }
 
     return cellCoordinates.size() == nrOfAllowedCoordinates;
-}
-
-bool MapData::checkCellIntersectionWalls(const Cell &cell)
-{
-    for (int i = 0; i < numberOfWalls; i++)
-    {
-        Wall &wall = getWalls()[i];
-
-        if (cell.isIntersectedBy(wall))
-        {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 /// @brief Find a valid start X & Y coordinate, which lies within the map, for the cell.
@@ -669,13 +683,13 @@ bool MapData::findValidStartCoordinates(const int startX, const int startY, int 
     return true;
 }
 
-/// @brief
+/// @brief Create a cell that fills the remaining space in a row.
 /// @param startX Original start X coordinate.
 /// @param startY Original start Y coordinate.
 /// @param cellSize Original size of the cell.
-/// @param allowedCoordinatesIds
-/// @param originalStopY
-/// @return
+/// @param allowedCoordinatesIds Allowed coordinate ids.
+/// @param originalStopY Origianl stop Y coordinate (bottom of row).
+/// @return The new cell object, that fills the space.
 Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds, const int originalStopY)
 {
     int stopX = startX + cellSize;
@@ -1066,30 +1080,39 @@ bool MapData::loadCachedPathData(const char *filename, const int cellSize)
         json jsonData = json::parse(fileContent);
 
         int numCells = jsonData["number_of_cells"];
-        int cellSize = jsonData["cell_size"];
+        int cellSizeFile = jsonData["cell_size"];
 
-        if (numCells != numberOfCells)
+        if (numberOfCells > 0 && numCells != numberOfCells)
         {
             spdlog::warn("Number of cells mismatch, generating new data.");
 
             return false;
         }
 
-        if (cellSize != cellSize)
+        if (cellSizeFile != cellSize)
         {
             spdlog::warn("Cell size mismatch, generating new data.");
 
             return false;
         }
 
+        // Reserving space for the cells:
+        numberOfCells = numCells;
+        cells.reserve(numberOfCells);
+
         shortestDistancessBetweenCells = new double *[numberOfCells];
         longestDistancessBetweenCells = new double *[numberOfCells];
 
+        const json &cellsJson = jsonData["cells"];
         const json &shortestDistancesJson = jsonData["shortestPathsBetweenCells"];
         const json &longestDistancesJson = jsonData["longestPathsBetweenCells"];
 
         for (int i = 0; i < numberOfCells; i++)
         {
+            //Restoring cell:
+            cells.push_back(Cell::fromJson(cellsJson[i]));
+
+            //Restoring path distance:
             shortestDistancessBetweenCells[i] = new double[numberOfCells];
             longestDistancessBetweenCells[i] = new double[numberOfCells];
 

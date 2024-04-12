@@ -8,7 +8,7 @@
 #include "wall.h"
 
 #define MIN_CELL_SIZE 60 //Minimum cell size is 60CM, else it wont work
-#define CELL_BORDER_PADDING 10 //In cm
+#define CELL_BORDER_PADDING 5 //In cm
 #define MIN_DISTANCE_BETWEEN_CELLS CELL_BORDER_PADDING*2
 
 using json = nlohmann::json;

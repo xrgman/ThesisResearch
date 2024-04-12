@@ -24,14 +24,13 @@
    <ol type="1">
       <li><s>Sends cell the robot is in.</s></li>
   </ol>
-  <li>Implement simple wall detection</li>
   <li>Check that we do not process message from own ID</li>
-  <li>Implement driving up untill wall (north, south, east, west) and sending message functionality</li>
   <li>Add the ability to process wall message and update particle filter based on it</li>
   <li>Add the ability to process cell message and update particle filter based on it</li>
-  <li>Update particle filter based on data from audio</li>
   <li><s>Cache distances between cells to a .json file to speed up particle filter</s></li>
-  <li>Link movement from robot to movement in particle filter</li>
+  <li>Save the localization table to file after generating it</li>
+  <li>Add the ability to load a localization table from another robot and fuse it with own tables. If none are there, set it as the table for that robot.</li>
+  <li>Link movement from robot to movement in particle filter</li> 
 </ol>
 
 ## TO-DO evaluation
