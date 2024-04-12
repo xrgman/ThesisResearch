@@ -295,6 +295,20 @@ vector<int> mapKeysToVector(map<int, double> *data)
     return keys;
 }
 
+/// @brief Comperator to compare on the second value in a pair. Compares on first if both are equal.
+/// @param a First pair.
+/// @param b Second pair.
+/// @return Whether a is smaller than b.
+bool compareSecond(const pair<int, int> &a, const pair<int, int> &b)
+{
+    if (a.second != b.second)
+    {
+        return a.second < b.second;
+    }
+
+    return a.first < b.first;
+}
+
 //*************************************************
 //******** Collection fillers *********************
 //*************************************************
@@ -634,6 +648,7 @@ bool removeFile(const char *filename)
 {
     return std::remove(filename) != 0;
 }
+
 //*************************************************
 //******** Coordinate helpers *********************
 //*************************************************

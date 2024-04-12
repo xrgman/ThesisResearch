@@ -29,6 +29,7 @@ void divideAllElements(double *array, const int size, const double divisor);
 void cumsum(double *array, const int size);
 
 vector<int> mapKeysToVector(map<int, double> *data);
+bool compareSecond(const pair<int, int> &a, const pair<int, int> &b);
 
 void fillArrayWithZeros(uint8_t *array, const int size);
 void fillArrayWithZeros(int16_t *array, const int size);

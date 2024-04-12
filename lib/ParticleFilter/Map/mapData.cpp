@@ -545,14 +545,9 @@ void MapData::generateCells(const int cellSize)
 
         if (validCellInRow && y + cellSize > minStopY)
         {
-            cellHeight = y + cellSize - minStopY;// - 11;
+            cellHeight = y + cellSize - minStopY;
             y = minStopY;
-      //      +11;
             rowWithPossibleOverlap = true;
-
-            // Set y to minstopy?
-            // Mark that we have such a row
-            // Keep ghoing until there is cell overlap :)
 
             continue;
         }
@@ -560,6 +555,9 @@ void MapData::generateCells(const int cellSize)
         rowWithPossibleOverlap = false;
         y += validCellInRow ? cellSize : 1;
     }
+
+    // Fill in the remaining parts of the map:
+    fillRemainingAllowedCoordinates();
 }
 
 /// @brief Checking if cell coordinates are valid by checking if the whole cell is inside one of the allowed coordinates.
@@ -609,20 +607,23 @@ bool MapData::checkCellIntersectionWalls(const Cell &cell)
     return false;
 }
 
+/// @brief Find a valid start X & Y coordinate, which lies within the map, for the cell.
+/// @param startX Original start X coordinate.
+/// @param startY Original start Y coordinate.
+/// @param newStartX Will be filled with the new start X coordinate.
+/// @param newStartY Will be filled with the new start Y coordinate.
+/// @param stopX Original stop X coordinate.
+/// @param stopY Original stop Y coordinate.
+/// @return Whether or not valid coordinates have been found.
 bool MapData::findValidStartCoordinates(const int startX, const int startY, int &newStartX, int &newStartY, const int stopX, const int stopY)
 {
     bool startXValid = false;
     bool startYValid = false;
     bool updateX = true;
 
-    if (numberOfCells == 41) // 42
-    {
-        int g = 1;
-    }
-
     while (true)
     {
-        // for (const int &allowedCoordinatesId : allowedCoordinatesIds)
+        // Looping over all allowed coordinates to check if cell is valid:
         for (int j = 0; j < numberOfAllowedCoordinates; j++)
         {
             Rectangle &allowedCoordinate = getAllowedCoordinates()[j];
@@ -662,7 +663,6 @@ bool MapData::findValidStartCoordinates(const int startX, const int startY, int 
         {
             // Resetting x:
             updateX = false;
-
             newStartX = startX;
 
             // Updating Y coordinate:
@@ -677,6 +677,13 @@ bool MapData::findValidStartCoordinates(const int startX, const int startY, int 
     return true;
 }
 
+/// @brief
+/// @param startX Original start X coordinate.
+/// @param startY Original start Y coordinate.
+/// @param cellSize Original size of the cell.
+/// @param allowedCoordinatesIds
+/// @param originalStopY
+/// @return
 Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds, const int originalStopY)
 {
     int stopX = startX + cellSize;
@@ -762,6 +769,118 @@ Cell MapData::createCellFillAllowedSpace(const int startX, const int startY, con
     return filledCell;
 }
 
+/// @brief Fill the remaining spots with cells.
+void MapData::fillRemainingAllowedCoordinates()
+{
+    vector<pair<int, int>> coordinatesNotInCell;
+
+    // Loop over all allowed coordinates to check for coordinates that have no cell yet:
+    for (int i = 0; i < numberOfAllowedCoordinates; i++)
+    {
+        Rectangle &allowedCoordinateSection = getAllowedCoordinates()[i];
+
+        // Looping over all allowed coordinates in section:
+        vector<pair<int, int>> allowedCoordinates = allowedCoordinateSection.getCoordinates();
+
+        for (int j = 0; j < allowedCoordinates.size(); j++)
+        {
+            pair<int, int> &allowedCoordinate = allowedCoordinates[j];
+
+            // Checking if coordinate is already in a cell:
+            if (isCoordinateInACell(allowedCoordinate.first, allowedCoordinate.second))
+            {
+                continue;
+            }
+
+            coordinatesNotInCell.push_back(pair<int, int>(allowedCoordinate.first, allowedCoordinate.second));
+        }
+    }
+
+    // Sorting coordinates:
+    sort(coordinatesNotInCell.begin(), coordinatesNotInCell.end(), compareSecond);
+
+    int startX = -1, startY = -1;
+
+    int previousX = -1, previousY = -1;
+
+    for (int i = 0; i < coordinatesNotInCell.size(); i++)
+    {
+        // Grabbing coordinates:
+        pair<int, int> &coordinateNotInCell = coordinatesNotInCell[i];
+        int &x = coordinateNotInCell.first;
+        int &y = coordinateNotInCell.second;
+
+        // Double coordinates are skipped:
+        if (x == previousX && y == previousY)
+        {
+            continue;
+        }
+
+        // bool adjecent = x == previousX ? (y == previousY + 1) : y == previousY ? (x == previousX + 1) : false;
+
+        // Checking adjecentcy:
+        // if ((x != previousX + 1 && y == previousY) && (y != previousY + 1 && x == previousX))
+        if (x != previousX + 1 && y != previousY + 1 || startX > x)
+        {
+            if (startX > 0 && startY > 0)
+            {
+                int &stopX = previousX;
+                int &stopY = previousY;
+
+                createCellWithMinSize(startX - 1, startY, stopX, stopY + 1, 4, 4);
+            }
+
+            // Set new start x & y:
+            startX = x;
+            startY = y;
+        }
+        // else if(startX > x)
+        // {
+        //     // Checking if start coordinates are still correct:
+        //     startX = x;
+        //     startY = y;
+        // }
+
+        previousX = x;
+        previousY = y;
+    }
+
+    // Check last possible cell:
+    if (startX > 0 && startY > 0)
+    {
+        int &stopX = previousX;
+        int &stopY = previousY;
+
+        createCellWithMinSize(startX - 1, startY, stopX, stopY + 1, 2, 2);
+    }
+
+    int bla = 10;
+}
+
+/// @brief Create a cell and add it to the cells list if it has a minimum width and height.
+/// @param startX Start X coordinate of the cell.
+/// @param startY Start Y coordinate of the cell.
+/// @param stopX Stop X coordinate of the cell.
+/// @param stopY Stop Y coordinate of the cell.
+/// @param minWidth Minimum width the cell needs to have.
+/// @param minHeight Minimum height the cell needs to have.
+/// @return Whether or not the cell is created.
+bool MapData::createCellWithMinSize(const int startX, const int startY, const int stopX, const int stopY, const int minWidth, const int minHeight)
+{
+    Cell newCell(numberOfCells, startX, stopX, startY, stopY);
+
+    if (newCell.getWidth() > minWidth && newCell.getHeight() > minHeight)
+    {
+        cells.push_back(newCell);
+
+        numberOfCells++;
+
+        return true;
+    }
+
+    return false;
+}
+
 /// @brief Check whether cell coordinates travel through one of the walls.
 /// @param originalXCoordinate Start X coordinate of cell.
 /// @param originalYCoordinate Start Y coordinate of cell.
@@ -827,6 +946,29 @@ bool MapData::cellOverlapsExistingCell(const Cell &cell)
 
     return false;
 }
+
+/// @brief Check if the given coordinates are inside one of the cells.
+/// @param x X coordinate to check.
+/// @param y Y coordinate to check.
+/// @return Whether or not the coordinates are inside one of the cells.
+bool MapData::isCoordinateInACell(const int x, const int y)
+{
+    for (int i = 0; i < numberOfCells; i++)
+    {
+        Cell &cell = getCells()[i];
+
+        if (cell.containsPoint(x, y))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//*************************************************
+//******** Caching ********************************
+//*************************************************
 
 /// @brief Write the calculate path distances to a cache json file.
 /// @param filename The name of the cache file.

@@ -98,9 +98,13 @@ private:
 
     bool findValidStartCoordinates(const int startX, const int startY, int &newStartX, int &newStartY, const int stopX, const int stopY);
     Cell createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds, const int stopY);
+    void fillRemainingAllowedCoordinates();
+    
     bool didTravelThroughWall(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate);
     bool didTravelThroughDoor(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate);
     bool cellOverlapsExistingCell(const Cell &cell);
+    bool isCoordinateInACell(const int x, const int y);
+    bool createCellWithMinSize(const int startX, const int startY, const int stopX, const int stopY, const int minWidth, const int minHeight);
 
     void cachePathData(const char *filename);
     bool loadCachedPathData(const char *filename);
