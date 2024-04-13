@@ -288,6 +288,8 @@ void loadParticleFilter(bool initializeMapRenderer)
     // const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
     // const uint8_t scale = 3;
 
+    spdlog::info("Starting particle filter...");
+
     if (!particleFilter.loadMap(filenameMap, config.cellSize))
     {
         spdlog::error("Failed to load the map {}.", filenameMap);
@@ -298,7 +300,7 @@ void loadParticleFilter(bool initializeMapRenderer)
     spdlog::info("Successfully loaded the map {}.", filenameMap);
 
     // Initialize particle filter:
-    //particleFilter.initializeParticlesUniformly();
+    particleFilter.initializeParticlesUniformly();
 
     // Initialize map renderer:
     if (initializeMapRenderer)

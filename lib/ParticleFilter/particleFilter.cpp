@@ -427,9 +427,16 @@ void ParticleFilter::processMovement(double distance, int angle)
     {
         Particle &particle = particles[i];
 
+        auto t1 = chrono::high_resolution_clock::now();
+
         // Calculate noise:
-        calculateGaussianNoise(noise1, distance);
-        calculateGaussianNoise(noise2, distance);
+        calculateGaussianNoise(noise1, 20); // DO SOMETHING HERE not use distance
+        calculateGaussianNoise(noise2, 20);
+
+        auto t2 = chrono::high_resolution_clock::now();
+        auto ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+
+        spdlog::info("Particle filter determining out-of-bound took {}ms", ms_int.count());
 
         // Calculating new x and y coordinates:
         int newXCoordinate = particle.getXCoordinate() + (int)movementX + noise1;
@@ -461,8 +468,15 @@ void ParticleFilter::processMovement(double distance, int angle)
 
     spdlog::info("In total {} particles are out of bound and {} particles are oke.", incorrectParticleIdxs.size(), correctParticleIdxs.size());
 
+    // t1 = chrono::high_resolution_clock::now();
+
     // Process new particle locations:
     processNewParticleLocations(correctParticleIdxs.data(), incorrectParticleIdxs.data(), correctParticleIdxs.size(), incorrectParticleIdxs.size(), distance, particlesPerCell);
+
+    //t2 = chrono::high_resolution_clock::now();
+    //ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+
+    //spdlog::info("Particle filter determining new locations took {}ms", ms_int.count());
 
     // Select cell with most particles in it:
     determineLocalizationCell(particlesPerCell);
@@ -551,11 +565,14 @@ void ParticleFilter::processWallDetected(double wallAngle, double wallDistance)
 
 void ParticleFilter::processWallDetectedOther(double wallAngle, double wallDistance)
 {
+    // Process the fact that another robot saw a wall, wow.
 }
 
 void ParticleFilter::processCellDetectedOther(int cellId)
 {
     // Based on distance we can deduce a lot here.
+
+    // We can still do this! Use it to update the table.
 }
 
 /// @brief Get the currently selected cell, based on the position of the particles.
@@ -603,7 +620,7 @@ bool ParticleFilter::isCoordinateAllowed(int xCoordinate, int yCoordinate, int &
     // Looping over all cells to check if the coordinate is inside it:
     for (int i = 0; i < mapData.getNumberOfCells(); i++)
     {
-        Cell cell = mapData.getCells()[i];
+        Cell &cell = mapData.getCells()[i];
         cellIdx = i;
 
         if (cell.containsPoint(xCoordinate, yCoordinate))

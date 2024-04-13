@@ -12,7 +12,7 @@
 #define NUMBER_OF_PARTICLES 10000 ///Might be much on embedded platform and maybe unecessary because of improvement from using audio
 #define MIN_NUMBER_OF_PARTICLES_CONVERGENCE NUMBER_OF_PARTICLES * 0.7
 
-#define NOISE_STDEV 10.0
+#define NOISE_STDEV 6.66
 #define NOISE_MEAN 0
 
 //TODO: Determine these based on testing result of doa and distance approaches :)

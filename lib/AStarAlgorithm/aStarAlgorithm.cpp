@@ -200,8 +200,18 @@ double AStarAlgorithm::calculatePathDistance(AStarAlgorithmMode mode, int startX
         stopY = closestCoordinates.second;
     }
 
-    double distance = calculateEuclideanDistance(stopX, stopY, node->getParent()->getMiddlePointX(), node->getParent()->getMiddlePointY());
-    node = node->getParent();
+    double distance = 0.0;
+
+    if (node->getParent() == nullptr)
+    {
+        distance = calculateEuclideanDistance(stopX, stopY, node->getMiddlePointX(), node->getMiddlePointY());
+    }
+    else
+    {
+        distance = calculateEuclideanDistance(stopX, stopY, node->getParent()->getMiddlePointX(), node->getParent()->getMiddlePointY());
+    }
+
+    node = node->getParent() != nullptr ? node->getParent() : node;
 
     // Storing path:
     cellPath.addPathFront(stopCell.id);
