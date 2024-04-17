@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "memory": "cpp",
+        "istream": "cpp",
+        "functional": "cpp",
+        "algorithm": "cpp",
+        "chrono": "cpp",
+        "random": "cpp",
+        "future": "cpp",
+        "optional": "cpp",
+        "*.tcc": "cpp"
+    }
+}
