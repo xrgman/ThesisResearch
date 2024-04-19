@@ -2,7 +2,7 @@
 
 #include <random>
 
-Particle Particle::createParticleInCell(int ID, double weight, Cell cell)
+Particle Particle::createParticleInCell(int ID, double weight, Cell &cell)
 {
     // Generate x and y coordinates randomly:
     int xCoordinate = cell.startX + rand() % (cell.stopX - cell.startX + 1);

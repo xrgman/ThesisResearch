@@ -56,7 +56,7 @@ double calculateDeviationAverage(const int16_t *data, const int size, const doub
     {
         sumDeviations += abs(data[i] - average);
     }
-
+    
     return sumDeviations / size;
 }
 
@@ -557,7 +557,27 @@ bool fileExists(const char *filename)
 
         return true;
     }
+
     return false;
+}
+
+/// @brief Generate a unique file name that doesn't exist yet. Appends it with _x based on the amount of file with the same name.
+/// @param originalFilename The original file name.
+/// @return The unique file name.
+string generateUniqueFileName(const string& originalFileName, const string& extension)
+{
+    string newFilename = originalFileName + extension;
+    int counter = 1;
+
+    while (fileExists(newFilename.c_str()))
+    {
+        stringstream ss;
+        ss << originalFileName << "_" << counter << extension;
+        newFilename = ss.str();
+        counter++;
+    }
+
+    return newFilename;
 }
 
 /// @brief Open a file with a specific name.

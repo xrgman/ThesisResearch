@@ -1,6 +1,8 @@
 #include "localizationTable.h"
 
 #include <iostream>
+#include <fstream>
+#include "util.h"
 
 using namespace std;
 
@@ -130,4 +132,36 @@ void LocalizationTable::printTable()
 
         cout << endl;
     }
+}
+
+/// @brief Save the table to a .csv file.
+void LocalizationTable::saveTable()
+{
+    string originalFilename = "LocalizationTable_";
+    originalFilename += to_string(senderId);
+
+    string uniqueFilename = generateUniqueFileName(originalFilename, ".csv");
+
+    // Opening file:
+    ofstream outputFile(uniqueFilename);
+
+    if (!outputFile.is_open())
+    {
+        spdlog::error("Could not save localization table, unable to create file.");
+
+        return;
+    }
+
+    // Writing table to file:
+    for (int i = 0; i < totalNumberOfCells; i++)
+    {
+        for (int j = -0; j < totalNumberOfCells; j++)
+        {
+            outputFile << table[i][j] << ", ";
+        }
+
+        outputFile << endl;
+    }
+
+    outputFile.close();
 }

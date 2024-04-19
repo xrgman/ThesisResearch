@@ -101,27 +101,28 @@ int ParticleFilter::getNumberOfParticles()
 /// @brief Create a fixed amount of particles, that are spread uniformly over all cells in the map.
 void ParticleFilter::initializeParticlesUniformly()
 {
-    const int particlesInCell = NUMBER_OF_PARTICLES / mapData.getNumberOfCells(); // We take it for granted that we will not exactly get the number of particles in the define.
-    const double weight = (double)1 / NUMBER_OF_PARTICLES;                        // Initial particle weight is equal amongst all particles.
+    // const int particlesInCell = NUMBER_OF_PARTICLES / mapData.getNumberOfCells(); // We take it for granted that we will not exactly get the number of particles in the define.
+    const double weight = (double)1 / NUMBER_OF_PARTICLES; // Initial particle weight is equal amongst all particles.
+    const int numberOfCells = mapData.getNumberOfCells();
 
     // Preparing particle array:
     particlesInArray = 0;
     particles.clear();
     particles.reserve(NUMBER_OF_PARTICLES);
 
-    // Loop over every cell and create random particles in there:
-    for (int i = 0; i < mapData.getNumberOfCells(); i++)
+    int i = 0;
+
+    while (i < NUMBER_OF_PARTICLES)
     {
-        for (int j = 0; j < particlesInCell; j++)
-        {
-            int particleID = i * particlesInCell + j;
+        int cellId = i % numberOfCells;
+        Particle particle = Particle::createParticleInCell(i, weight, mapData.getCells()[cellId]);
 
-            particles[particleID] = Particle::createParticleInCell(particleID, weight, mapData.getCells()[i]);
+        particles.push_back(particle);
 
-            particlesInArray++;
-        }
+        particlesInArray++;
+        particlesPerCell[cellId]++;
 
-        particlesPerCell[i] = particlesInCell;
+        i++;
     }
 }
 
@@ -253,6 +254,9 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
     LocalizationTable &localizationTable = localizationTables[senderId];
 
     // Cleaning the table:
+    // TODO this is drastic, maybe update the table?
+    // Or not, because we have no way of telling how much time is in between them.
+    // Timestamp the tables? Not possible!
     localizationTable.clear();
 
     // 2. Looping over all cells to fill localization table:
@@ -319,8 +323,8 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
         }
     }
 
-    // Print table:
-    localizationTable.printTable();
+    // Saving table to file:
+    localizationTable.saveTable();
 
     // Based on the current data, we eliminate cells for which the whole row is false:
     vector<int> invalidCells;
@@ -394,6 +398,7 @@ void ParticleFilter::processMovement(double distance, int angle)
 {
     // distance travelled = pi * diameter
     // Diameter wheel = 12CM
+    // pfm 90 40
     int noise1, noise2;
 
     // Calculate movement along the x and y axis:
@@ -436,7 +441,7 @@ void ParticleFilter::processMovement(double distance, int angle)
         auto t2 = chrono::high_resolution_clock::now();
         auto ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-        spdlog::info("Particle filter determining out-of-bound took {}ms", ms_int.count());
+        spdlog::info("Particle filter determining out-of-bound took {}ns", ms_int.count());
 
         // Calculating new x and y coordinates:
         int newXCoordinate = particle.getXCoordinate() + (int)movementX + noise1;
@@ -473,10 +478,10 @@ void ParticleFilter::processMovement(double distance, int angle)
     // Process new particle locations:
     processNewParticleLocations(correctParticleIdxs.data(), incorrectParticleIdxs.data(), correctParticleIdxs.size(), incorrectParticleIdxs.size(), distance, particlesPerCell);
 
-    //t2 = chrono::high_resolution_clock::now();
-    //ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
+    // t2 = chrono::high_resolution_clock::now();
+    // ms_int = chrono::duration_cast<chrono::nanoseconds>(t2 - t1);
 
-    //spdlog::info("Particle filter determining new locations took {}ms", ms_int.count());
+    // spdlog::info("Particle filter determining new locations took {}ms", ms_int.count());
 
     // Select cell with most particles in it:
     determineLocalizationCell(particlesPerCell);
@@ -692,6 +697,16 @@ void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[]
         particleDistribution[i] = particles[particleId].getWeight();
     }
 
+    for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
+    {
+        Particle &particle = particles[i]; // all after 9842 are zero???
+
+        if (particle.getXCoordinate() == 0)
+        {
+            int vv = 10;
+        }
+    }
+
     // Creating emperical distribution from this:
     std::discrete_distribution<int> empirical_distribution(particleDistribution.begin(), particleDistribution.end());
 
@@ -708,7 +723,13 @@ void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[]
             correctParticleIdx = empirical_distribution(generator);
         } while (correctParticleIdx < 0 || correctParticleIdx > nrOfCorrectParticles);
 
-        Particle chosenParticle = particles[correctParticleIdxs[correctParticleIdx]];
+        int particleId = correctParticleIdxs[correctParticleIdx];
+        Particle &chosenParticle = particles[correctParticleIdxs[correctParticleIdx]];
+
+        if (chosenParticle.getXCoordinate() == 0)
+        {
+            int g = 10;
+        }
 
         // Grabbning current cell of chosen particle:
         isCoordinateAllowed(chosenParticle.getXCoordinate(), chosenParticle.getYcoordinate(), cellIdxChosenParticle);

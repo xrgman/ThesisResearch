@@ -1090,6 +1090,26 @@ void handleKeyboardInput()
                 continue;
             }
 
+            /// Particle filter movement:
+            if (words[0] == "pfm")
+            {
+                if (words.size() < 3)
+                {
+                    spdlog::error("Wrong input! Correct usage: pfm <angle_degrees> <distance_cm>");
+
+                    continue;
+                }
+
+                double angle = stod(words[1]);    // In degrees
+                double distance = stod(words[2]); // In cm
+
+                spdlog::info("Processing movement of robot of {} cm at {} degrees", angle, distance);
+
+                particleFilter.processMovement(distance, angle);
+
+                continue;
+            }
+
             // Start particle filer:
             if (words[0] == "pft")
             {

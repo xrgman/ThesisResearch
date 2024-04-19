@@ -56,6 +56,7 @@ void bitsToString(const uint8_t *bits, const int nrOfBits, char *output);
 double translateToRange(double number, double minInput, double maxInput, double minOutput, double maxOutput);
 
 bool fileExists(const char *filename);
+string generateUniqueFileName(const string& originalFileName, const string& extension);
 bool openFile(const char *filename, FILE **file, const char *mode);
 long getFileSize(FILE *file);
 char *readFileText(FILE *file);

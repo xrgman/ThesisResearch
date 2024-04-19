@@ -19,6 +19,7 @@ public:
     bool isRowInvalid(int row);
 
     void printTable();
+    void saveTable();
 
 private:
     int totalNumberOfCells;
