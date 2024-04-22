@@ -281,7 +281,7 @@ void recordToWavFile(const char *filename, const int seconds)
 
 void loadParticleFilter(bool initializeMapRenderer)
 {
-    //const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    // const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
     const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
     const uint8_t scale = 1;
 
@@ -1529,6 +1529,10 @@ int main()
     if (config.calibrateSignalEnergy)
     {
         calibrateSignalEnergy();
+    }
+    else
+    {
+        audioCodec.setVolume(1.0);
     }
 
     // Running keyboard input function:

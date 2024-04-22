@@ -28,7 +28,7 @@
   <li>Add the ability to process wall message and update particle filter based on it</li>
   <li>Add the ability to process cell message and update particle filter based on it</li>
   <li><s>Cache distances between cells to a .json file to speed up particle filter</s></li>
-  <li>Save the localization table to file after generating it</li>
+  <li><s>Save the localization table to file after generating it</s></li>
   <li>Add the ability to load a localization table from another robot and fuse it with own tables. If none are there, set it as the table for that robot.</li>
   <li>Increase performance PF with high number of cells</li>
   <li>Link movement from robot to movement in particle filter</li> 

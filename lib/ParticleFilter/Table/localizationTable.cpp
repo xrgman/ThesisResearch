@@ -137,9 +137,7 @@ void LocalizationTable::printTable()
 /// @brief Save the table to a .csv file.
 void LocalizationTable::saveTable()
 {
-    string originalFilename = "LocalizationTable_";
-    originalFilename += to_string(senderId);
-
+    string originalFilename = "LocalizationTable_" + to_string(robotId) + "_" + to_string(senderId);
     string uniqueFilename = generateUniqueFileName(originalFilename, ".csv");
 
     // Opening file:

@@ -697,16 +697,6 @@ void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[]
         particleDistribution[i] = particles[particleId].getWeight();
     }
 
-    for (int i = 0; i < NUMBER_OF_PARTICLES; i++)
-    {
-        Particle &particle = particles[i]; // all after 9842 are zero???
-
-        if (particle.getXCoordinate() == 0)
-        {
-            int vv = 10;
-        }
-    }
-
     // Creating emperical distribution from this:
     std::discrete_distribution<int> empirical_distribution(particleDistribution.begin(), particleDistribution.end());
 
@@ -725,11 +715,6 @@ void ParticleFilter::processNewParticleLocations(const int correctParticleIdxs[]
 
         int particleId = correctParticleIdxs[correctParticleIdx];
         Particle &chosenParticle = particles[correctParticleIdxs[correctParticleIdx]];
-
-        if (chosenParticle.getXCoordinate() == 0)
-        {
-            int g = 10;
-        }
 
         // Grabbning current cell of chosen particle:
         isCoordinateAllowed(chosenParticle.getXCoordinate(), chosenParticle.getYcoordinate(), cellIdxChosenParticle);
