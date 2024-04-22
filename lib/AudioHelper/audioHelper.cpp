@@ -69,7 +69,7 @@ chrono::time_point<chrono::high_resolution_clock> lastTime = chrono::high_resolu
 int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
     // Grabbing time of receiving current batch:
-    chrono::time_point<chrono::high_resolution_clock> currentTime = chrono::high_resolution_clock::now();
+    // chrono::time_point<chrono::high_resolution_clock> currentTime = chrono::high_resolution_clock::now();
 
     // chrono::nanoseconds timeDifference = chrono::duration_cast<chrono::nanoseconds>(currentTime - lastTime);
 
@@ -94,7 +94,8 @@ int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer
                 int actualChannelId = microphonesOrdered[channel];
 
                 // Saving to buffer in correct order:
-                inputBuffers[channel].write(inputData[i * numChannels + actualChannelId], currentTime);
+                //inputBuffers[channel].write(inputData[i * numChannels + actualChannelId], currentTime);
+                inputBuffers[channel].write(inputData[i * numChannels + actualChannelId]);
             }
         }
     }

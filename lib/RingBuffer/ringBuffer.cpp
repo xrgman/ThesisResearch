@@ -46,7 +46,7 @@ void RingBuffer::write(const int16_t data)
     // Checking for overflow:
     if (head == tail && !isEmpty)
     {
-        spdlog::error("Ringbuffer: Buffer overflow, overwriting oldest data.");
+        //spdlog::error("Ringbuffer: Buffer overflow, overwriting oldest data.");
 
         tail = (tail + 1) % size;
     }

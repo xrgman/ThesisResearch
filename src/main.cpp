@@ -1486,7 +1486,7 @@ int main()
     setApplicationPriority();
 
     // Setting volume of speaker:
-    system("amixer -c 3 set Speaker 90%");
+    system("amixer -c 2 set Speaker 90%");
 
     // FOR TESTING NOW:
     // loadParticleFilter(false);
@@ -1495,7 +1495,7 @@ int main()
     audioHelper.stopAndClose(false);
 
     // Starting decoding threads:
-    launchDecodingThreads();
+    //launchDecodingThreads();
 
     // Opening audio streams:
     if (!audioHelper.initializeAndOpen())
