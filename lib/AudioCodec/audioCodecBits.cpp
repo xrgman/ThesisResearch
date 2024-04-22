@@ -126,14 +126,14 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     // }
 
     // THIS IS THE WORKING ONE:
-    if (bit == 1)
-    {
-        encodeChirp(output, frequencies, bitSamples, 4);
-    }
-    else
-    {
-        encodeChirp(output, frequenciesBit0, bitSamples, 4);
-    }
+    // if (bit == 1)
+    // {
+    //     encodeChirp(output, frequencies, bitSamples, 4);
+    // }
+    // else
+    // {
+    //     encodeChirp(output, frequenciesBit0, bitSamples, 4);
+    // }
 
     // int subChirpOrder[4] = {
     //     bit == 0 ? 0 : 7,
@@ -141,20 +141,30 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     //     bit == 0 ? 2 : 5,
     //     bit == 0 ? 4 : 3};
 
-    // double bandwidthPerSubChirp = (frequencies.stopFrequency - frequencies.startFrequency) / 8;
-    // int sizePerSubChirp = bitSamples / 4;
+    int subChirpOrder[1] = {bit == 0 ? 0 : 1};
+    int chirpSize = 1;
 
-    // AudioCodecFrequencyPair toUse = bit == 0 ? frequenciesBit0 : frequenciesBit1;
+    double bandwidthPerSubChirp = (frequencies.stopFrequency - frequencies.startFrequency) / 2;
+    int sizePerSubChirp = bitSamples / chirpSize;
 
-    // for (uint8_t i = 0; i < 4; i++)
-    // {
-    //     AudioCodecFrequencyPair frequencyPair = {
-    //         toUse.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp),
-    //         (toUse.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
+    // AudioCodecFrequencyPair toUse = bit == 0 ? frequenciesBit0 : frequencies;
 
-    //     encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, 4);
-    // }
+    for (uint8_t i = 0; i < chirpSize; i++)
+    {
+        AudioCodecFrequencyPair frequencyPair = {
+            frequencies.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp),
+            (frequencies.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
 
+        // Flipping for 0 bit:
+        // if (bit == 0)
+        // {
+        //     frequencyPair = {
+        //         frequencyPair.stopFrequency,
+        //         frequencyPair.startFrequency};
+        // }
+
+        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, 4);
+    }
 
     // Flip the signal, if its needed for convolution:
     if (flipped)

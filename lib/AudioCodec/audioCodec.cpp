@@ -17,7 +17,8 @@ AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*s
     this->filterOwnSource = filterOwnSource;
     this->data_decoded_callback = data_decoded_callback;
     this->signal_energy_callback = signal_energy_callback;
-    this->volume = 0.5;
+    // this->volume = 0.5;
+    this->volume = 1.0;
     this->frequencyPairPreamble.startFrequency = frequencyStartPreamble;
     this->frequencyPairPreamble.stopFrequency = frequencyStopPreamble;
     this->frequencyPairBit.startFrequency = frequencyStartBit;
@@ -104,7 +105,7 @@ void AudioCodec::generateConvolutionFields(int robotId)
 /// @return Number of bits in encoded message.
 int AudioCodec::getNumberOfBits()
 {
-    // Message ID + Data + CRC + Padding
+    // Message ID + Data + CRC // + Padding
     return 8 + 64 + 8; // + 8;
 }
 
@@ -1410,8 +1411,22 @@ void AudioCodec::setVolume(double volume)
         this->volume = 1.0;
     }
 
+    // Regenerate preamble:
+    double originalPreamble[preambleSamples];
+
+    encodePreamble(originalPreamble, true);
+
+    originalPreambleFlipped = new double[preambleUndersampledSamples];
+
+    for (int i = 0; i < preambleUndersampledSamples; i++)
+    {
+        originalPreambleFlipped[i] = originalPreamble[i * preambleUndersamplingDivisor];
+    }
+
     // Regenerate encoded sender ID and bits based on new volume:
     encodeSenderId(encodedSenderId, frequencyPairOwn, false);
     encodeBit(encodedBit0, 0, frequencyPairOwn, false);
     encodeBit(encodedBit1, 1, frequencyPairOwn, false);
+
+    // Also regenerate the ones to check against!
 }

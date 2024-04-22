@@ -1495,7 +1495,7 @@ int main()
     audioHelper.stopAndClose(false);
 
     // Starting decoding threads:
-    //launchDecodingThreads();
+    launchDecodingThreads();
 
     // Opening audio streams:
     if (!audioHelper.initializeAndOpen())
