@@ -18,8 +18,8 @@ T positive_modulo(T val, T mod) {
 
 #define FRAMES_PER_BUFFER 2048//2048 //1024
 #define RING_BUFFER_INPUT_SIZE 8192 //FRAMES_PER_BUFFER * 4
-// #define RING_BUFFER_OUTPUT_SIZE 55008 //1.5 times a whole message
-#define RING_BUFFER_OUTPUT_SIZE 196026 //1.5 times a whole message
+#define RING_BUFFER_OUTPUT_SIZE 55008 //1.5 times a whole message
+//#define RING_BUFFER_OUTPUT_SIZE 196026 //1.5 times a whole message
 
 #define DIAMETER_WHEEL 12 //12CM
 

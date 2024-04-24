@@ -225,7 +225,7 @@ void openAndPlayWavFile(const char *filename)
 void recordToWavFile(const char *filename, const int seconds)
 {
     const int nrOfSamplesTotal = config.sampleRate * seconds * config.numChannels;
-    int16_t recordedSamples[nrOfSamplesTotal];
+    int16_t *recordedSamples = new int16_t[nrOfSamplesTotal];
     int samplesRead = 0;
 
     bool recording = true;
@@ -275,6 +275,9 @@ void recordToWavFile(const char *filename, const int seconds)
     // Write data to file:
     // Writing to file makes buffer somehow overflow
     writeWavFile(filename, recordedSamples, nrOfSamplesTotal, config.sampleRate, 16, config.numChannels);
+
+    // Freeing memory:
+    delete[] recordedSamples;
 
     spdlog::info("Sucessfully written {} seconds to the wav file {}.", seconds, filename);
 }
