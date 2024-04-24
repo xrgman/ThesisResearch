@@ -355,6 +355,8 @@ void decodeWavFile(const char *filename)
     chrono::time_point<chrono::high_resolution_clock> receivedTime;
     decodingStart = chrono::high_resolution_clock::now();
 
+    pauseDecoding = true;
+
     // Reading successfull, so decoding it:
     while (!feof(fileRead))
     {
@@ -367,6 +369,8 @@ void decodeWavFile(const char *filename)
             audioCodec.decode(audioData[i], i % wavHeader.numChannels, receivedTime); // i % NUM_CHANNELS
         }
     }
+
+    pauseDecoding = false;
 
     // Clear the end-of-file indicator
     clearerr(fileRead);
