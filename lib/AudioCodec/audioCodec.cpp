@@ -113,7 +113,7 @@ int AudioCodec::getNumberOfBits()
 /// @return Size.
 int AudioCodec::getEncodingSize()
 {
-    return preambleSamples + bitSamples + (getNumberOfBits() * bitSamples) + (getNumberOfBits() * 40);
+    return preambleSamples + bitSamples + (getNumberOfBits() * bitSamples) + (getNumberOfBits() * 2 * BIT_PADDING);
 }
 
 /// @brief Get the duration of an encoded message in seconds.
@@ -721,7 +721,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_po
                     }
 
                     decodingResults[decodingResultIdx].senderId = senderId;
-                    decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples;
+                    decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples + BIT_PADDING;
 
                     continue;
                 }
@@ -733,7 +733,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_po
                 decodingResults[decodingResultIdx].decodedBitsCnt++;
 
                 // Increasing read position:
-                decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples;
+                decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples + (BIT_PADDING * 2);
 
                 // Checking if all bits are received (-8 because of padding in back):
                 if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits())

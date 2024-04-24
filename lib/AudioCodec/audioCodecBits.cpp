@@ -219,20 +219,20 @@ void AudioCodec::encodeBits(double *output, uint8_t *bits, int numberOfBits)
         int bit = bits[i];
 
         // Add padding front:
-        for (int j = 0; j < 20; j++)
+        for (int j = 0; j < BIT_PADDING; j++)
         {
             output[i * bitSamples + j] = 0;
         }
 
         for (int j = 0; j < bitSamples; j++)
         {
-            output[i * bitSamples + 20 + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
+            output[i * bitSamples + BIT_PADDING + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
         }
 
         // Add padding back:
-        for (int j = 0; j < 20; j++)
+        for (int j = 0; j < BIT_PADDING; j++)
         {
-            output[i * bitSamples + 20 + bitSamples + j] = 0;
+            output[i * bitSamples + BIT_PADDING + bitSamples + j] = 0;
         }
 
         // encodeBit(&output[i * bitSamples], bit, frequencyPairsOwn, false);
