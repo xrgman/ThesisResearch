@@ -8,10 +8,8 @@ void AudioCodec::initializeBitEncodingData()
 {
     // Determining frequency range for specific robot ID:
     double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
-    double bandwidthRobot = totalBandwidth / totalNumberRobots;
-
-    double startFrequency = frequencyPairBit.startFrequency + (robotId * bandwidthRobot);
-    double stopFrequency = startFrequency + bandwidthRobot;
+    // double bandwidthRobot = totalBandwidth / totalNumberRobots;
+    double bandwidthRobot = totalBandwidth / (totalNumberRobots * 2);
 
     senderIdsFlipped = new double *[totalNumberRobots];
     bit0Flipped = new double *[totalNumberRobots];
@@ -47,25 +45,25 @@ void AudioCodec::initializeBitEncodingData()
 
         // LORA:
         //  Creating down chirp that is used for decoding:
-        double downChirp_frequencies[SAMPLES_PER_SYMBOL];
-        double downChirp[SAMPLES_PER_SYMBOL];
-        kiss_fft_cpx downChirp_complex_full[SAMPLES_PER_SYMBOL];
+        // double downChirp_frequencies[SAMPLES_PER_SYMBOL];
+        // double downChirp[SAMPLES_PER_SYMBOL];
+        // kiss_fft_cpx downChirp_complex_full[SAMPLES_PER_SYMBOL];
 
-        linespace(frequencies.startFrequency, frequencies.stopFrequency, SAMPLES_PER_SYMBOL, downChirp_frequencies, true);
+        // linespace(frequencies.startFrequency, frequencies.stopFrequency, SAMPLES_PER_SYMBOL, downChirp_frequencies, true);
 
-        // Creating sine wave from downchirp frequencies:
-        createSinWaveFromFreqs(downChirp_frequencies, downChirp, SAMPLES_PER_SYMBOL);
-        hilbert(downChirp, downChirp_complex_full, SAMPLES_PER_SYMBOL, fftConfigStoreHilSymbols); // Adding complex part
+        // // Creating sine wave from downchirp frequencies:
+        // createSinWaveFromFreqs(downChirp_frequencies, downChirp, SAMPLES_PER_SYMBOL);
+        // hilbert(downChirp, downChirp_complex_full, SAMPLES_PER_SYMBOL, fftConfigStoreHilSymbols); // Adding complex part
 
-        downChirps_complex[i] = new kiss_fft_cpx[NUM_SYMBOLS];
+        // downChirps_complex[i] = new kiss_fft_cpx[NUM_SYMBOLS];
 
-        // Storing only 256 samples from the complex result:
-        for (int j = 0; j < NUM_SYMBOLS; j++)
-        {
-            int n = j * SAMPLING_DELTA;
+        // // Storing only 256 samples from the complex result:
+        // for (int j = 0; j < NUM_SYMBOLS; j++)
+        // {
+        //     int n = j * SAMPLING_DELTA;
 
-            downChirps_complex[i][j] = downChirp_complex_full[n];
-        }
+        //     downChirps_complex[i][j] = downChirp_complex_full[n];
+        // }
 
         // Define own sender Id and bit encodings:
         if (i == robotId)
@@ -83,7 +81,7 @@ void AudioCodec::initializeBitEncodingData()
             // LORA approach:
 
             // Creating the original upchirp:
-            linespace(frequencies.startFrequency, frequencies.stopFrequency, SAMPLES_PER_SYMBOL, upChirp, false);
+            // linespace(frequencies.startFrequency, frequencies.stopFrequency, SAMPLES_PER_SYMBOL, upChirp, false);
         }
     }
 }
@@ -99,9 +97,16 @@ void AudioCodec::initializeBitEncodingData()
 void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair &frequencies, bool flipped)
 {
     // Here I make them for up and down :)
+    // AudioCodecFrequencyPair frequenciesBit0 = {
+    //     frequencies.stopFrequency,
+    //     frequencies.startFrequency};
+
+    double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
+    double bandwidthRobot = totalBandwidth / (totalNumberRobots * 2);
+
     AudioCodecFrequencyPair frequenciesBit0 = {
-        frequencies.stopFrequency,
-        frequencies.startFrequency};
+        frequencies.startFrequency + (totalNumberRobots * bandwidthRobot),
+        frequencies.stopFrequency + (totalNumberRobots * bandwidthRobot)};
 
     // // Determining which frequency pair to use based on the bit to encode:
     // encodeChirp(output, bit == 0 ? frequencies[0] : frequencies[1], bitSamples);
@@ -125,15 +130,23 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     //     reverse(output, output + bitSamples);
     // }
 
+    // ***********************
+    // APPROACH 1
+    // ***********************
+
     // THIS IS THE WORKING ONE:
-    // if (bit == 1)
-    // {
-    //     encodeChirp(output, frequencies, bitSamples, 4);
-    // }
-    // else
-    // {
-    //     encodeChirp(output, frequenciesBit0, bitSamples, 4);
-    // }
+    if (bit == 1)
+    {
+        encodeChirp(output, frequencies, bitSamples, kaiserWindowBeta);
+    }
+    else
+    {
+        encodeChirp(output, frequenciesBit0, bitSamples, kaiserWindowBeta);
+    }
+
+    // ***********************
+    // APPROACH 2
+    // ***********************
 
     // int subChirpOrder[4] = {
     //     bit == 0 ? 0 : 7,
@@ -141,7 +154,7 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     //     bit == 0 ? 2 : 5,
     //     bit == 0 ? 4 : 3};
 
-    int subChirpOrder[1] = {bit == 0 ? 0 : 1};
+    /*int subChirpOrder[1] = {bit == 0 ? 0 : 1};
     int chirpSize = 1;
 
     double bandwidthPerSubChirp = (frequencies.stopFrequency - frequencies.startFrequency) / 2;
@@ -164,7 +177,11 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
         // }
 
         encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, kaiserWindowBeta);
-    }
+    }*/
+
+    // ***********************
+    // APPROACH 3
+    // ***********************
 
     // Flip the signal, if its needed for convolution:
     if (flipped)
@@ -241,10 +258,10 @@ int AudioCodec::decodeBit(const double *window, const int windowSize, const int 
     double max0 = *max_element(convolutionData0, convolutionData0 + bitSamples);
     double max1 = *max_element(convolutionData1, convolutionData1 + bitSamples);
 
-    if (printCodedBits)
-    {
-        spdlog::info("Bit: {}, 0: {}, 1: {}", max0 > max1 ? 0 : 1, max0, max1);
-    }
+    // if (printCodedBits)
+    // {
+    //     spdlog::info("Bit: {}, 0: {}, 1: {}", max0 > max1 ? 0 : 1, max0, max1);
+    // }
 
     // 3. Return bit that is most likely:
     return max0 > max1 ? 0 : 1;
