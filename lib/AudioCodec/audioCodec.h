@@ -11,7 +11,7 @@
 #define NUMBER_OF_SUB_CHIRPS 8
 #define CHIRP_AMPLITUDE 1.0
 
-#define BIT_PADDING 20
+#define BIT_PADDING 180
 
 #define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source
 #define PREAMBLE_SIGNAL_ENERGY_CUTOFF 400 //When to assume message is from own source

@@ -217,22 +217,23 @@ void AudioCodec::encodeBits(double *output, uint8_t *bits, int numberOfBits)
     for (int i = 0; i < numberOfBits; i++)
     {
         int bit = bits[i];
+        int start = (i * bitSamples) + (i * 2 * BIT_PADDING);
 
         // Add padding front:
         for (int j = 0; j < BIT_PADDING; j++)
         {
-            output[i * bitSamples + j] = 0;
+            output[start + j] = 0;
         }
 
         for (int j = 0; j < bitSamples; j++)
         {
-            output[i * bitSamples + BIT_PADDING + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
+            output[start + BIT_PADDING + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
         }
 
         // Add padding back:
         for (int j = 0; j < BIT_PADDING; j++)
         {
-            output[i * bitSamples + BIT_PADDING + bitSamples + j] = 0;
+            output[start + BIT_PADDING + bitSamples + j] = 0;
         }
 
         // encodeBit(&output[i * bitSamples], bit, frequencyPairsOwn, false);
@@ -270,10 +271,10 @@ int AudioCodec::decodeBit(const double *window, const int windowSize, const int 
     double max0 = *max_element(convolutionData0, convolutionData0 + bitSamples);
     double max1 = *max_element(convolutionData1, convolutionData1 + bitSamples);
 
-    if (printCodedBits)
-    {
-        spdlog::info("Bit: {}, 0: {}, 1: {}", max0 > max1 ? 0 : 1, max0, max1);
-    }
+    // if (printCodedBits)
+    // {
+    //     spdlog::info("Bit: {}, 0: {}, 1: {}", max0 > max1 ? 0 : 1, max0, max1);
+    // }
 
     // 3. Return bit that is most likely:
     return max0 > max1 ? 0 : 1;
