@@ -113,7 +113,7 @@ int AudioCodec::getNumberOfBits()
 /// @return Size.
 int AudioCodec::getEncodingSize()
 {
-    return preambleSamples + bitSamples + (getNumberOfBits() * bitSamples);
+    return preambleSamples + bitSamples + (getNumberOfBits() * bitSamples) + (getNumberOfBits() * 40);
 }
 
 /// @brief Get the duration of an encoded message in seconds.
@@ -1040,7 +1040,7 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult)
     }
     else
     {
-        spdlog::error("CRC mismatch from robot {}, dropping message!", decodingResult.senderId);
+        spdlog::error("CRC mismatch from robot {} at angle {}, dropping message!", decodingResult.senderId, decodingResult.doa);
     }
 
     // Resetting decoding stores:

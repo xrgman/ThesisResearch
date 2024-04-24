@@ -8,8 +8,8 @@ void AudioCodec::initializeBitEncodingData()
 {
     // Determining frequency range for specific robot ID:
     double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
-    // double bandwidthRobot = totalBandwidth / totalNumberRobots;
-    double bandwidthRobot = totalBandwidth / (totalNumberRobots * 2);
+    double bandwidthRobot = totalBandwidth / totalNumberRobots;
+    // double bandwidthRobot = totalBandwidth / (totalNumberRobots * 2);
 
     senderIdsFlipped = new double *[totalNumberRobots];
     bit0Flipped = new double *[totalNumberRobots];
@@ -97,16 +97,9 @@ void AudioCodec::initializeBitEncodingData()
 void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair &frequencies, bool flipped)
 {
     // Here I make them for up and down :)
-    // AudioCodecFrequencyPair frequenciesBit0 = {
-    //     frequencies.stopFrequency,
-    //     frequencies.startFrequency};
-
-    double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
-    double bandwidthRobot = totalBandwidth / (totalNumberRobots * 2);
-
     AudioCodecFrequencyPair frequenciesBit0 = {
-        frequencies.startFrequency + (totalNumberRobots * bandwidthRobot),
-        frequencies.stopFrequency + (totalNumberRobots * bandwidthRobot)};
+        frequencies.stopFrequency,
+        frequencies.startFrequency};
 
     // // Determining which frequency pair to use based on the bit to encode:
     // encodeChirp(output, bit == 0 ? frequencies[0] : frequencies[1], bitSamples);
@@ -133,6 +126,13 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     // ***********************
     // APPROACH 1
     // ***********************
+
+    // double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
+    // double bandwidthRobot = totalBandwidth / (totalNumberRobots * 2);
+
+    // frequenciesBit0 = {
+    //     frequencies.startFrequency + (totalNumberRobots * bandwidthRobot),
+    //     frequencies.stopFrequency + (totalNumberRobots * bandwidthRobot)};
 
     // THIS IS THE WORKING ONE:
     if (bit == 1)
@@ -218,9 +218,21 @@ void AudioCodec::encodeBits(double *output, uint8_t *bits, int numberOfBits)
     {
         int bit = bits[i];
 
+        // Add padding front:
+        for (int j = 0; j < 20; j++)
+        {
+            output[i * bitSamples + j] = 0;
+        }
+
         for (int j = 0; j < bitSamples; j++)
         {
-            output[i * bitSamples + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
+            output[i * bitSamples + 20 + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
+        }
+
+        // Add padding back:
+        for (int j = 0; j < 20; j++)
+        {
+            output[i * bitSamples + 20 + bitSamples + j] = 0;
         }
 
         // encodeBit(&output[i * bitSamples], bit, frequencyPairsOwn, false);
@@ -258,10 +270,10 @@ int AudioCodec::decodeBit(const double *window, const int windowSize, const int 
     double max0 = *max_element(convolutionData0, convolutionData0 + bitSamples);
     double max1 = *max_element(convolutionData1, convolutionData1 + bitSamples);
 
-    // if (printCodedBits)
-    // {
-    //     spdlog::info("Bit: {}, 0: {}, 1: {}", max0 > max1 ? 0 : 1, max0, max1);
-    // }
+    if (printCodedBits)
+    {
+        spdlog::info("Bit: {}, 0: {}, 1: {}", max0 > max1 ? 0 : 1, max0, max1);
+    }
 
     // 3. Return bit that is most likely:
     return max0 > max1 ? 0 : 1;
