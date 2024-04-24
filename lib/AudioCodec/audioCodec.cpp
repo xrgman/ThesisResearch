@@ -7,11 +7,11 @@
 #include <map>
 
 #define REQUIRED_NUMBER_OF_CYCLES 5
-#define KAISER_WINDOW_BETA 4
+// #define KAISER_WINDOW_BETA 4
 
 AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
-                       double frequencyStopBit, bool printCodedBits, bool filterOwnSource) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
-                                                                                             preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor)
+                       double frequencyStopBit, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
+                                                                                             preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor), kaiserWindowBeta(kaiserWindowBeta)
 {
     this->printCodedBits = printCodedBits;
     this->filterOwnSource = filterOwnSource;
@@ -343,7 +343,7 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
 /// @param flipped Whether to flip the data in the output buffer for convolution.
 void AudioCodec::encodePreamble(double *output, bool flipped)
 {
-    encodeChirp(output, frequencyPairPreamble, preambleSamples, KAISER_WINDOW_BETA);
+    encodeChirp(output, frequencyPairPreamble, preambleSamples, kaiserWindowBeta);
 
     // Flip the signal, if its needed for convolution:
     if (flipped)
@@ -375,7 +375,7 @@ void AudioCodec::bitToChirpOld(double *output, uint8_t bit, AudioCodecFrequencyP
             output[size * i + j] *= volume;
 
             // Apply kaiser window:
-            output[size * i + j] = applyKaiserWindow(output[size * i + j], size, j, KAISER_WINDOW_BETA);
+            output[size * i + j] = applyKaiserWindow(output[size * i + j], size, j, kaiserWindowBeta);
         }
     }
 }
@@ -413,7 +413,7 @@ void AudioCodec::encodeSenderId(double *output, const AudioCodecFrequencyPair &f
             (frequencies.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp,
         };
 
-        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, KAISER_WINDOW_BETA);
+        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, kaiserWindowBeta);
     }
 
     // Flip the signal, if its needed for convolution:

@@ -49,6 +49,7 @@ Config Config::LoadConfig(const char *filename)
                       jsonData["preamble_samples"],
                       jsonData["bit_samples"],
                       jsonData["preamble_undersampling_divisor"],
+                      jsonData["kaiser_window_beta"],
                       jsonData["freq_start_preamble"],
                       jsonData["freq_stop_preamble"],
                       jsonData["freq_start_bit"],
