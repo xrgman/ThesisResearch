@@ -97,9 +97,9 @@ void AudioCodec::initializeBitEncodingData()
 void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair &frequencies, bool flipped)
 {
     // Here I make them for up and down :)
-    AudioCodecFrequencyPair frequenciesBit0 = {
-        frequencies.stopFrequency,
-        frequencies.startFrequency};
+    // AudioCodecFrequencyPair frequenciesBit0 = {
+    //     frequencies.stopFrequency,
+    //     frequencies.startFrequency};
 
     // // Determining which frequency pair to use based on the bit to encode:
     // encodeChirp(output, bit == 0 ? frequencies[0] : frequencies[1], bitSamples);
@@ -135,14 +135,14 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     //     frequencies.stopFrequency + (totalNumberRobots * bandwidthRobot)};
 
     // THIS IS THE WORKING ONE:
-    if (bit == 1)
-    {
-        encodeChirp(output, frequencies, bitSamples, kaiserWindowBeta);
-    }
-    else
-    {
-        encodeChirp(output, frequenciesBit0, bitSamples, kaiserWindowBeta);
-    }
+    // if (bit == 1)
+    // {
+    //     encodeChirp(output, frequencies, bitSamples, kaiserWindowBeta);
+    // }
+    // else
+    // {
+    //     encodeChirp(output, frequenciesBit0, bitSamples, kaiserWindowBeta);
+    // }
 
     // ***********************
     // APPROACH 2
@@ -154,7 +154,7 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     //     bit == 0 ? 2 : 5,
     //     bit == 0 ? 4 : 3};
 
-    /*int subChirpOrder[1] = {bit == 0 ? 0 : 1};
+    int subChirpOrder[1] = {bit == 0 ? 0 : 1};
     int chirpSize = 1;
 
     double bandwidthPerSubChirp = (frequencies.stopFrequency - frequencies.startFrequency) / 2;
@@ -177,7 +177,7 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
         // }
 
         encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, kaiserWindowBeta);
-    }*/
+    }
 
     // ***********************
     // APPROACH 3
