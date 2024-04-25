@@ -537,6 +537,14 @@ void MapData::generateCells(const int cellSize)
                 continue;
             }
 
+            // Checking if cell has sufficient dimensions:
+            if (newCell.getWidth() < 5)
+            {
+                x += newCell.stopX + 1;
+
+                continue;
+            }
+
             if (numberOfCells == 115)
             {
                 int g = 10;
@@ -830,7 +838,7 @@ void MapData::fillRemainingAllowedCoordinates()
                 int &stopX = previousX;
                 int &stopY = previousY;
 
-                createCellWithMinSize(startX - 1, startY, stopX, stopY + 1, 4, 4);
+                createCellWithMinSize(startX - 1, startY, stopX, stopY + 1, 5, 5);
             }
 
             // Set new start x & y:
@@ -848,7 +856,7 @@ void MapData::fillRemainingAllowedCoordinates()
         int &stopX = previousX;
         int &stopY = previousY;
 
-        createCellWithMinSize(startX - 1, startY, stopX, stopY + 1, 2, 2);
+        createCellWithMinSize(startX - 1, startY, stopX, stopY + 1, 5, 5);
     }
 }
 
@@ -1109,10 +1117,10 @@ bool MapData::loadCachedPathData(const char *filename, const int cellSize)
 
         for (int i = 0; i < numberOfCells; i++)
         {
-            //Restoring cell:
+            // Restoring cell:
             cells.push_back(Cell::fromJson(cellsJson[i]));
 
-            //Restoring path distance:
+            // Restoring path distance:
             shortestDistancessBetweenCells[i] = new double[numberOfCells];
             longestDistancessBetweenCells[i] = new double[numberOfCells];
 

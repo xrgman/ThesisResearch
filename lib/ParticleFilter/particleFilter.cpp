@@ -296,6 +296,11 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
             // If distance is great enough to reach that cell and small enough to not overshoot it in worst case:
             if (maxDistanceTravelled >= shortestPath && minDistanceTravelled <= longestPath)
             {
+                if (ownCellId == 100)
+                {
+                    int y = 10;
+                }
+
                 // Grabbing the path between the two cells:
                 bool success;
                 const std::vector<int> &path = mapData.getPathBetweenCells(ownCellId, senderCellId, success);
@@ -311,12 +316,23 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
                 int firstCellIdxInPath = path[1];
                 Cell &firstCellInPath = mapData.getCells()[firstCellIdxInPath];
 
+                int secondCellIdxInPath = path[2];
+                Cell &secondCellInPath = mapData.getCells()[secondCellIdxInPath];
+
                 int relativeAngleBetweenCells = ownCell.getRelativeAngleToCell(firstCellInPath);
+                int relativeAngleBetweenCells2 = firstCellInPath.getRelativeAngleToCell(secondCellInPath);
                 // int lowerBoundRelativeAngle = relativeAngleBetweenCells
 
+                int averageAngle = (relativeAngleBetweenCells + relativeAngleBetweenCells2) / 2;
+
                 // Now compare with DOA:
-                if (relativeAngleBetweenCells >= angleLowerBound && relativeAngleBetweenCells <= angleUpperBound)
+                if (averageAngle >= angleLowerBound && averageAngle <= angleUpperBound)
                 {
+                    if (ownCellId == 205)
+                    {
+                        int dsf = 10;
+                    }
+
                     localizationTable.markCellAsPossible(ownCellId, senderCellId);
                 }
             }
