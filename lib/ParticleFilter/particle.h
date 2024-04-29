@@ -6,7 +6,7 @@
 class Particle
 {
 public:
-    static Particle createParticleInCell(int ID, double weight, Cell cell);
+    static Particle createParticleInCell(int ID, double weight, Cell &cell);
 
     Particle();
     Particle(int ID, int xCoordinate, int yCoordinate, int direction, double weight);

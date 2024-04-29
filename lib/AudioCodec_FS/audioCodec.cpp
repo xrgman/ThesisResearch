@@ -12,8 +12,9 @@
 
 #define REQUIRED_NUMBER_OF_CYCLES 5
 
-AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int samples_per_symbol, uint8_t spreading_factor, double bandwith)
+AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int sampleRate, int samples_per_symbol, uint8_t spreading_factor, double bandwith)
 {
+    this->sampleRate = sampleRate;
     this->data_decoded_callback = data_decoded_callback;
     this->volume = 1.0;
     this->frequencyPair.startFrequency = START_FREQ_CHRIP;
@@ -96,7 +97,7 @@ void AudioCodec::encode(int16_t *output, int outputSize, uint8_t senderId) // Ou
 
     // Encode preamble to the front of the message
     encodePreamble(outputBuffer, false);
-    int preambleOffset = SAMPLE_RATE * PREAMBLE_DURATION;
+    int preambleOffset = sampleRate * PREAMBLE_DURATION;
 
     // Encode sender id:
     // uint8_t senderIdBits[8];

@@ -56,7 +56,7 @@ double calculateDeviationAverage(const int16_t *data, const int size, const doub
     {
         sumDeviations += abs(data[i] - average);
     }
-
+    
     return sumDeviations / size;
 }
 
@@ -117,6 +117,24 @@ bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold)
     }
 
     return false;
+}
+
+/// @brief Check whether all values in a collection are greater than a certain threshold.
+/// @param data The collection to be checked.
+/// @param size Size of the collection.
+/// @param threshold The threshold value.
+/// @return Whether or not all values are greater than threshold.
+bool allValuesGreaterThan(const double *data, const int size, int threshold)
+{
+    for (int i = 0; i < size; i++)
+    {
+        if (data[i] < threshold)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /// @brief Find the index of the element with the highest value.
@@ -275,6 +293,20 @@ vector<int> mapKeysToVector(map<int, double> *data)
     }
 
     return keys;
+}
+
+/// @brief Comperator to compare on the second value in a pair. Compares on first if both are equal.
+/// @param a First pair.
+/// @param b Second pair.
+/// @return Whether a is smaller than b.
+bool compareSecond(const pair<int, int> &a, const pair<int, int> &b)
+{
+    if (a.second != b.second)
+    {
+        return a.second < b.second;
+    }
+
+    return a.first < b.first;
 }
 
 //*************************************************
@@ -496,9 +528,57 @@ void bitsToString(const uint8_t *bits, const int nrOfBits, char *output)
     }
 }
 
+/// @brief Translate a number from one range to another.
+/// @param number Number to translate.
+/// @param minInput Minimum value of original range.
+/// @param maxInput Maximum value of original range.
+/// @param minOutput Minimal value of new range.
+/// @param maxOutput Maximum value of new range.
+/// @return Value of the number in new range.
+double translateToRange(double number, double minInput, double maxInput, double minOutput, double maxOutput)
+{
+    return minOutput + ((number - minInput) / (maxInput - minInput)) * (maxOutput - minOutput);
+}
+
 //*************************************************
 //******** File helpers ***************************
 //*************************************************
+
+/// @brief Check whether a file exists.
+/// @param filename Name of the file.
+/// @return Whether the file exists.
+bool fileExists(const char *filename)
+{
+    FILE *fp = fopen(filename, "r");
+
+    if (fp != NULL)
+    {
+        fclose(fp); // close the file
+
+        return true;
+    }
+
+    return false;
+}
+
+/// @brief Generate a unique file name that doesn't exist yet. Appends it with _x based on the amount of file with the same name.
+/// @param originalFilename The original file name.
+/// @return The unique file name.
+string generateUniqueFileName(const string& originalFileName, const string& extension)
+{
+    string newFilename = originalFileName + extension;
+    int counter = 1;
+
+    while (fileExists(newFilename.c_str()))
+    {
+        stringstream ss;
+        ss << originalFileName << "_" << counter << extension;
+        newFilename = ss.str();
+        counter++;
+    }
+
+    return newFilename;
+}
 
 /// @brief Open a file with a specific name.
 /// @param filename Name of the file.
@@ -581,6 +661,14 @@ int readDistanceFromFileName(const char *filename)
     return -1;
 }
 
+/// @brief Remove a file based on its name.
+/// @param filename The name of the file.
+/// @return Whether removing the file was successfull.
+bool removeFile(const char *filename)
+{
+    return std::remove(filename) != 0;
+}
+
 //*************************************************
 //******** Coordinate helpers *********************
 //*************************************************
@@ -611,4 +699,18 @@ uint8_t determineOrientationThreePoints(int p1X, int p1Y, int p2X, int p2Y, int 
 bool onSegment(int p1X, int p1Y, int p2X, int p2Y, int p3X, int p3Y)
 {
     return (p2X <= max(p1X, p3X) && p2X >= min(p1X, p3X)) && (p2Y <= max(p1Y, p3Y) && p2Y >= min(p1Y, p3Y));
+}
+
+/// @brief Calculate the euclidean distance between two points.
+/// @param p1X X coordinate of the first point.
+/// @param p1Y Y coordinate of the first point.
+/// @param p2X X coordinate of the second point.
+/// @param p2Y Y coordinate of the second point.
+/// @return Euclidean distance between the two points.
+double calculateEuclideanDistance(int p1X, int p1Y, int p2X, int p2Y)
+{
+    int differenceX = p1X - p2X;
+    int differenceY = p1Y - p2Y;
+
+    return sqrt(differenceX * differenceX + differenceY * differenceY);
 }

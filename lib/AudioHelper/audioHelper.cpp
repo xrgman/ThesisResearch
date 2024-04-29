@@ -8,80 +8,119 @@
 #include "string.h"
 #include "util.h"
 
-AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels)
+AudioHelper::AudioHelper(uint32_t sampleRate, uint16_t bitsPerSample, uint8_t numChannels, void (*data_available_callback)())
 {
     this->sampleRate = sampleRate;
     this->bitsPerSample = bitsPerSample;
     this->numChannels = numChannels;
+    this->data_available_callback = data_available_callback;
 
-    this->inputStreamsReceived = 0;
-    this->batchProcessed = true;
-    this->emptyBuffers = NUM_BUFFERS;
+    this->microphonesAreOrdered = false;
+
+    for (int i = 0; i < numChannels; i++)
+    {
+        this->batchProcessed[i] = true;
+        this->inputDataAvailable[i] = false;
+    }
+
+    bufferEmpty = new int16_t[FRAMES_PER_BUFFER];
+
+    fillArrayWithZeros(bufferEmpty, FRAMES_PER_BUFFER);
 }
 
+/// @brief Destructor.
+AudioHelper::~AudioHelper()
+{
+    delete[] bufferEmpty;
+}
+
+/// @brief Callback function that handles writing the buffer to the output stream.
+/// @param inputBuffer Not used here.
+/// @param outputBuffer Buffer to write data to, resulting in speaker output.
+/// @param framesPerBuffer Frames to be written to the output buffer.
+/// @param timeInfo Timing info from audio device.
+/// @param statusFlags Some status info.
+/// @return Status code.
 int AudioHelper::outputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
     // We want to put data into the outputbuffer as soon as this one is called.
     int16_t *outputData = (int16_t *)outputBuffer;
 
-    // Copying over data:
-    if (bufferIdx == 0)
+    // Checking if data is available:
+    if (outputRingBuffer.isDataAvailable())
     {
-        copy(buffer1, buffer1 + FRAMES_PER_BUFFER, outputData);
+        int currentBufferSize = outputRingBuffer.bufferSize();
+        currentBufferSize = currentBufferSize > framesPerBuffer ? framesPerBuffer : currentBufferSize;
 
-        fillArrayWithZeros(buffer1, FRAMES_PER_BUFFER);
+        outputRingBuffer.read(outputData, currentBufferSize);
     }
     else
     {
-        copy(buffer2, buffer2 + FRAMES_PER_BUFFER, outputData);
-
-        fillArrayWithZeros(buffer2, FRAMES_PER_BUFFER);
-    }
-
-    // Signaling write available:
-    bufferIdx = (bufferIdx + 1) % NUM_BUFFERS;
-    writeNext = true;
-
-    if (emptyBuffers <= NUM_BUFFERS)
-    {
-        emptyBuffers++;
+        copy(bufferEmpty, bufferEmpty + framesPerBuffer, outputData);
     }
 
     return paContinue;
 }
 
+chrono::time_point<chrono::high_resolution_clock> lastTime = chrono::high_resolution_clock::now();
+
 // InputData contains framesPerBuffer * numChannels elements.
 // So each channel has 2048 items in it.
 int AudioHelper::inputCallbackMethod(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags)
 {
+    // Grabbing time of receiving current batch:
+    // chrono::time_point<chrono::high_resolution_clock> currentTime = chrono::high_resolution_clock::now();
+
+    // chrono::nanoseconds timeDifference = chrono::duration_cast<chrono::nanoseconds>(currentTime - lastTime);
+
+    // spdlog::info("Input callback! {}", timeDifference.count());
+
+    // lastTime = currentTime;
+
     // We want to put data into the outputbuffer as soon as this one is called.
-    int16_t *inputData = (int16_t *)inputData; // Not uint16_t but int16
-
-    bool isBatchProcessed = batchProcessed;
-
-    if (!isBatchProcessed && microphonesAreOrdered)
-    {
-        //cout << "Batch was not yet processed!\n";
-    }
+    int16_t *inputData = (int16_t *)inputBuffer; // Not uint16_t but int16
 
     // Grabbing read data:
     for (int i = 0; i < framesPerBuffer; i++)
     {
         for (int channel = 0; channel < numChannels; channel++)
         {
-            audioData[channel][i] = inputData[i * numChannels + channel];
+            if (!microphonesAreOrdered)
+            {
+                audioData[channel][i] = inputData[i * numChannels + channel];
+            }
+            else if (channel < numChannels - 2)
+            {
+                int actualChannelId = microphonesOrdered[channel];
+
+                // Saving to buffer in correct order:
+                //inputBuffers[channel].write(inputData[i * numChannels + actualChannelId], currentTime);
+                inputBuffers[channel].write(inputData[i * numChannels + actualChannelId]);
+            }
         }
     }
 
-    inputDataAvailable = true;
-    batchProcessed = false;
+    if (!microphonesAreOrdered)
+    {
+        setCompleteBatchAvailable();
+        // setCompleteBatchUnprocessed();
+    }
+
+    //Notifying decoding thread:
+    data_available_callback();
 
     return paContinue;
 }
 
+//*************************************************
+//******** Initialization *************************
+//*************************************************
+
+/// @brief Initialize the audio helper, by opening the input and output streams.
+/// @return Whether opening the streams was successfull.
 bool AudioHelper::initializeAndOpen()
 {
-    cout << "PortAudio version " << Pa_GetVersionText() << endl;
+    spdlog::info("PortAudio version {}", Pa_GetVersionText());
 
     // Initialize PortAudio
     PaError err = Pa_Initialize();
@@ -96,6 +135,9 @@ bool AudioHelper::initializeAndOpen()
     uint8_t deviceIdx;
 
     const PaDeviceInfo *start = Pa_GetDeviceInfo(Pa_GetDefaultInputDevice());
+
+    int deviceCount = Pa_GetDeviceCount();
+    spdlog::info("Found {} audio devices.", deviceCount);
 
     for (uint8_t i = 0; i < Pa_GetDeviceCount(); i++)
     {
@@ -112,13 +154,18 @@ bool AudioHelper::initializeAndOpen()
     // Checking if number of channels is allowed:
     if (numChannels > deviceInfo->maxInputChannels)
     {
-        cerr << "More channels requested than available\n";
+        spdlog::error("More channels requested than available!");
 
         return false;
     }
 
-    // Prepare callback data:
-    writeNext = true;
+    // Preparing buffers:
+    outputRingBuffer.initialize(RING_BUFFER_OUTPUT_SIZE);
+
+    for (int i = 0; i < NUM_CHANNELS; i++)
+    {
+        inputBuffers[i].initialize(RING_BUFFER_INPUT_SIZE);
+    }
 
     // Configure and open input stream:
     PaStreamParameters inputParameters;
@@ -153,6 +200,7 @@ bool AudioHelper::initializeAndOpen()
     outputParameters.hostApiSpecificStreamInfo = nullptr;
 
     err = Pa_OpenStream(&outputStream, NULL, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paNoFlag, &outputCallback, this);
+    // err = Pa_OpenStream(&outputStream, NULL, &outputParameters, sampleRate, FRAMES_PER_BUFFER, paNoFlag, NULL, NULL);
 
     if (!checkForPaError(err, "output stream opening"))
     {
@@ -169,24 +217,9 @@ bool AudioHelper::initializeAndOpen()
     return true;
 }
 
-bool AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
-{
-    writeNext = false;
-
-    emptyBuffers -= allDataWritten() ? 2 : 1;
-
-    if (bufferIdx == 0)
-    {
-        copy(audioData, audioData + nrOfBytes, buffer1);
-    }
-    else
-    {
-        copy(audioData, audioData + nrOfBytes, buffer2);
-    }
-
-    return true;
-}
-
+/// @brief Stop and close the input and output stream.
+/// @param stopOnError Force close everything and ignore errors.
+/// @return Whether or not the stopping and closing was successfull.
 bool AudioHelper::stopAndClose(bool stopOnError)
 {
     // Stop and close output stream:
@@ -224,6 +257,151 @@ bool AudioHelper::stopAndClose(bool stopOnError)
 
     return true;
 }
+
+//*************************************************
+//******** Output *********************************
+//*************************************************
+
+/// @brief Write bytes to the output buffer, this data will be outputted by the speaker.
+/// @param audioData Data to write to the speaker.
+/// @param nrOfBytes Number of bytes to write.
+/// @return
+void AudioHelper::writeBytes(const int16_t *audioData, uint32_t nrOfBytes)
+{
+    outputRingBuffer.write(audioData, nrOfBytes);
+}
+
+/// @brief Check whether the output buffer is capacity, should be checked to prevent overwriting unprocessed data.
+/// @return Whether or not the output buffer is full.
+bool AudioHelper::isOutputBufferFull()
+{
+    return outputRingBuffer.isFull();
+}
+
+/// @brief Check whether the output buffer is completely empty. This also indicates that all the written data has been processed.
+/// @return Whether or not the output buffer is empty.
+bool AudioHelper::isOutputBufferEmpty()
+{
+    return !outputRingBuffer.isDataAvailable();
+}
+
+/// @brief Get the time that the output buffer went empty.
+/// @return Output buffer empty time.
+chrono::time_point<chrono::high_resolution_clock> AudioHelper::getOutputBufferEmptyTime()
+{
+    return outputRingBuffer.getEmptyTime();
+}
+
+/// @brief Get the current amount of empty bytes left in the buffer.
+/// @return Bytes left open to be written.
+int AudioHelper::getOutputBufferAvailableSize()
+{
+    return outputRingBuffer.maximumSize() - outputRingBuffer.bufferSize();
+}
+
+//*************************************************
+//******** Input **********************************
+//*************************************************
+
+/// @brief Check whether new data is available for the given channels.
+/// @param channels Channels to check for new data.
+/// @param count Number of channels to check.
+/// @return Whether new data is available for all given channels.
+bool AudioHelper::readNextBatch(const int *channels, int count)
+{
+    for (int i = 0; i < count; i++)
+    {
+        if (!inputDataAvailable[channels[i]])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/// @brief Mark batch processing started for given channels.
+/// @param channels Channels being processed.
+/// @param count Number of channels being processed.
+void AudioHelper::setNextBatchRead(const int *channels, int count)
+{
+    for (int i = 0; i < count; i++)
+    {
+        inputDataAvailable[channels[i]] = false;
+    }
+}
+
+/// @brief Signal that the batch is successfully processed for the given channels.
+/// @param channels Channels processed.
+/// @param count Number of channels processed.
+void AudioHelper::signalBatchProcessed(const int *channels, int count)
+{
+    for (int i = 0; i < count; i++)
+    {
+        batchProcessed[channels[i]] = true;
+    }
+}
+
+/// @brief Check if the batch is processed for all channels.
+/// @return Whether or not the batch is processed for all channels.
+bool AudioHelper::isCompleteBatchProcessed()
+{
+    for (int i = 0; i < NUM_CHANNELS; i++)
+    {
+        if (!batchProcessed[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/// @brief Mark complete batch as processed.
+void AudioHelper::setCompleteBatchUnprocessed()
+{
+    for (int i = 0; i < NUM_CHANNELS; i++)
+    {
+        batchProcessed[i] = false;
+    }
+}
+
+/// @brief Mark batch available for all channels.
+void AudioHelper::setCompleteBatchAvailable()
+{
+    for (int i = 0; i < NUM_CHANNELS; i++)
+    {
+        inputDataAvailable[i] = true;
+    }
+}
+
+/// @brief Check whether a given amount of data is available in the buffers of all channels.
+/// @param count Number of bytes to check for availability.
+/// @return Whether or not there are at least count bytes in all channel input buffers.
+bool AudioHelper::isDataAvailable(const int count)
+{
+    for (int i = 0; i < NUM_CHANNELS; i++)
+    {
+        if (inputBuffers[i].bufferSize() < count)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void AudioHelper::resetInputBuffers()
+{
+    for (uint8_t i = 0; i < NUM_CHANNELS; i++)
+    {
+        inputBuffers[i].reset();
+    }
+}
+
+//*************************************************
+//******** Misc ***********************************
+//*************************************************
 
 PaSampleFormat AudioHelper::getSampleFormat(uint16_t bitsPerSample)
 {
@@ -280,40 +458,11 @@ bool AudioHelper::checkForPaError(PaError err, const char *part, bool cleanup)
     return true;
 }
 
-void AudioHelper::clearBuffers()
+/// @brief Get the current CPU load of the input stream.
+/// @return CPU load between 0.0 and 1.0.
+double AudioHelper::getInputStreamLoad()
 {
-    for (int i = 0; i < FRAMES_PER_BUFFER; i++)
-    {
-        buffer1[i] = 0;
-        buffer2[i] = 0;
-    }
-}
-
-bool AudioHelper::writeNextBatch()
-{
-    return writeNext;
-}
-
-bool AudioHelper::readNextBatch()
-{
-    return inputDataAvailable;
-}
-
-void AudioHelper::setNextBatchRead()
-{
-    inputDataAvailable = false;
-}
-
-void AudioHelper::signalBatchProcessed()
-{
-    batchProcessed = true;
-}
-
-/// @brief Simple method that tells you if all written data has been send to the audio device, based on the number of empty buffers.
-/// @return Whether or not both output buffers are empty.
-bool AudioHelper::allDataWritten()
-{
-    return emptyBuffers == NUM_BUFFERS + 1;
+    return Pa_GetStreamCpuLoad(inputStream);
 }
 
 //*************************************************
@@ -342,7 +491,7 @@ bool AudioHelper::determineMicrophoneOrder()
         // 2. Calulate the average deviation of each channel:
         deviations[channel] = calculateDeviationAverage(channelData, FRAMES_PER_BUFFER, averages[channel]);
 
-        //cout << deviations[channel] << ", ";
+        // cout << deviations[channel] << ", ";
     }
 
     // 3. Finding the two with lowest deviations:

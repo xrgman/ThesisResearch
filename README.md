@@ -24,12 +24,14 @@
    <ol type="1">
       <li><s>Sends cell the robot is in.</s></li>
   </ol>
-  <li>Implement simple wall detection</li>
-  <li>Implement driving up untill wall (north, south, east, west) and sending message functionality</li>
+  <li>Check that we do not process message from own ID</li>
   <li>Add the ability to process wall message and update particle filter based on it</li>
   <li>Add the ability to process cell message and update particle filter based on it</li>
-  <li>Update particle filter based on data from audio</li>
-  <li>Link movement from robot to movement in particle filter</li>
+  <li><s>Cache distances between cells to a .json file to speed up particle filter</s></li>
+  <li><s>Save the localization table to file after generating it</s></li>
+  <li>Add the ability to load a localization table from another robot and fuse it with own tables. If none are there, set it as the table for that robot.</li>
+  <li>Increase performance PF with high number of cells</li>
+  <li>Link movement from robot to movement in particle filter</li> 
 </ol>
 
 ## TO-DO evaluation
@@ -78,10 +80,16 @@
 
 
 ## Installation libraries:
-sudo apt-get install libsdl2-dev
-sudo apt-get install libsdl2-ttf-dev
-sudo apt-get install libboost-all-dev
-sudo apt-get install libgnuplot-iostream-dev
+git clone https://github.com/PortAudio/portaudio.git
+./configure && make
+sudo make install
+sudo ln -s /usr/local/lib/libportaudio.so /usr/lib/arm-linux-gnueabihf/libportaudio.so
+
+sudo ln -s /usr/local/lib/libportaudio.so /usr/lib/aarch64-linux-gnu/libportaudio.so
+
+sudo apt-get install libspdlog-dev libboost-all-dev libsdl2-ttf-dev libsdl2-dev
+
+Use alsamixer on rpi to increase volume to <b>81</b> of speaker.
 
 ### Stop tracking changes to config:
 git update-index --assume-unchanged src/config.json

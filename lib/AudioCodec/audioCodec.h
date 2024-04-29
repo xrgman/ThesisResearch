@@ -6,31 +6,19 @@
 
 #include "main.h"
 #include "fftWrapper.h"
+#include "util.h"
 
 #define NUMBER_OF_SUB_CHIRPS 8
 #define CHIRP_AMPLITUDE 1.0
 
+#define BIT_PADDING 0
+
 #define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source
+#define PREAMBLE_SIGNAL_ENERGY_CUTOFF 400 //When to assume message is from own source
 #define MINIMUM_DISTANCE_PREAMBLE_PEAKS 1000 //Two peaks should be at least be x samples apart to be considered from different sources.
-
-
-//*** Encoding frequency definitions ***
-#define START_FREQ_PREAMBLE 2500.0//5500.0
-#define STOP_FREQ_PREAMBLE 6500.0//9500.0
-
-#define START_FREQ_BITS 6500.0//5500.0
-#define STOP_FREQ_BITS 10500.0//9500.0
 
 //*** Encoding bits definitions ***
 #define PREAMBLE_BITS 8192 //Was 4096
-#define PREAMBLE_DURATION (double)PREAMBLE_BITS / SAMPLE_RATE
- 
-#define SYMBOL_BITS 320 //320
-#define SYMBOL_DURATION (double)SYMBOL_BITS / SAMPLE_RATE//0.0145124716 // For 22.05Khz 0.0072562358 //For 44.1Khz
-
-//*** Under sampling definitions ***
-#define UNDER_SAMPLING_DIVISOR 4 //Was 1
-#define UNDER_SAMPLING_BITS PREAMBLE_BITS / UNDER_SAMPLING_DIVISOR //Number of bits to use when under sampling the signal when decoding.
 
 //*** Decoding definitions ***
 #define HOP_SIZE PREAMBLE_BITS
@@ -50,6 +38,12 @@ static const int DECODING_BUFFER_SIZE = PREAMBLE_BITS * 4;
 
 #define SPEED_OF_SOUND 343.0 // Speed of sound, should be based on temperature!
 
+// LORA DEFINES:
+#define SAMPLES_PER_SYMBOL 2048 // SAMPLES_PER_SYMBOL / NUM_SYMBOLS == SF
+#define SF 8
+#define NUM_SYMBOLS 256 // 2^SF
+#define SAMPLING_DELTA SAMPLES_PER_SYMBOL / NUM_SYMBOLS
+
 enum AudioCodedMessageType
 {
     ENCODING_TEST = 0,
@@ -57,7 +51,10 @@ enum AudioCodedMessageType
     LOCALIZATION2 = 2,
     LOCALIZATION3 = 3,
     WALL = 4,
-    CELL_FOUND = 5
+    CELL_FOUND = 5,
+    LOCALIZE = 6,
+    LOCALIZE_RESPONSE = 7,
+    LOCALIZE_RESPONSE2 = 8
 };
 
 struct AudioCodecResult
@@ -70,12 +67,16 @@ struct AudioCodecResult
     int preambleDetectionCnt = 0;
     int preambleDetectionPosition[NUM_CHANNELS];
 
+    double signalEnergy[NUM_CHANNELS];
+
     int decodingBitsPosition = 0;
     uint8_t decodedBitsCnt = 0;
     uint8_t decodedBits[DECODING_BITS_COUNT];
 
     // Stores the actual decoded data:
     uint8_t decodedData[DECODING_DATA_BITS];
+
+    std::chrono::high_resolution_clock::time_point decodingDoneTime;
 
     void reset()
     {
@@ -125,7 +126,8 @@ struct AudioCodecFrequencyPair
 class AudioCodec
 {
 public:
-    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), int totalNumberRobots, int robotId, bool printCodedBits, bool filterOwnSource);
+    AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
+           double frequencyStopBit, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta);
 
     ~AudioCodec()
     {
@@ -141,7 +143,13 @@ public:
         free(fftConfigStoreConvBit.fftConfig);
         free(fftConfigStoreConvBit.fftConfigInv);
 
+        free(fftConfigStoreHilSymbols.fftConfig);
+        free(fftConfigStoreHilSymbols.fftConfigInv);
+        free(fftConfigSymbols);
+
         //Dealocate memory:
+        delete[] originalPreambleFlipped;
+
         for (int i = 0; i < totalNumberRobots; i++) {
             delete[] senderIdsFlipped[i];
             delete[] bit0Flipped[i];
@@ -151,6 +159,10 @@ public:
         delete[] senderIdsFlipped;
         delete[] bit0Flipped;
         delete[] bit1Flipped;
+
+        delete[] encodedSenderId;
+        delete[] encodedBit0;
+        delete[] encodedBit1;
     }
 
     int getEncodingSize();
@@ -158,18 +170,28 @@ public:
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, chrono::nanoseconds processingTime);
     void encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t cellId);
     void encodeWallMessage(int16_t *output, uint8_t senderId, double wallAngle, double wallDistance);
+    void encodeLocalizeMessage(int16_t *output, uint8_t senderId);
+    void encodeLocalizeResponseMessage(int16_t *output, uint8_t senderId, uint8_t receiverId);
+    void encodeLocalizeResponse2Message(int16_t *output, uint8_t senderId, chrono::nanoseconds processingTime);
+    void encodePreambleForSending(int16_t *output);
 
-    void decode(int16_t bit, uint8_t microphoneId);
+    void decode(int16_t bit, uint8_t microphoneId, const chrono::time_point<chrono::high_resolution_clock>& receivedTime, bool onlyDecodePreamble = false);
 
     void generateConvolutionFields(int robotId);
+    void initializeBitEncodingData();
+
+    double getVolume();
+    void setVolume(double volume);
 
 private:
-    int totalNumberRobots;
+    const int sampleRate, totalNumberRobots, robotId;
+    const int preambleSamples, bitSamples, preambleUndersamplingDivisor, preambleUndersampledSamples;
+    const int kaiserWindowBeta;
     bool printCodedBits, filterOwnSource;
     double volume;
-    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairOwnUp, frequencyPairOwnDown;
-    AudioCodecFrequencyPair frequencyPairsOwn[2];
+    AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBit, frequencyPairOwn;
     void (*data_decoded_callback)(AudioCodecResult);
+    void (*signal_energy_callback)(int, double);
 
     // FFT configurations convolution:
     FFTConfigStore fftConfigStoreHilPre, fftConfigStoreHilBit;
@@ -179,17 +201,18 @@ private:
     int getNumberOfBits();
     double getEncodingDuration();
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits);
-
     void encodePreamble(double *output, bool flipped);
-    void encodeBit(double *output, uint8_t bit, AudioCodecFrequencyPair *frequencies, bool flipped);
+    
+    void encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair& frequencies, bool flipped);
+    void encodeSymbol(double *output, const int symbol);
     void encodeBits(double *output, uint8_t *bits, int numberOfBits);
-    void encodeSenderId(double *output, AudioCodecFrequencyPair frequencies, bool flipped);
+    void encodeSenderId(double *output, const AudioCodecFrequencyPair& frequencies, bool flipped);
 
     void bitToChirpOld(double *output, uint8_t bit, AudioCodecFrequencyPair symbols[], int numberOfSubChirps, double duration);
     void bitsToChirpOld(double *output, uint8_t *bits, int numberOfBits, AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps);
 
-    void encodeChirp(double *output, AudioCodecFrequencyPair frequencies, int size);
-    void generateChirp(double *output, AudioCodecFrequencyPair frequencies, int size);
+    void encodeChirp(double *output, const AudioCodecFrequencyPair& frequencies, int size, int kaiserWindowBeta);
+    void generateChirp(double *output, const AudioCodecFrequencyPair& frequencies, int size);
     double applyKaiserWindow(double value, int totalSize, int i, int beta);
 
     void generateSymbols(AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS], int numberOfSubChirps, int robotId);
@@ -205,17 +228,16 @@ private:
     // Storing bits:
     double decodingBuffer[NUM_CHANNELS][DECODING_BUFFER_SIZE];
 
-    // Convolution:
-    double durationPerBit;
 
     AudioCodecFrequencyPair symbols[2][NUMBER_OF_SUB_CHIRPS]; // Here the different sub frequencies of the bits 0 and 1 are stored.
-    double originalPreambleFlipped[UNDER_SAMPLING_BITS];
-    // double bit0Flipped[ROBOTS_COUNT][SYMBOL_BITS];
-    // double bit1Flipped[ROBOTS_COUNT][SYMBOL_BITS];
-    // double senderIdsFlipped[ROBOTS_COUNT][SYMBOL_BITS];
+    double *originalPreambleFlipped;
     double **bit0Flipped;
     double **bit1Flipped;
     double **senderIdsFlipped;
+
+    double *encodedBit0;
+    double *encodedBit1;
+    double *encodedSenderId;
 
     // Decoding stores:
     AudioCodecDecoding decodingStore[NUM_CHANNELS];
@@ -232,15 +254,17 @@ private:
 
     void getConvolutionResults(const double *data, const double *symbolData, const int size, double *output, FFTConfigStore fftConfigStoreConvolve, FFTConfigStore fftConfigStoreHilbert);
     int decodeSenderId(const double *window, const int windowSize);
-    int decodeBit(const double *window, const int windowSize, int senderId);
+    int decodeBit(const double *window, const int windowSize, const int senderId);
+    int decodeSymbol(const double *window, const int windowSize, const int senderId);
 
     int findDecodingResult(int preamblePeakIndex);
     bool doesDecodingResultExistForSenderId(int senderId);
 
-    void completeDecoding(AudioCodecResult decodingResult, chrono::system_clock::time_point decodingEndTime);
+    void completeDecoding(AudioCodecResult decodingResult);
     void performDistanceTracking(chrono::system_clock::time_point decodingEndTime);
 
     // General decoding functions:
+    double calculateSignalEnergy(const double *window, const int windowSize);
     double calculateDOA(const int *arrivalTimes, const int numChannels);
     double calculateDistance(const int *arrivalTimes, const int size);
 
@@ -251,10 +275,17 @@ private:
     void createSinWaveFromFreqs(const double *input, double *output, const int size);
 
 
+    //Fields for symbol encoding decoding using lora approach:
+    FFTConfigStore fftConfigStoreHilSymbols;
+    kiss_fft_cfg fftConfigSymbols;
 
+    // Upchirp:
+    double upChirp[SAMPLES_PER_SYMBOL];
 
-    double bit0OldFlipped[SYMBOL_BITS];
-    double bit1OldFlipped[SYMBOL_BITS];
+    // DownChirp:
+    //kiss_fft_cpx downChirp_complex[NUM_SYMBOLS];
+
+    kiss_fft_cpx **downChirps_complex;
 };
 
 #endif

@@ -29,13 +29,34 @@ Config Config::LoadConfig(const char *filename)
     {
         json jsonData = json::parse(fileContent);
 
+        // Extracting channels:
+        const json &channelsJson = jsonData["channels"];
+        int channels[channelsJson.size()];
+
+        for (uint8_t i = 0; i < channelsJson.size(); i++)
+        {
+            channels[i] = channelsJson[i];
+        }
+
         return Config(jsonData["robot_id"],
-                    jsonData["total_number_of_robots"],
-                    jsonData["sample_rate"],
-                    jsonData["num_channels_raw"],
-                    jsonData["num_channels"],
-                    jsonData["filter_own_source"],
-                    jsonData["print_bits_encoding"]);
+                      jsonData["total_number_of_robots"],
+                      jsonData["sample_rate"],
+                      jsonData["num_channels_raw"],
+                      jsonData["num_channels"],
+                      jsonData["filter_own_source"],
+                      jsonData["print_bits_encoding"],
+                      channels,
+                      jsonData["preamble_samples"],
+                      jsonData["bit_samples"],
+                      jsonData["preamble_undersampling_divisor"],
+                      jsonData["kaiser_window_beta"],
+                      jsonData["freq_start_preamble"],
+                      jsonData["freq_stop_preamble"],
+                      jsonData["freq_start_bit"],
+                      jsonData["freq_stop_bit"],
+                      jsonData["calibrate_signal_energy_target"],
+                      jsonData["calibrate_signal_energy"],
+                      jsonData["cell_size"]);
     }
     catch (const json::exception &e)
     {

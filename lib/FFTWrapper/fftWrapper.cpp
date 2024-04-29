@@ -3,52 +3,36 @@
 #include <chrono>
 #include <iostream>
 
-// FFT variables
-uint32_t fftSize, stftSize;
-
-vector<kiss_fft_cpx> fftInput;
-kiss_fft_cfg fftPlan;
-
-void initializeFFT(uint32_t fft_size, uint32_t stft_size)
-{
-    fftSize = fft_size;
-    stftSize = stft_size;
-
-    fftInput.resize(fftSize);
-
-    fftPlan = kiss_fft_alloc(fftSize, 0, nullptr, nullptr);
-}
 
 // Per channel
-void performFFT(int16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t size)
+// void performFFT(int16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t size)
+// {
+//     if (size != fftSize)
+//     {
+//         // Error
+//     }
+
+//     outputData.resize(size);
+
+//     // Preparing data by converting to double and scaling to [-1.0, 1.0]
+//     for (int i = 0; i < size; i++)
+//     {
+//         // fftInput[i].r = (double)inputData[i] / (UINT16_MAX - 0)* 2.0 - 1.0; //(uint16_t_MAX - UINT16_t_MIN)
+//         fftInput[i].r = (float)inputData[i] / (float)INT16_MAX;
+//         fftInput[i].i = 0.0;
+//     }
+
+//     kiss_fft(fftPlan, fftInput.data(), outputData.data());
+// }
+
+// void performFFT(const double *inputData, kiss_fft_cpx *outputData, uint32_t size)
+// {
+//     performFFT(fftPlan, inputData, outputData, size);
+// }
+
+void performFFT(kiss_fft_cfg fftConfig, const double *inputData, kiss_fft_cpx *outputData, uint32_t size, bool inverse)
 {
-    if (size != fftSize)
-    {
-        // Error
-    }
-
-    outputData.resize(size);
-
-    // Preparing data by converting to double and scaling to [-1.0, 1.0]
-    for (int i = 0; i < size; i++)
-    {
-        // fftInput[i].r = (double)inputData[i] / (UINT16_MAX - 0)* 2.0 - 1.0; //(uint16_t_MAX - UINT16_t_MIN)
-        fftInput[i].r = (float)inputData[i] / (float)INT16_MAX;
-        fftInput[i].i = 0.0;
-    }
-
-    kiss_fft(fftPlan, fftInput.data(), outputData.data());
-}
-
-void performFFT(const double *inputData, kiss_fft_cpx *outputData, uint32_t size)
-{
-    performFFT(fftPlan, inputData, outputData, size);
-}
-
-void performFFT(kiss_fft_cfg fftConfig, const double *inputData, kiss_fft_cpx *outputData, uint32_t size)
-{
-    fftInput.resize(size);
-    fftInput.clear();
+    kiss_fft_cpx fftInput[size];
 
     for (int i = 0; i < size; i++)
     {
@@ -56,7 +40,7 @@ void performFFT(kiss_fft_cfg fftConfig, const double *inputData, kiss_fft_cpx *o
         fftInput[i].i = 0.0;
     }
 
-    kiss_fft(fftConfig, fftInput.data(), outputData);
+    performFFT(fftConfig, fftInput, outputData, size, inverse);
 }
 
 /// @brief Perform the FFT on an input data set of type complex.
@@ -98,95 +82,17 @@ void performFFT(kiss_fft_cfg fftConfig, const kiss_fft_cpx *inputData, kiss_fft_
     }
 }
 
-// void applySTFT(const double *inputData, int inputDataSize, vector<std::vector<double>> &output, int windowSize, int overlap)
-// {
-//     int hopSize = windowSize - overlap;
-//     int magnitudeSize = windowSize / 2 + 1;
 
-//     stftInput.resize(windowSize);
-//     output.resize(inputDataSize / hopSize + 1);
+//*************************************************
+//******** FFT Convolve ***************************
+//*************************************************
 
-//     std::vector<kiss_fft_cpx> spectrum(magnitudeSize); // We only need half of the data, fft characteristic
-
-//     int magnitudesIdx = 0;
-
-//     for (int i = 0; i + windowSize < inputDataSize; i += hopSize)
-//     {
-//         output[magnitudesIdx].resize(magnitudeSize);
-
-//         // Filling array for fft:
-//         for (int j = 0; j < windowSize; j++)
-//         {
-//             stftInput[j].r = inputData[i + j];
-//             stftInput[j].i = 0.0;
-//         }
-
-//         // Apply FFT
-//         kiss_fft(stftPlan, stftInput.data(), spectrum.data());
-
-//         // Convert complex values to magnitude
-//         for (int j = 0; j < magnitudeSize; j++)
-//         {
-//             double mag = sqrt(spectrum[j].r * spectrum[j].r + spectrum[j].i * spectrum[j].i);
-
-//             output[magnitudesIdx][j] = mag;
-//         }
-
-//         if (magnitudesIdx == 65)
-//         {
-//             int t = 10;
-//         }
-
-//         magnitudesIdx++;
-//     }
-
-//     int test = 10;
-// }
-
-// void performSTFT(const double *inputData, int inputDataSize, int windowSize, int overlap, vector<std::vector<double>> &outputData)
-// {
-//     // Creating plan:
-//     stftPlan = kiss_fft_alloc(windowSize, 0, nullptr, nullptr);
-
-//     // Calculating hop size:
-//     int hopSize = windowSize - overlap;
-
-//     // Calculate outputSize:
-//     int outputSize = windowSize / 2;
-
-//     // Applying sizing:
-//     vector<kiss_fft_cpx> sftOutput(windowSize);
-//     vector<double> magnitudes(outputSize);
-
-//     for (int i = 0; i + windowSize < inputDataSize; i += hopSize)
-//     {
-//         magnitudes.clear();
-
-//         // Filling array for fft:
-//         for (int j = 0; j < windowSize; j++)
-//         {
-//             stftInput[j].r = inputData[i + j];
-//             stftInput[j].i = 0.0;
-//         }
-
-//         // Apply FFT
-//         kiss_fft(stftPlan, stftInput.data(), sftOutput.data());
-
-//         // Convert complex values to magnitude
-//         for (int j = 0; j < outputSize; j++)
-//         {
-//             double mag = sqrt(sftOutput[j].r * sftOutput[j].r + sftOutput[j].i * sftOutput[j].i);
-
-//             magnitudes.push_back(mag);
-//         }
-
-//         outputData.push_back(magnitudes);
-//     }
-
-//     // Freeing plan:
-//     kiss_fft_free(stftPlan);
-// }
-
+/// @brief Perform the Fast Fourier Transform Convolve algorithm.
+/// @param inputData Array containing the input data of type double.
+/// @param inputDataSize Size of the input data.
+/// @param symbolData Array containing the other convolution data.
+/// @param symbolSize Size of the convolution data array.
+/// @param outputData Array in which the result will be stored.
 void performFFTConvolve(const double *inputData, int inputDataSize, const double *symbolData, int symbolSize, vector<double> &outputData)
 {
     // Get the size for FFT (next power of 2)
@@ -250,6 +156,12 @@ void performFFTConvolve(const double *inputData, int inputDataSize, const double
     free(fftInv);
 }
 
+/// @brief Perform the Fast Fourier Transform Convolve algorithm.
+/// @param inputData Array containing the input data of type int16.
+/// @param inputDataSize Size of the input data.
+/// @param symbolData Array containing the other convolution data.
+/// @param symbolSize Size of the convolution data array.
+/// @param outputData Array in which the result will be stored.
 void performFFTConvolve(const int16_t *inputData, int inputDataSize, const double *symbolData, int symbolSize, vector<double> &outputData)
 {
     // Get the size for FFT (next power of 2)
@@ -314,6 +226,11 @@ void performFFTConvolve(const int16_t *inputData, int inputDataSize, const doubl
     free(fftInv);
 }
 
+
+//*************************************************
+//******** Complex functions **********************
+//*************************************************
+
 /// @brief Perform element wise multiplication of two arrays of complex numbers.
 /// @param input1 Array 1
 /// @param input2 Array 2
@@ -328,6 +245,10 @@ void complexMultiplication(const kiss_fft_cpx *input1, const kiss_fft_cpx *input
     }
 }
 
+/// @brief Perform absolute function for complex numbers.
+/// @param input Input complex array.
+/// @param output Output array to store absolute values in.
+/// @param size Size of the array.
 void complexAbsolute(const kiss_fft_cpx *input, double *output, int size)
 {
     for (int i = 0; i < size; i++)

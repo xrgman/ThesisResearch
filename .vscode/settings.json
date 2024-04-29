@@ -58,6 +58,23 @@
         "map": "cpp",
         "valarray": "cpp",
         "condition_variable": "cpp",
-        "mutex": "cpp"
+        "mutex": "cpp",
+        "set": "cpp",
+        "bitset": "cpp",
+        "charconv": "cpp",
+        "regex": "cpp",
+        "csignal": "cpp",
+        "bit": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "unordered_set": "cpp",
+        "numbers": "cpp",
+        "ranges": "cpp",
+        "semaphore": "cpp",
+        "shared_mutex": "cpp",
+        "span": "cpp",
+        "stop_token": "cpp",
+        "variant": "cpp",
+        "typeindex": "cpp"
     }
 }

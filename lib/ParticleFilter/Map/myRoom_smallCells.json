@@ -1,0 +1,269 @@
+{
+    "map_name": "My room - small cell",
+    "allowedCoordinates": [
+        {
+            "startX": 80,
+            "startY": 10,
+            "stopX": 233,
+            "stopY": 179
+        },
+        {
+            "startX": 233,
+            "startY": 10,
+            "stopX": 478,
+            "stopY": 180
+        },
+        {
+            "startX": 478,
+            "startY": 133,
+            "stopX": 546,
+            "stopY": 180
+        },
+        {
+            "startX": 234,
+            "startY": 180,
+            "stopX": 546,
+            "stopY": 402
+        },
+        {
+            "startX": 234,
+            "startY": 402,
+            "stopX": 546,
+            "stopY": 624
+        },
+        {
+            "startX": 233,
+            "startY": 624,
+            "stopX": 546,
+            "stopY": 841
+        },
+        {
+            "startX": 10,
+            "startY": 625,
+            "stopX": 233,
+            "stopY": 841
+        },
+        {
+            "startX": 124,
+            "startY": 400,
+            "stopX": 223,
+            "stopY": 611
+        },
+        {
+            "startX": 124,
+            "startY": 306, 
+            "stopX": 223, 
+            "stopY": 389
+        },
+        {
+            "startX": 10,
+            "startY": 190,
+            "stopX": 223,
+            "stopY": 306
+        }
+    ],
+    "cells": [
+    ],
+    "walls": [
+        {
+            "id": 0,
+            "orientation": 0.0,
+            "startX": 70,
+            "startY": 0,
+            "stopX": 488,
+            "stopY": 9
+        },
+        {
+            "id": 1,
+            "orientation": 90.0,
+            "startX": 479,
+            "startY": 0,
+            "stopX": 488,
+            "stopY": 132
+        },
+        {
+            "id": 2,
+            "orientation": 0.0,
+            "startX": 479,
+            "startY": 123,
+            "stopX": 556,
+            "stopY": 132
+        },
+        {
+            "id": 3,
+            "orientation": 90.0,
+            "startX": 547,
+            "startY": 123,
+            "stopX": 556,
+            "stopY": 851
+        },
+        {
+            "id": 4,
+            "orientation": 180.0,
+            "startX": 0,
+            "startY": 842,
+            "stopX": 556,
+            "stopY": 851
+        },
+        {
+            "id": 5,
+            "orientation": 270.0,
+            "startX": 0,
+            "startY": 615,
+            "stopX": 9,
+            "stopY": 851
+        },
+        {
+            "id": 6, 
+            "orientation": 0.0,
+            "startX": 0,
+            "startY": 615,
+            "stopX": 233,
+            "stopY": 624
+        },
+        {
+            "id": 7,
+            "orientation": 270.0,
+            "startX": 229,
+            "startY": 607,
+            "stopX": 233,
+            "stopY": 624
+        },
+        {
+            "id": 8,
+            "orientation": 90.0,
+            "startX": 224,
+            "startY": 607,
+            "stopX": 229,
+            "stopY": 624
+        },
+        {
+            "id": 9,
+            "orientation": 270.0,
+            "startX": 224,
+            "startY": 184,
+            "stopX": 233,
+            "stopY": 516
+        },
+        {
+            "id": 10,
+            "orientation": 90.0,
+            "startX": 224,
+            "startY": 184,
+            "stopX": 233,
+            "stopY": 516
+        },
+        {
+            "id": 11,
+            "orientation": 180.0,
+            "startX": 70,
+            "startY": 180,
+            "stopX": 233,
+            "stopY": 189
+        },
+        {
+            "id": 12,
+            "orientation": 270.0,
+            "startX": 70,
+            "startY": 0,
+            "stopX": 79,
+            "stopY": 185
+        },
+        {
+            "id": 13,
+            "orientation": 180.0,
+            "startX": 114,
+            "startY": 612,
+            "stopX": 233,
+            "stopY": 621
+        },
+        {
+            "id": 14,
+            "orientation": 270.0,
+            "startX": 114,
+            "startY": 390,
+            "stopX": 123,
+            "stopY": 621
+        },
+        {
+            "id": 15,
+            "orientation": 180.0,
+            "startX": 114,
+            "startY": 390,
+            "stopX": 128,
+            "stopY": 399
+        },
+        {
+            "id": 16,
+            "orientation": 0.0,
+            "startX": 114,
+            "startY": 390,
+            "stopX": 128,
+            "stopY": 399
+        },
+        {
+            "id": 17,
+            "orientation": -180.0,
+            "startX": 219,
+            "startY": 390,
+            "stopX": 233,
+            "stopY": 399
+        },
+        {
+            "id": 18,
+            "orientation": 0.0,
+            "startX": 219,
+            "startY": 390,
+            "stopX": 233,
+            "stopY": 399
+        },
+        {
+            "id": 19,
+            "orientation": 270.0,
+            "startX": 114,
+            "startY": 307,
+            "stopX": 123,
+            "stopY": 399
+        },
+        {
+            "id": 20,
+            "orientation": 180.0,
+            "startX": 0,
+            "startY": 307,
+            "stopX": 123,
+            "stopY": 316
+        },
+        {
+            "id": 21,
+            "orientation": 270.0,
+            "startX": 0,
+            "startY": 180,
+            "stopX": 9,
+            "stopY": 316
+        },
+        {
+            "id": 22,
+            "orientation": 0.0,
+            "startX": 0,
+            "startY": 180,
+            "stopX": 233,
+            "stopY": 189
+        }
+    ],
+    "doors": [
+        {
+            "id": 0,
+            "startX": 224,
+            "startY": 516,
+            "stopX": 233,
+            "stopY": 607
+        },
+        {
+            "id": 1,
+            "startX": 128,
+            "startY": 390,
+            "stopX": 219,
+            "stopY": 399
+        }
+    ]
+}

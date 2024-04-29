@@ -7,14 +7,17 @@
 #include "Map/mapData.h"
 #include "particle.h"
 
-#define WINDOW_WIDTH 1280//600//1280
-#define WINDOW_HEIGHT 720//900//720 
+// #define WINDOW_WIDTH 1280//600//1280
+// #define WINDOW_HEIGHT 720//900//720 
+
+#define WINDOW_WIDTH 600//1280
+#define WINDOW_HEIGHT 900//720 
 
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 30
 
 #define FONT_PATH "/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf"
-#define FONT_SIZE 18
+#define FONT_SIZE 9
 
 class MapRenderer
 {
@@ -22,6 +25,7 @@ public:
     MapRenderer();
     bool initialize(MapData *mapData, uint8_t scale);
     bool updateMap(const Particle particles[], const int nrOfParticles, const int selectedCellIdx);
+    bool updateMap(const std::vector<std::pair<int, int>> &nodePath);
     void stop();
 
     bool isInitialized();
@@ -42,6 +46,7 @@ private:
     void renderMap(SDL_Renderer* renderer, TTF_Font* font, uint8_t scale, const int selectedCellIdx);
     void renderParticles(SDL_Renderer* renderer, const Particle particles[], const int nrOfParticles);
     void writeTextCenterRect(SDL_Renderer *renderer, TTF_Font *font, SDL_Color textColor, const char *text, SDL_Rect rectangle);
+    void renderNodePath(SDL_Renderer* renderer, const std::vector<std::pair<int, int>> &nodePath);
 };
 
 #endif

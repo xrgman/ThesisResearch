@@ -5,155 +5,111 @@
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <vector>
+#include <set>
 #include "cell.h"
 #include "wall.h"
 #include "door.h"
+#include "path.h"
+#include "rectangle.h"
 
 using json = nlohmann::json;
+
+static std::vector<int> emptyVec;
 
 class MapData
 {
 public:
+MapData();
+    MapData(std::string name, int numberOfCells, int numberOfWalls, int numberOfDoors, int numberOfAllowedCoordinates);
+
     ~MapData()
     {
-        // delete[] cells;
-    }
-
-    const char *getName()
-    {
-        if (name.empty())
+        // Removing shortest distances data:
+        if (shortestDistancessBetweenCells != nullptr && *shortestDistancessBetweenCells != nullptr)
         {
-            return "Not loaded";
+            for (int i = 0; i < numberOfCells; i++)
+            {
+                delete[] shortestDistancessBetweenCells[i];
+            }
+
+            delete[] shortestDistancessBetweenCells;
         }
 
-        return name.c_str();
-    };
-
-    int getNumberOfCells()
-    {
-        return numberOfCells;
-    };
-
-    int getNumberOfWalls()
-    {
-        return numberOfWalls;
-    };
-
-    int getNumberOfDoors()
-    {
-        return numberOfDoors;
-    };
-
-    std::vector<Cell> getCells() {
-        return cells;
-    }
-
-    std::vector<Wall> getWalls() {
-        return walls;
-    }
-
-    std::vector<Door> getDoors() {
-        return doors;
-    }
-
-    void print()
-    {
-        std::cout << "Map " << name << " data: \n";
-        std::cout << "\tNumber of cells: " << numberOfCells << std::endl;
-        std::cout << "\tNumber of walls: " << numberOfWalls << std::endl;
-        std::cout << "\tNumber of doors: " << numberOfDoors << std::endl;
-        std::cout << "\tCells: \n";
-
-        for (int i = 0; i < numberOfCells; i++)
+        // Removing longest distances data:
+        if (longestDistancessBetweenCells != nullptr && *longestDistancessBetweenCells != nullptr)
         {
-            Cell cell = cells[i];
+            for (int i = 0; i < numberOfCells; i++)
+            {
+                delete[] longestDistancessBetweenCells[i];
+            }
 
-            std::cout << "\t\t{ID: " << cell.id << ", startX: " << cell.startX << ", startY: " << cell.startY << ", stopX: " << cell.stopX << ", stopY: " << cell.stopY << "}\n";
-        }
-
-        std::cout << "\tWalls: \n";
-
-        for (int i = 0; i < numberOfWalls; i++)
-        {
-            Wall wall = walls[i];
-
-            std::cout << "\t\t{ID: " << wall.id << ", startX: " << wall.startX << ", startY: " << wall.startY << ", stopX: " << wall.stopX << ", stopY: " << wall.stopY << "}\n";
-        }
-
-        std::cout << "\tDoors: \n";
-
-        for (int i = 0; i < numberOfDoors; i++)
-        {
-            Door door = doors[i];
-
-            std::cout << "\t\t{ID: " << door.id << ", startX: " << door.startX << ", startY: " << door.startY << ", stopX: " << door.stopX << ", stopY: " << door.stopY << "}\n";
+            delete[] longestDistancessBetweenCells;
         }
     }
+
+    void initialize(const int cellSize);
+
+    const char *getName();
+    int getNumberOfCells();
+    int getNumberOfWalls();
+    int getNumberOfDoors();
+
+    std::vector<Cell> &getCells();
+    std::vector<Wall> &getWalls();
+    std::vector<Door> &getDoors();
+    std::vector<Rectangle> &getAllowedCoordinates();
+
+    std::string getPathCacheFileName();
+
+    double **&getShortestDistancessBetweenCells();
+    double **&getLongestDistancesBetweenCells();
+
+    std::vector<int> &getPathBetweenCells(int startCellIdx, int stopCellIdx, bool &success);
+
+    void print();
+
+    static MapData loadMapData(const char *filename, bool &success);
 
 private:
     std::string name;
     int numberOfCells;
     int numberOfWalls;
     int numberOfDoors;
+    int numberOfAllowedCoordinates;
+
     std::vector<Cell> cells;
     std::vector<Wall> walls;
     std::vector<Door> doors;
+    std::vector<Rectangle> allowedCoordinates;
 
-    friend void from_json(const json &j, MapData &mapData)
-    {
-        j.at("map_name").get_to(mapData.name);
-        j.at("number_of_cells").get_to(mapData.numberOfCells);
-        j.at("number_of_walls").get_to(mapData.numberOfWalls);
-        j.at("number_of_doors").get_to(mapData.numberOfDoors);
+    double **shortestDistancessBetweenCells = nullptr; // Shortest distance between two cells.
+    double **longestDistancessBetweenCells = nullptr;  // Longest distance between two cells, but still taking the shortest path.
 
-        // Deserializing cells:
-        if (j.find("cells") != j.end() && j["cells"].is_array())
-        {
-            int numCells = j["cells"].size();
+    std::vector<Path> pathsBetweenCells;
 
-            mapData.cells.reserve(numCells);
+    // Create an array storing the paths so we can use first cell in path for the angle it should have :)
 
-            for (int i = 0; i < numCells; i++)
-            {
-                Cell cell;
-                Cell::from_json(j["cells"][i], cell);
+    double calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, Path &cellPath);
+    double calculateLongestDistanceBetweenCells(int originCellId, int destinationCellId);
 
-                mapData.cells.push_back(cell);
-            }
-        }
+    void generateCells(const int cellSize);
+    bool areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordinates, set<int> &allowedCoordinatesIds);
+    bool checkCellIntersectionWalls(const Cell &cell);
 
-        // Deserializing walls:
-        if (j.find("walls") != j.end() && j["walls"].is_array())
-        {
-            int numWalls = j["walls"].size();
+    bool findValidStartCoordinates(const int startX, const int startY, int &newStartX, int &newStartY, const int stopX, const int stopY);
+    Cell createCellFillAllowedSpace(const int startX, const int startY, const int cellSize, const set<int> &allowedCoordinatesIds, const int stopY);
+    void fillRemainingAllowedCoordinates();
+    
+    bool didTravelThroughWall(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate);
+    bool didTravelThroughDoor(int originalXCoordinate, int originalYCoordinate, int newXcoordinate, int newYCoordinate);
+    bool cellOverlapsExistingCell(const Cell &cell);
+    bool isCoordinateInACell(const int x, const int y);
+    bool createCellWithMinSize(const int startX, const int startY, const int stopX, const int stopY, const int minWidth, const int minHeight);
 
-            mapData.walls.reserve(numWalls);
+    void cachePathData(const char *filename, const int cellSize);
+    bool loadCachedPathData(const char *filename, const int cellSize);
 
-            for (int i = 0; i < numWalls; i++)
-            {
-                Wall wall;
-                Wall::from_json(j["walls"][i], wall);
-
-                mapData.walls.push_back(wall);
-            }
-        }
-
-         // Deserializing doors:
-        if (j.find("doors") != j.end() && j["doors"].is_array())
-        {
-            int numDoors = j["doors"].size();
-
-            mapData.doors.reserve(numDoors);
-
-            for (int i = 0; i < numDoors; i++)
-            {
-                Door door;
-                Door::from_json(j["doors"][i], door);
-
-                mapData.doors.push_back(door);
-            }
-        }
-    };
+    
 };
 
 #endif

@@ -25,19 +25,14 @@ struct FFTConfigStore
     }
 };
 
-void initializeFFT(uint32_t size, uint32_t stft_size);
-
 // FFT using real data:
-void performFFT(int16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t size);
-void performFFT(const double *inputData, kiss_fft_cpx *outputData, uint32_t size);
-void performFFT(kiss_fft_cfg fftConfig, const double *inputData, kiss_fft_cpx *outputData, uint32_t size);
+// void performFFT(int16_t *inputData, vector<kiss_fft_cpx> &outputData, uint32_t size);
+// void performFFT(const double *inputData, kiss_fft_cpx *outputData, uint32_t size);
+void performFFT(kiss_fft_cfg fftConfig, const double *inputData, kiss_fft_cpx *outputData, uint32_t size, bool inverse);
 
 // FFT using complex data:
 void performFFT(const kiss_fft_cpx *inputData, kiss_fft_cpx *outputData, uint32_t size, bool inverse);
 void performFFT(kiss_fft_cfg fftConfig, const kiss_fft_cpx *inputData, kiss_fft_cpx *outputData, uint32_t size, bool inverse);
-
-void applySTFT(const double *inputData, int inputDataSize, vector<std::vector<double>> &output, int windowSize, int overlap);
-void performSTFT(const double *inputData, int inputDataSize, int windowSize, int overlap, vector<std::vector<double>> &outputData);
 
 void performFFTConvolve(const double *inputData, int inputDataSize, const double *symbolData, int symbolSize, vector<double> &outputData);
 void performFFTConvolve(const int16_t *inputData, int inputDataSize, const double *symbolData, int symbolSize, vector<double> &outputData);

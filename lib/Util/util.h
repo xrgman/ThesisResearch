@@ -17,6 +17,8 @@ double calculateDeviationAverage(const double *data, const int size, const doubl
 bool hasNegativeValue(const int16_t *data, uint16_t size);
 bool hasNegativeValues(const int16_t *data, uint16_t size, uint16_t threshold);
 
+bool allValuesGreaterThan(const double *data, const int size, int threshold);
+
 int findMaxIndex(const int *array, int size);
 int findMaxIndex(const double *array, int size);
 
@@ -27,6 +29,7 @@ void divideAllElements(double *array, const int size, const double divisor);
 void cumsum(double *array, const int size);
 
 vector<int> mapKeysToVector(map<int, double> *data);
+bool compareSecond(const pair<int, int> &a, const pair<int, int> &b);
 
 void fillArrayWithZeros(uint8_t *array, const int size);
 void fillArrayWithZeros(int16_t *array, const int size);
@@ -50,12 +53,19 @@ chrono::nanoseconds bitsToNanoseconds(uint8_t bits[64]);
 void stringToBits(const char *data, int size, uint8_t *bits);
 void bitsToString(const uint8_t *bits, const int nrOfBits, char *output);
 
+double translateToRange(double number, double minInput, double maxInput, double minOutput, double maxOutput);
+
+bool fileExists(const char *filename);
+string generateUniqueFileName(const string& originalFileName, const string& extension);
 bool openFile(const char *filename, FILE **file, const char *mode);
 long getFileSize(FILE *file);
 char *readFileText(FILE *file);
 int readDistanceFromFileName(const char *filename);
+bool removeFile(const char *filename);
 
 uint8_t determineOrientationThreePoints(int p1X, int p1Y, int p2X, int p2Y, int p3X, int p3Y);
 bool onSegment(int p1X, int p1Y, int p2X, int p2Y, int p3X, int p3Y);
+
+double calculateEuclideanDistance(int p1X, int p1Y, int p2X, int p2Y);
 
 #endif

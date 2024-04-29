@@ -2,24 +2,25 @@
 #define DOOR_H
 
 #include <nlohmann/json.hpp>
+#include "rectangle.h"
 
 using json = nlohmann::json;
 
-class Door
+class Door : public Rectangle
 {
 public:
-    int id;
-    int startX;
-    int startY;
-    int stopX;
-    int stopY;
+    Door(int id, int startX, int stopX, int startY, int stopY) : Rectangle(id, startX, stopX, startY, stopY)
+    {
+    }
 
-    int getWidth();
-    int getHeight();
-
-    static void from_json(const json &j, Door &doorData);
-
-private:
+    static Door fromJson(const json &jsonData)
+    {
+        return Door(jsonData["id"],
+                    jsonData["startX"],
+                    jsonData["stopX"],
+                    jsonData["startY"],
+                    jsonData["stopY"]);
+    }
 };
 
 #endif

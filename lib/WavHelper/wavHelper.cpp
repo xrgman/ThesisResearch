@@ -166,7 +166,7 @@ void writeWavFile(const char *filename, const int16_t *data, int size, uint32_t 
 
     if (!file)
     {
-        cerr << "Error opening the output file." << endl;
+        spdlog::error("Error opening wav file, unable to write data to it.");
         return;
     }
 
