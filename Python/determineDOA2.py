@@ -1,10 +1,10 @@
 import numpy as np
 
-fs = 22050
+fs = 44100
 n = 6
 alpha = 60
 c = 343  # This is a gues, since its based on the temperature
-length = 0.0475#0.0465#0.0476
+length = 0.0465#0.0465#0.0476
 
 
 #arrival_times = [7344, 7342, 7338, 7337, 7339, 7341]  # 180deg
@@ -17,12 +17,12 @@ length = 0.0475#0.0465#0.0476
 #arrival_times = [89792, 89788, 89789, 89789, 89793, 89909]
 #arrival_times = [132801, 132798, 132799, 132798, 132802, 132915]
 #arrival_times = [173761, 173758, 173759, 173758, 173761, 173762]
-arrival_times = [57982, 57979, 57978, 57979, 57983, 57982]
-#arrival_times = [115326, 115323, 115322, 115323, 115326, 115326]
+#arrival_times = [57982, 57979, 57978, 57979, 57983, 57982]
+arrival_times = [687248, 687256, 687252, 687252, 687248, 687244]
 
 # 0. Determine actual arrival times:
 #arrival_times = [x / fs for x in arrival_times]
-
+#d 350cm_270deg_reverb.wav
 def doa_estimator(tdoa, l, c, M):
     """Estimates the DOA given a set of TDOA values, length between the
     microphones, speed of sound, and number of microphones."""
@@ -63,5 +63,5 @@ def determine_doa(arr_times):
     return doa_estimator(tdoa, length, c, n)
 
 # doa = determine_doa(arrival_times)
-#
+# #
 # print("Doa: " + str(doa))

@@ -3,7 +3,9 @@ from scipy.signal import oaconvolve, hilbert
 from typing import List
 from Original_code.BitManipulation import frombits
 from collections import Counter
+from scipy.fft import fft, ifft
 
+from scipy import linalg, fft as sp_fft
 
 def generate_flipped_symbols(encoder, original_symbols):
     flipped_symbols = []
@@ -70,13 +72,12 @@ def calculate_crc(bits):
 
 # Calculate the energy of a signal:
 def calculate_energy(frame_data):
-    # energy = np.sum(np.square(frame_data))
     energy = np.square(frame_data)
 
     energy = np.sum(energy)
-    energy /= len(frame_data)
-
-    energy = np.sqrt(energy)
+    # energy /= len(frame_data)
+    #
+    # energy = np.sqrt(energy)
 
     return energy
 
@@ -101,12 +102,39 @@ def add_noise(data, snr):
     return noisy_signal
 
 
+def fft_convolve(in1, in2):
+    size = len(in1)
+    originalN = size * 2 - 1
+    N = sp_fft.next_fast_len(originalN)
+
+    # 1. Add zero padding
+    # in1_padded = np.concatenate((in1, np.zeros(originalN - size + 1)))
+    # in2_padded = np.concatenate((in2, np.zeros(originalN - size + 1)))
+
+   # 2. Transform both inputs to the frequency domain:
+    cx_in1 = fft(in1, n=N)
+    cx_in2 = fft(in2, n=N)
+
+    # 3. Perform point-wise multiplication
+    cx_result = cx_in1 * cx_in2
+
+    # 4. Perform inverse FFT:
+    result = ifft(cx_result, n=N)
+
+    # 5. Take centered real result:
+    start = (originalN - size) // 2
+    output = np.real(result[start:start + size])
+
+    return output
+
+
 # Perform convolution:
 def get_conv_results(data: np.ndarray, symbols: list) -> list:
     conv_data = []
 
     for symbol in symbols:
         conv_temp = oaconvolve(data, symbol, mode="same")
+        conv_temp2 = fft_convolve(data, symbol)
         conv_complex = hilbert(conv_temp)
         conv_envelope = np.abs(conv_complex)
         conv_data.append(conv_envelope)
@@ -133,7 +161,7 @@ def contains_preamble(frame_data, original_preamble, own_signal_cutoff):
         max_peak_index = np.argmax(conv_data)
 
         # Finding other possible peaks:
-        possible_peaks = [x for x in possible_peaks if np.abs(max_peak_index - x[0]) > 1000]
+        possible_peaks = [x for x in possible_peaks if np.abs(max_peak_index - x[0]) > 1500]
 
         possible_peaks.append((max_peak_index, max_peak))
         possible_peaks.sort()
@@ -208,6 +236,7 @@ def is_preamble_detected(decoding_store, channel_id, new_peak_detected: bool, mi
 
     return possible_peaks
 
+
 # Decode a bit, based on a data frame:
 def decode_bit(frame_data, flipped_bits):
     # Performing convolution for both symbols:
@@ -215,6 +244,9 @@ def decode_bit(frame_data, flipped_bits):
 
     max_0 = np.max(conv_data[0])
     max_1 = np.max(conv_data[1])
+
+    avg_0 = np.mean(conv_data[0])
+    avg_1 = np.mean(conv_data[1])
 
     bit = 0 if max_0 > max_1 else 1
 
@@ -288,6 +320,8 @@ def finish_decoding(decoding_result):
     crc_in_message = bits_to_uint8t(decoding_result.decoded_bits[-8:])
     crc_calculated = calculate_crc(decoding_result.decoded_bits[0:-8])
 
+    average_energy = np.average(decoding_result.signal_energy)
+
     if crc_in_message == crc_calculated:
         # Decoding message ID:
         decoding_result.message_type = bits_to_uint8t(decoding_result.decoded_bits[0: 8])
@@ -295,7 +329,7 @@ def finish_decoding(decoding_result):
         # Putting message data in the correct spot:
         decoding_result.decoded_data = decoding_result.decoded_bits[8: 72]
 
-        if decoding_result.message_type == 0 :
+        if decoding_result.message_type == 0:
             embedded_text = frombits(decoding_result.decoded_data)
 
             print("Received from " + str(decoding_result.sender_id) + ": " + str(embedded_text))
@@ -304,11 +338,11 @@ def finish_decoding(decoding_result):
             cell_id = bits_to_uint32t(decoding_result.decoded_bits[8: 40])
             print("Robot " + str(decoding_result.sender_id) + " has localized itself in cell " + str(cell_id))
 
-        print("DOA: " + str(decoding_result.doa))
+        #print("DOA: " + str(decoding_result.doa))
 
-        return True, decoding_result.doa
+        return True, decoding_result.doa, average_energy
 
     else:
-        print("CRC mismatch, dropping message!\n")
+        #print("CRC mismatch from robot " + str(decoding_result.sender_id) + ", dropping message!\n")
 
-        return False, decoding_result.doa
+        return False, decoding_result.doa, average_energy

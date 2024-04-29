@@ -4,15 +4,16 @@ from scipy.signal import oaconvolve, hilbert
 
 from ResearchEncoding import encode_preamble
 
+
 def get_conv_results(data: np.ndarray, symbol) -> list:
     conv_data = []
-
 
     conv_temp = oaconvolve(data, symbol, mode="same")
     conv_complex = hilbert(conv_temp)
     conv_envelope = np.abs(conv_complex)
 
     return conv_envelope
+
 
 Fs = 44100
 f_start = 2500
@@ -21,7 +22,7 @@ f_stop = 6500
 preamble_bits = 8192
 T_preamble = preamble_bits / Fs
 
-preamble = encode_preamble(Fs, T_preamble, preamble_bits, f_start, f_stop)
+preamble = encode_preamble(Fs, preamble_bits, f_start, f_stop)
 
 preamble_flipped = np.flip(preamble)
 

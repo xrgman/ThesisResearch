@@ -1,7 +1,7 @@
 import numpy as np
 from Original_code.OChirpEncode import OChirpEncode
 from Original_code.BitManipulation import frombits
-from decodingClasses import AudioCodecResult, AudioCodecDecoding, most_occuring_element, DECODING_BITS_COUNT, \
+from decodingClasses import AudioCodecResult, AudioCodecDecoding, DECODING_BITS_COUNT, \
     DECODING_DATA_BITS, AudioCodedMessageType
 
 from scipy.io.wavfile import read

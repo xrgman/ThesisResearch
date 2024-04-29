@@ -112,7 +112,7 @@ g = hilbert(test)
 vba = printMyHilbert(test)
 bla = efficient_hilbert_transform(test)
 
-hophop = sp_fft.next_fast_len(400)
+hophop = sp_fft.next_fast_len(640)
 
 def centered(array, new_length):
     current_length = len(array)

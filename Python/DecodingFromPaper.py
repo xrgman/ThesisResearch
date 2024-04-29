@@ -10,7 +10,7 @@ import scipy.signal
 import math
 
 # Project settings:
-N = 1024#2048
+N = 2048
 number_of_symbols_preamble = 3
 
 # Chirp detection variables:
@@ -24,19 +24,19 @@ processedBitsPosition = 0
 encoder = OChirpEncode(T=None)
 
 # New variables of my algo:
-BW = 500#5512.5#4000#31250
-SF = 9       #spread factor
+BW = 5512.5#4000#31250
+SF = 8       #spread factor
 
 Fs = (N / 2**SF) * BW               #   Sampling Frequency for receiver
 Fc = Fs / 2 - BW / 2 #- BW          #   centre frequency
 num_chips = int(2**SF)              #   amount of chips in one symbol
-Tc = 1 / BW                         #   Chirp time
-Ts = num_chips * Tc                 #   symbol time (chip time * nr of chips)
-num_samples_total = int(Ts * Fs)    #   amount of samples = symbol time * sampling frequency
-dt = 1 / Fs                         #   time between each sample
+num_samples_total = N
 f_begin = Fc - BW/2                 #   starting frequency
-f_delta = BW / num_samples_total    #   frequency delta per chip
 f_end = Fc + BW/2                   #   ending frequency
+
+f_begin = 4000.0
+f_end = 7000.0
+
 
 frequencies = np.linspace(f_begin, f_end, num_samples_total)
 
@@ -69,7 +69,6 @@ downchirp_frequencies = [x / Fs for x in frequencies[::-1]]
 downchirp_phases = np.cumsum(downchirp_frequencies)
 downchirp_full = np.sin(2*np.pi*downchirp_phases)
 
-tes = printMyHilbert(downchirp_full)
 
 downchirp_complex_full = scipy.signal.hilbert(downchirp_full)
 
@@ -309,6 +308,12 @@ def decode(bit):
         return success
 
 
+data = encode_symbol(14)
+
+decoded = get_symbol(data)
+
+
+
 if encode_message:
     # Generate encoded message:
     encoded_message = encode()
@@ -341,25 +346,3 @@ if decode_message:
     #         decoding_cycles_success += 1
 
 print("Successfull runs: " + str(decoding_cycles_success))
-
-
-        # symbol_lines = [0, 128, 256, 384, 512, 640, 768]
-
-        # plt.subplot(2, 1, 1)
-        # plt.plot(data_normalized, label='Signal')
-        # plt.bar(symbol_lines, 1, color='red', alpha=0.7, width=5)
-        # plt.title('Encoded message')
-        # plt.xlabel('Index')
-        # plt.ylabel('Value')
-        # plt.legend()
-        #
-        # # Create the second plot with peaks as bars
-        # plt.subplot(2, 1, 2, sharex=plt.gca())  # share the x-axis with the first plot
-        # plt.bar(symbol_lines, 1, color='red', alpha=0.7, width=1)
-        # plt.title('Peaks')
-        # plt.xlabel('Index')
-        # plt.ylabel('Value')
-        # plt.grid(True)
-        #
-        # plt.tight_layout()
-        # plt.show()
