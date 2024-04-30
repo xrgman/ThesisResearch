@@ -6,10 +6,10 @@ from scipy.io.wavfile import read
 import matplotlib.pyplot as plt
 
 
-base_folder = 'REVERB'
+base_folder = 'NLOS'
 #situation = 'Line-of-Sight (LOS)'
-# situation = 'Non Line-of-Sight (NLOS)'
-situation = 'Reverberant environment (Reverb)'
+situation = 'Non Line-of-Sight (NLOS)'
+#situation = 'Reverberant environment (Reverb)'
 
 showAverageErrorPlot = True
 showBoxPlot = True

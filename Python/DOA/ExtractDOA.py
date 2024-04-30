@@ -31,9 +31,6 @@ START_FREQ_BITS = 6500
 STOP_FREQ_BITS = 18500
 
 base_folder = '../Audio_files/AAA'
-situation = 'Line-of-Sight (LOS)'
-# situation = 'Non Line-of-Sight (NLOS)'
-# situation = 'Reverberant environment (Reverb)'
 
 showAverageErrorPlot = True
 showBoxPlot = True
@@ -293,7 +290,7 @@ files = os.listdir(base_folder)
 for file_name in files:
     # Construct the full file path
     file_path = os.path.join(base_folder, file_name)
-    file_name_new = "LOS/" + file_name.split(".")[0] + ".txt"
+    file_name_new = "NLOS/" + file_name.split(".")[0] + ".txt"
 
     # Grabbing distance:
     file_parts = file_name.split('_')

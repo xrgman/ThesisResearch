@@ -69,8 +69,8 @@ class ParticleFilter:
     def process_table_own(self, localization_table: LocalizationTable):
         # 1. Finding valid and invalid particles and update cell probabilities:
         invalid_cell_ids = []
-        correct_particle_ids: List[Particle] = []
-        invalid_particle_ids: List[Particle] = []
+        correct_particle_ids: List[int] = []
+        invalid_particle_ids: List[(int, int)] = []
 
         self.tables_processed += 1
 
@@ -98,17 +98,21 @@ class ParticleFilter:
                 invalid_cell_ids.append(cell_id)  # TODO: Remove when algo finished
 
                 for particle_in_cell in particles_in_cell:
-                    invalid_particle_ids.append(particle_in_cell.ID)
+                    invalid_particle_ids.append((cell_id, particle_in_cell.ID))
 
         # 2. Normalizing cell probabilities and calculating new particles per cell values:
+        normalized_cell_probabilities = self.get_normalized_probabilities_per_cell()
+
+        for i in range(self.map_data.number_of_cells):
+            particles_in_cell = normalized_cell_probabilities[i] * NUMBER_OF_PARTICLES
+
+            self.particles_per_cell[i] = particle_in_cell
 
 
 
-        normalized = self.get_normalized_probabilities_per_cell()
 
-        test = normalized[4] * NUMBER_OF_PARTICLES
 
-        # self.normalize_probabilities_per_cell()
+
 
         # USE NORMALIZED WHEN DETERMINING PARTICLES PER CELL
         # USE NON-NORMALIZED WHEN UPDATING PROBABILITIES
