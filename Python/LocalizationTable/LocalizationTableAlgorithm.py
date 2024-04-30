@@ -19,8 +19,11 @@ table_0_1_270 = LocalizationTable.load_table("Files/LocalizationTable_0_1_270_20
 
 particle_filter.process_table_own(table_0_1_90)
 
+test = particle_filter.check_particles_per_cell()
+
 particle_filter.process_table_own(table_0_1_270)
 
+test = particle_filter.check_particles_per_cell()
 
 
 bla = 10

@@ -40,3 +40,6 @@ class Particle:
 
     def update_weight(self, new_weight: float) -> None:
         self.weight = new_weight
+
+    def update_cell_id(self, new_cell_id: int) -> None:
+        self.cell_id = new_cell_id

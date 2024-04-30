@@ -51,6 +51,9 @@ class Rectangle(object):
     def contains_point(self, x: int, y: int) -> bool:
         return self.start_x <= x <= self.stop_x and self.start_y <= y <= self.stop_y
 
+    def contains_point_excluding_border(self, x: int, y: int) -> bool:
+        return self.start_x < x < self.stop_x and self.start_y < y < self.stop_y
+
     def is_inside(self, other: "Rectangle") -> bool:
         return self.start_x >= other.start_x and self.stop_x <= other.stop_x and self.start_y >= other.start_y and self.stop_y <= other.stop_y
 
