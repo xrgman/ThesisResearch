@@ -4,9 +4,9 @@
 
 Particle Particle::createParticleInCell(int ID, double weight, Cell &cell)
 {
-    // Generate x and y coordinates randomly:
-    int xCoordinate = cell.startX + rand() % (cell.stopX - cell.startX + 1);
-    int yCoordinate = cell.startY + rand() % (cell.stopY - cell.startY + 1);
+    // Generate x and y coordinates randomly and never on the borders of the cell:
+    int xCoordinate = cell.startX + 1 + rand() % (cell.stopX - cell.startX);
+    int yCoordinate = cell.startY + 1 + rand() % (cell.stopY - cell.startY);
     int direction = rand() % 360; // Will create direction between 0-360
 
     return Particle(ID, xCoordinate, yCoordinate, direction, weight);

@@ -51,6 +51,7 @@ private:
 
     int particlesInArray;
     int *particlesPerCell;
+    double *probabilitiesPerCell;
     std::vector<Particle> particles;
 
     //Localization helpers:
@@ -70,6 +71,9 @@ private:
     void normalizeParticleWeights();
     void determineLocalizationCell(int *particlesPerCell);
     void resetParticlesPerCell();
+
+    void calculateProbabilitiesPerCell();
+    void getProbabilitiesPerCellNormalized(double *probabilitiesPerCellOutput);
 };
 
 #endif

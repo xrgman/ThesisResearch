@@ -19,6 +19,7 @@ ParticleFilter::~ParticleFilter()
 {
     delete[] localizationTables;
     delete[] particlesPerCell;
+    delete[] probabilitiesPerCell;
 }
 
 //*************************************************
@@ -48,6 +49,7 @@ bool ParticleFilter::loadMap(const char *filename, const int cellSize)
 
     // Initializing particles per cell array:
     particlesPerCell = new int[mapData.getNumberOfCells()];
+    probabilitiesPerCell = new double[mapData.getNumberOfCells()];
 
     // Initializing localization tables:
     localizationTables = new LocalizationTable[totalNumberOfRobots];
@@ -124,6 +126,9 @@ void ParticleFilter::initializeParticlesUniformly()
 
         i++;
     }
+
+    // Filling the probabilities per cell array:
+    calculateProbabilitiesPerCell();
 }
 
 //*************************************************
@@ -802,5 +807,37 @@ void ParticleFilter::resetParticlesPerCell()
     for (int i = 0; i < mapData.getNumberOfCells(); i++)
     {
         particlesPerCell[i] = 0;
+    }
+}
+
+//*************************************************
+//******** Cell probabilities *********************
+//*************************************************
+
+/// @brief Calculate the probability for each cell based on the number of particles in it.
+void ParticleFilter::calculateProbabilitiesPerCell()
+{
+    for (int i = 0; i < mapData.getNumberOfCells(); i++)
+    {
+        probabilitiesPerCell[i] = (double)particlesPerCell[i] / NUMBER_OF_PARTICLES;
+    }
+}
+
+/// @brief Calculate the normalized probabilties per cell.
+/// @param probabilitiesPerCellOutput Array to store the result in.
+void ParticleFilter::getProbabilitiesPerCellNormalized(double *probabilitiesPerCellOutput)
+{
+    //Calculating the sum of all probabilities
+    double probabilitiesSum = 0;
+
+    for (int i = 0; i < mapData.getNumberOfCells(); i++)
+    {
+        probabilitiesSum += probabilitiesPerCell[i];
+    }
+
+    // Normalizing probabilties:
+    for (int i = 0; i < mapData.getNumberOfCells(); i++)
+    {
+        probabilitiesPerCellOutput[i] = probabilitiesPerCell[i] / probabilitiesSum;
     }
 }
