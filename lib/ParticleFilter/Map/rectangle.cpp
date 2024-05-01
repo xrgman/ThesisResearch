@@ -83,7 +83,7 @@ bool Rectangle::containsPoint(const int x, const int y) const
 /// @param x X coordinate to check.
 /// @param y Y coordinate to check.
 /// @return Whether or not the coordinate is inside the rectangle.
-bool Rectangle::containsPoint(const int x, const int y) const
+bool Rectangle::containsPointExcludingBorder(const int x, const int y) const
 {
     return x > startX && x < stopX && y > startY && y < stopY;
 }
