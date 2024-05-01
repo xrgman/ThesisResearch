@@ -94,12 +94,28 @@ int LocalizationTable::getNumberOfRows()
 
 /// @brief Check whether a given row is invalid (all columns marked false). This indicates that the robot cannot be in this cell.
 /// @param row Id of the row to check.
-/// @return Whether all columns are marked false in the specific row:
+/// @return Whether all columns are marked false in the specific row.
 bool LocalizationTable::isRowInvalid(int row)
 {
     for (int i = 0; i < totalNumberOfCells; i++)
     {
         if (table[row][i])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/// @brief Check whether a given column is invalid (all rows marked false). This indicates for a received table that the robot cannot be in this cell.
+/// @param column Id of the column to check.
+/// @return Whether all columns are marked false in the specific column.
+bool LocalizationTable::isColumnInvalid(int column)
+{
+    for (int i = 0; i < totalNumberOfCells; i++)
+    {
+        if (table[i][column])
         {
             return false;
         }

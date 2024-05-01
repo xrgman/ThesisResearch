@@ -17,6 +17,7 @@ public:
 
     int getNumberOfRows();
     bool isRowInvalid(int row);
+    bool isColumnInvalid(int column);
 
     void printTable();
     void saveTable();
