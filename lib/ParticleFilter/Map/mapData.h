@@ -53,6 +53,7 @@ MapData();
     int getNumberOfCells();
     int getNumberOfWalls();
     int getNumberOfDoors();
+    int getCellSize();
 
     std::vector<Cell> &getCells();
     std::vector<Wall> &getWalls();
@@ -76,6 +77,7 @@ private:
     int numberOfWalls;
     int numberOfDoors;
     int numberOfAllowedCoordinates;
+    int cellSize;
 
     std::vector<Cell> cells;
     std::vector<Wall> walls;
@@ -92,6 +94,7 @@ private:
     double calculateShortestDistanceBetweenCells(int originCellId, int destinationCellId, Path &cellPath);
     double calculateLongestDistanceBetweenCells(int originCellId, int destinationCellId);
 
+    int getAverageCellSize();
     void generateCells(const int cellSize);
     bool areCellCoordinatesValid(const Cell &cell, int &nrOfAllowedCoordinates, set<int> &allowedCoordinatesIds);
     bool checkCellIntersectionWalls(const Cell &cell);
