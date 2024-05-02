@@ -31,7 +31,7 @@ def get_cell_id_of_particle(particle: Particle, cells: List[Cell]) -> int:
 
 
 class ParticleFilter:
-    def __init__(self):
+    def __init__(self, total_num_robots):
         self.map_data: MapData = None
         self.particles: List[Particle] = []
         self.particles_per_cell = []
@@ -39,6 +39,8 @@ class ParticleFilter:
         self.probabilities_per_cell = []
         self.tables_processed = 1
         self.initial_weight = 1 / NUMBER_OF_PARTICLES
+        self.total_num_robots = total_num_robots
+        self.received_tables: List[LocalizationTable] = [None] * total_num_robots
 
     def load_map(self, filename):
         # Loading map:
@@ -49,6 +51,9 @@ class ParticleFilter:
 
     def get_map_data(self):
         return self.map_data
+
+    def get_particles(self):
+        return self.particles
 
     def calculate_probabilities_per_cell(self):
         self.probabilities_per_cell.clear()
@@ -100,8 +105,10 @@ class ParticleFilter:
 
         return particles_per_cell == self.particles_per_cell
 
-
     def process_table_own(self, localization_table: LocalizationTable):
+        # 0. Saving table for later processing:
+        self.received_tables[localization_table.sender_id] = localization_table
+
         # 1. Finding valid and invalid particles and update cell probabilities:
         invalid_cell_ids = []
         valid_cell_ids: List[int] = []
@@ -117,9 +124,6 @@ class ParticleFilter:
 
             # Checking if cell is valid according to the table data:
             cell_valid = not localization_table.is_row_invalid(cell_id)
-
-            if cell_id == 7:
-                fds = 10
 
             # Updating cell probability:
             self.probabilities_per_cell[cell_id] = (((self.tables_processed - 1) * cell_probability +
@@ -140,17 +144,72 @@ class ParticleFilter:
                     # Reset the weight of these particles:
                     self.particles[particle_in_cell.ID].update_weight(self.initial_weight)
 
-        # 2. Normalizing cell probabilities:
+        # 2. Resample particles based on the new probabilities:
+        self.resample_particles_based_on_cell_probability(valid_cell_ids, invalid_particle_ids)
+
+        t = 10
+
+    # This type of table tells us which cells I cannot be in by looking at columns with all zeros.
+    def process_table_other_of_myself(self, localization_table: LocalizationTable):
+        # 0. Flipping the table and then overlay it onto the one we already have:
+        # Assumption, if we not have the table itself yet, we assume we do as sound travels to each robot so each should already have the table before sharing:
+        localization_table.flip()
+
+        self.received_tables[localization_table.robot_id].overlay(localization_table)
+
+        localization_table = self.received_tables[localization_table.robot_id]
+
+        # 1. Finding valid and invalid particles and update cell probabilities:
+        invalid_cell_ids: List[int] = []
+        valid_cell_ids: List[int] = []
+        invalid_particle_ids: List[(int, int)] = []
+
+        # Updating number of tables processed:
+        self.tables_processed += 1
+
+        # Looping over all cells and check if their valid:
+        for cell_id in range(0, localization_table.total_number_of_cells):
+            cell = self.map_data.cells[cell_id]
+            cell_probability = self.probabilities_per_cell[cell_id]
+            particles_in_cell: List[Particle] = [x for i, x in enumerate(self.particles)
+                                                 if cell.contains_point(x.x_coordinate, x.y_coordinate)]
+
+            # Checking if cell is valid according to the table data:
+            cell_valid = not localization_table.is_row_invalid(cell_id)
+
+            # Updating cell probability:
+            self.probabilities_per_cell[cell_id] = (((self.tables_processed - 1) * cell_probability +
+                                                     (1 if cell_valid else 0)) / self.tables_processed)
+
+            # If cell is valid, update the weight of the particles in it:
+            if cell_valid:
+                valid_cell_ids.append(cell_id)
+                for particle_in_cell in particles_in_cell:
+                    self.particles[particle_in_cell.ID].update_weight(self.particles[particle_in_cell.ID].weight
+                                                                      + self.initial_weight)
+            else:
+                invalid_cell_ids.append(cell_id)
+
+                for particle_in_cell in particles_in_cell:
+                    invalid_particle_ids.append((cell_id, particle_in_cell.ID))
+
+                    # Reset the weight of these particles:
+                    self.particles[particle_in_cell.ID].update_weight(self.initial_weight)
+
+        # 2. Resample particles based on the new probabilities:
+        self.resample_particles_based_on_cell_probability(valid_cell_ids, invalid_particle_ids)
+
+    def resample_particles_based_on_cell_probability(self, valid_cell_ids, invalid_particle_ids):
+        # 1. Normalizing cell probabilities:
         normalized_cell_probabilities = self.get_normalized_probabilities_per_cell()
 
-        # 3. Calculate the new amount of particles per cell:
+        # 2. Calculate the new amount of particles per cell and keeping a copy of the old ones:
         old_particles_per_cell = self.particles_per_cell.copy()
 
         self.calculate_particles_per_cell(normalized_cell_probabilities)
 
-        # 4. Resample particles:
+        # 3. Resample particles:
         cells_to_decrease = list(set([x[0] for x in invalid_particle_ids]))
-        # cells_to_decrease = [(x, old_particles_per_cell[x] - self.particles_per_cell[x]) for x in cells_to_decrease]
         cells_to_increase = set(valid_cell_ids)
 
         current_cell_to_decrease = 0
@@ -182,8 +241,6 @@ class ParticleFilter:
 
                 # Store that we have successfully added a particle to the cell:
                 particles_to_add -= 1
-
-        t = 10
 
     def calculate_particles_per_cell(self, normalized_cell_probabilities):
         particles_increased = 0

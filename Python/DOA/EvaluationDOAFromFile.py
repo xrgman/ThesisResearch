@@ -12,7 +12,7 @@ situation = 'Non Line-of-Sight (NLOS)'
 #situation = 'Reverberant environment (Reverb)'
 
 showAverageErrorPlot = True
-showBoxPlot = True
+showBoxPlot = False
 
 # New variables of my algo:
 preamble_peaks = []
