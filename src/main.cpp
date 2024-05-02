@@ -284,8 +284,8 @@ void recordToWavFile(const char *filename, const int seconds)
 
 void loadParticleFilter(bool initializeMapRenderer)
 {
-    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
-    // const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
+    //const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
     const uint8_t scale = 1;
 
     // const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
@@ -1093,6 +1093,25 @@ void handleKeyboardInput()
                 loadParticleFilter(!doNotInitializeMapRenderer);
 
                 cv_decodingResult.notify_one();
+
+                continue;
+            }
+
+            // Start particle load particles:
+            if (words[0] == "pfl")
+            {
+                if (words.size() < 2)
+                {
+                    spdlog::error("Wrong input! Correct usage: pfl <file_name>");
+
+                    continue;
+                }
+
+                const char *filename = words[1].c_str();
+
+                particleFilter.loadParticlesFromFile(filename);
+
+                spdlog::info("Successfully loaded particles from the file.");
 
                 continue;
             }
