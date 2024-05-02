@@ -26,6 +26,7 @@ public:
     std::vector<std::pair<int, int>> getCoordinates() const;
 
     bool containsPoint(const int x, const int y) const;
+    bool containsPointExcludingBorder(const int x, const int y) const;
     bool isInside(Rectangle &other) const;
     bool isIntersectedBy(Line line) const;
     bool isIntersectedBy(const Rectangle &other, bool ignoreEdge = false) const;

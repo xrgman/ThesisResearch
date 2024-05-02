@@ -119,6 +119,7 @@ MapData MapData::loadMapData(const char *filename, bool &success)
 /// @param cellSize Size that the cells should be, if generated.
 void MapData::initialize(const int cellSize)
 {
+    this->cellSize = numberOfCells != 0 ? getAverageCellSize() : cellSize;
     const std::string cacheFileName = getPathCacheFileName();
 
     // Opening file and checking if it was successfull:
@@ -137,7 +138,6 @@ void MapData::initialize(const int cellSize)
 
         spdlog::info("Sucessfully generated {} cells.", numberOfCells);
     }
-
     // Calculating distances between cells:
     shortestDistancessBetweenCells = new double *[numberOfCells];
     longestDistancessBetweenCells = new double *[numberOfCells];
@@ -245,6 +245,13 @@ std::vector<Wall> &MapData::getWalls()
 std::vector<Door> &MapData::getDoors()
 {
     return doors;
+}
+
+/// @brief Get the size of the cells.
+/// @return The cell size.
+int MapData::getCellSize()
+{
+    return this->cellSize;
 }
 
 /// @brief Get a reference to the list containing all the allowed coordinates.
@@ -425,6 +432,18 @@ double MapData::calculateLongestDistanceBetweenCells(int originCellId, int desti
 //*************************************************
 //******** Cell generation ************************
 //*************************************************
+
+int MapData::getAverageCellSize()
+{
+    int cellSizesSummed = 0;
+
+    for (int i = 0; i < numberOfCells; i++)
+    {
+        cellSizesSummed += getCells()[i].getWidth() + getCells()[i].getHeight();
+    }
+
+    return cellSizesSummed / (numberOfCells * 2);
+}
 
 /// @brief Generate cells for a given map.
 /// @param cellSize Size of each cell in cm.

@@ -94,7 +94,7 @@ int LocalizationTable::getNumberOfRows()
 
 /// @brief Check whether a given row is invalid (all columns marked false). This indicates that the robot cannot be in this cell.
 /// @param row Id of the row to check.
-/// @return Whether all columns are marked false in the specific row:
+/// @return Whether all columns are marked false in the specific row.
 bool LocalizationTable::isRowInvalid(int row)
 {
     for (int i = 0; i < totalNumberOfCells; i++)
@@ -106,6 +106,70 @@ bool LocalizationTable::isRowInvalid(int row)
     }
 
     return true;
+}
+
+/// @brief Check whether a given column is invalid (all rows marked false). This indicates for a received table that the robot cannot be in this cell.
+/// @param column Id of the column to check.
+/// @return Whether all columns are marked false in the specific column.
+bool LocalizationTable::isColumnInvalid(int column)
+{
+    for (int i = 0; i < totalNumberOfCells; i++)
+    {
+        if (table[i][column])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/// @brief Flip the current table diagonally, making the rows columns and vice versa.
+void LocalizationTable::flip()
+{
+    // Create a temporary copy of the original table
+    int **old_table = new int *[totalNumberOfCells];
+
+    for (int i = 0; i < totalNumberOfCells; ++i)
+    {
+        old_table[i] = new int[totalNumberOfCells];
+
+        std::memcpy(old_table[i], table[i], totalNumberOfCells * sizeof(int));
+    }
+
+    // Iterate over each cell in the table and flip the values
+    for (int i = 0; i < totalNumberOfCells; ++i)
+    {
+        for (int j = 0; j < totalNumberOfCells; ++j)
+        {
+            table[j][i] = old_table[i][j];
+        }
+    }
+
+    // Deallocate memory for the temporary copy
+    for (int i = 0; i < totalNumberOfCells; ++i)
+    {
+        delete[] old_table[i];
+    }
+
+    delete[] old_table;
+}
+
+/// @brief Overlay the data from two tables, only marking cells as possible when both tables indicate it.
+/// @param other Other table data, should be same robot and sender id
+void LocalizationTable::overlay(LocalizationTable other)
+{
+    if(robotId != other.senderId || senderId != robotId) {
+        //ERROR
+    }
+
+    for (int i = 0; i < totalNumberOfCells; ++i)
+    {
+        for (int j = 0; j < totalNumberOfCells; ++j)
+        {
+            table[i][j] = table[i][j] && other.table[i][j];
+        }
+    }
 }
 
 /// @brief Print out the contents of the table to the console.

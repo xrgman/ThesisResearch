@@ -17,6 +17,10 @@ public:
 
     int getNumberOfRows();
     bool isRowInvalid(int row);
+    bool isColumnInvalid(int column);
+
+    void flip();
+    void overlay(LocalizationTable other);
 
     void printTable();
     void saveTable();

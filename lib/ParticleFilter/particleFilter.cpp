@@ -19,6 +19,7 @@ ParticleFilter::~ParticleFilter()
 {
     delete[] localizationTables;
     delete[] particlesPerCell;
+    delete[] probabilitiesPerCell;
 }
 
 //*************************************************
@@ -48,6 +49,7 @@ bool ParticleFilter::loadMap(const char *filename, const int cellSize)
 
     // Initializing particles per cell array:
     particlesPerCell = new int[mapData.getNumberOfCells()];
+    probabilitiesPerCell = new double[mapData.getNumberOfCells()];
 
     // Initializing localization tables:
     localizationTables = new LocalizationTable[totalNumberOfRobots];
@@ -124,6 +126,9 @@ void ParticleFilter::initializeParticlesUniformly()
 
         i++;
     }
+
+    // Filling the probabilities per cell array:
+    calculateProbabilitiesPerCell();
 }
 
 //*************************************************
@@ -219,7 +224,7 @@ void ParticleFilter::processMessage(double distance, double angle, double robotA
 /// @param distance The distance to the other robot.
 /// @param angle The angle at which the message was received.
 /// @param robotAngle Own current angle from IMU.
-void ParticleFilter::processMessageTable(int senderId, double distance, double angle, double robotAngle)
+void ParticleFilter::processMessageTable(int senderId, double distance, double angleOriginal, double robotAngle)
 {
     // 0. Checking if particle filter has been initialized:
     if (particlesInArray <= 0)
@@ -238,13 +243,13 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
     }
 
     // 1. Adjust the angle to match the orientation of the map (YAW of robot).
-    angle = positive_modulo((angle + robotAngle), 360.0);
+    int angle = positive_modulo((angleOriginal + robotAngle), 360.0);
 
     // 1.1 Allow for distance and angle errors:
     double minDistanceTravelled = distance - DISTANCE_ERROR_CM;
     double maxDistanceTravelled = distance + DISTANCE_ERROR_CM;
-    double angleLowerBound = angle - ANGLE_ERROR_DEGREE;
-    double angleUpperBound = angle + ANGLE_ERROR_DEGREE;
+    // int angleLowerBound = positive_modulo((angle - ANGLE_ERROR_DEGREE), 360.0);
+    // int angleUpperBound = positive_modulo((angle + ANGLE_ERROR_DEGREE), 360.0);
 
     // Get reference to the 2D arrays containing shortest and longest paths between cells:
     double **&shortestPaths = mapData.getShortestDistancessBetweenCells();
@@ -293,13 +298,14 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
             double shortestPath = shortestPaths[ownCellId][senderCellId];
             double longestPath = longestPaths[ownCellId][senderCellId];
 
+            if (ownCellId == 2 && senderCellId == 0)
+            {
+                int y = 10;
+            }
+
             // If distance is great enough to reach that cell and small enough to not overshoot it in worst case:
             if (maxDistanceTravelled >= shortestPath && minDistanceTravelled <= longestPath)
             {
-                if (ownCellId == 100)
-                {
-                    int y = 10;
-                }
 
                 // Grabbing the path between the two cells:
                 bool success;
@@ -316,17 +322,26 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
                 int firstCellIdxInPath = path[1];
                 Cell &firstCellInPath = mapData.getCells()[firstCellIdxInPath];
 
-                int secondCellIdxInPath = path[2];
-                Cell &secondCellInPath = mapData.getCells()[secondCellIdxInPath];
+                int angleBetweenCells = ownCell.getRelativeAngleToCell(firstCellInPath);
 
-                int relativeAngleBetweenCells = ownCell.getRelativeAngleToCell(firstCellInPath);
-                int relativeAngleBetweenCells2 = firstCellInPath.getRelativeAngleToCell(secondCellInPath);
-                // int lowerBoundRelativeAngle = relativeAngleBetweenCells
+                // When path is bigger than 1 and cell size is 40cm or smaller, also check second cell in path.
+                if (path.size() > 2)
+                {
+                    int secondCellIdxInPath = path[2];
+                    Cell &secondCellInPath = mapData.getCells()[secondCellIdxInPath];
 
-                int averageAngle = (relativeAngleBetweenCells + relativeAngleBetweenCells2) / 2;
+                    // TODO: Check if we are doing the right thing here:
+                    int relativeAngleBetweenCells2 = ownCell.getRelativeAngleToCell(secondCellInPath);
+
+                    // angle = (angle + relativeAngleBetweenCells2) / 2;
+                    angleBetweenCells = relativeAngleBetweenCells2;
+                }
+
+                // Calculating angle difference:
+                int angleDifference = positive_modulo((angle - angleBetweenCells + 180 + 360), 360) - 180;
 
                 // Now compare with DOA:
-                if (averageAngle >= angleLowerBound && averageAngle <= angleUpperBound)
+                if (angleDifference <= ANGLE_ERROR_DEGREE && angleDifference >= -ANGLE_ERROR_DEGREE)
                 {
                     if (ownCellId == 205)
                     {
@@ -338,6 +353,8 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
             }
         }
     }
+
+    localizationTable.printTable();
 
     // Saving table to file:
     localizationTable.saveTable();
@@ -802,5 +819,37 @@ void ParticleFilter::resetParticlesPerCell()
     for (int i = 0; i < mapData.getNumberOfCells(); i++)
     {
         particlesPerCell[i] = 0;
+    }
+}
+
+//*************************************************
+//******** Cell probabilities *********************
+//*************************************************
+
+/// @brief Calculate the probability for each cell based on the number of particles in it.
+void ParticleFilter::calculateProbabilitiesPerCell()
+{
+    for (int i = 0; i < mapData.getNumberOfCells(); i++)
+    {
+        probabilitiesPerCell[i] = (double)particlesPerCell[i] / NUMBER_OF_PARTICLES;
+    }
+}
+
+/// @brief Calculate the normalized probabilties per cell.
+/// @param probabilitiesPerCellOutput Array to store the result in.
+void ParticleFilter::getProbabilitiesPerCellNormalized(double *probabilitiesPerCellOutput)
+{
+    // Calculating the sum of all probabilities
+    double probabilitiesSum = 0;
+
+    for (int i = 0; i < mapData.getNumberOfCells(); i++)
+    {
+        probabilitiesSum += probabilitiesPerCell[i];
+    }
+
+    // Normalizing probabilties:
+    for (int i = 0; i < mapData.getNumberOfCells(); i++)
+    {
+        probabilitiesPerCellOutput[i] = probabilitiesPerCell[i] / probabilitiesSum;
     }
 }
