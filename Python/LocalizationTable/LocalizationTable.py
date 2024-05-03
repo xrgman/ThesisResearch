@@ -76,6 +76,14 @@ class LocalizationTable:
     def set_table_value(self, row: int, column: int, value: bool):
         self.table[row][column] = value
 
+    def set_row_invalid(self, row):
+        for i in range(self.total_number_of_cells):
+            self.table[row][i] = False
+
+    def set_column_invalid(self, column):
+        for i in range(self.total_number_of_cells):
+            self.table[i][column] = False
+
     def flip(self):
         old_table = copy.deepcopy(self.table)
 
@@ -87,6 +95,24 @@ class LocalizationTable:
         for i in range(self.total_number_of_cells):
             for j in range(self.total_number_of_cells):
                 self.table[i][j] = self.table[i][j] and other.table[i][j]
+
+    def get_invalid_rows(self):
+        invalid_rows = []
+
+        for i in range(self.total_number_of_cells):
+            if self.is_row_invalid(i):
+                invalid_rows.append(i)
+
+        return invalid_rows
+
+    def get_invalid_columns(self):
+        invalid_columns = []
+
+        for i in range(self.total_number_of_cells):
+            if self.is_column_invalid(i):
+                invalid_columns.append(i)
+
+        return invalid_columns
 
     def print_table(self):
         print(f"Cell contents for robot: {self.sender_id}:")

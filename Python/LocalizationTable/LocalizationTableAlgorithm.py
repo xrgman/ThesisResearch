@@ -1,6 +1,7 @@
 from ParticleFilter import ParticleFilter
 from LocalizationTable import LocalizationTable
 import json
+import paramiko
 
 NUM_ROBOTS = 6
 
@@ -13,8 +14,28 @@ particle_filter = ParticleFilter(NUM_ROBOTS)
 def save_particles_to_file(filename):
     particles = particle_filter.get_particles()
 
-    with open(filename, 'w') as json_file:
+    with open("Output/" + filename, 'w') as json_file:
         json.dump([obj.__dict__ for obj in particles], json_file, indent=4)
+
+    # SSH connection details
+    hostname = 'robomindpi-005.local'
+    username = 'pi'
+    password = 'Test12'
+
+    # Create SSH client
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    # Connect to Raspberry Pi over SSH
+    ssh_client.connect(hostname, username=username, password=password)
+
+    # Transfer the JSON file to Raspberry Pi
+    sftp_client = ssh_client.open_sftp()
+    sftp_client.put("Output/" + filename, '/home/pi/projects2/ThesisResearch/build/' + str(filename))
+    sftp_client.close()
+
+    # Close SSH connection
+    ssh_client.close()
 
 
 # 0. Initial setup:
@@ -35,16 +56,27 @@ if test_table_flip_and_overlay:
 # 1. Situation we hear a message from robot 1 (90, 200):
 table_0_1_270_300 = LocalizationTable.load_table("Files/LocalizationTable_0_1_270_300.csv", particle_filter.get_map_data().number_of_cells)
 table_1_0_90_300 = LocalizationTable.load_table("Files/LocalizationTable_1_0_90_300.csv", particle_filter.get_map_data().number_of_cells)
+table_0_2_180_250 = LocalizationTable.load_table("Files/LocalizationTable_0_2_180_250.csv", particle_filter.get_map_data().number_of_cells)
 
-
+# Process message from robot 1:
 particle_filter.process_table_own(table_0_1_270_300)
+save_particles_to_file("r1.json")
 
-save_particles_to_file("MessageFromRobot1.json")
-test = particle_filter.check_particles_per_cell()
+if not particle_filter.check_particles_per_cell():
+    print("ERROR!!!")
 
+# Process table received from robot 1 about robot 0 (myself)
 particle_filter.process_table_other_of_myself(table_1_0_90_300)
+save_particles_to_file("r1r0.json")
 
-test = particle_filter.check_particles_per_cell()
+if not particle_filter.check_particles_per_cell():
+    print("ERROR!!!")
 
+# Process message from robot 2:
+particle_filter.process_table_own(table_0_2_180_250)
+save_particles_to_file("r2.json")
+
+if not particle_filter.check_particles_per_cell():
+    print("ERROR!!!")
 
 bla = 10
