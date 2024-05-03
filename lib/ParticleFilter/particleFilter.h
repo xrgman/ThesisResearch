@@ -39,6 +39,8 @@ public:
     void processWallDetectedOther(double wallAngle, double wallDistance);
     void processCellDetectedOther(int cellId);
 
+    void loadParticlesFromFile(const char *filename);
+
     MapData* getMapData();
     int getSelectedCellIdx();
 

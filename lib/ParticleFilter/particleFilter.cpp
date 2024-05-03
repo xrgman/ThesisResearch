@@ -613,6 +613,57 @@ void ParticleFilter::processCellDetectedOther(int cellId)
     // We can still do this! Use it to update the table.
 }
 
+/// @brief Load particles from a .json file and replaces all particles currently in the array.
+/// @param filename Name of the json file.
+void ParticleFilter::loadParticlesFromFile(const char *filename)
+{
+    // Check if file exists:
+    FILE *fileMapData;
+
+    // Opening file and checking if it was successfull:
+    if (!openFile(filename, &fileMapData, "r"))
+    {
+        // TODO print error to console:
+        cout << "File with name " << filename << " does not exist!\n";
+        // return nullptr;
+
+        return;
+    }
+
+    // Reading data from json file and converting it to a string:
+    char *buffer = readFileText(fileMapData);
+
+    string fileContent(buffer);
+
+    delete[] buffer;
+
+    try
+    {
+        json jsonData = json::parse(fileContent);
+        int numberOfParticles = jsonData.size();
+
+        //Clearing current particles:
+        particles.clear();
+
+        for (int i = 0; i < numberOfParticles; i++)
+        {
+            json &particleData = jsonData[i];
+
+            Particle particle(particleData["ID"],
+                            particleData["x_coordinate"],
+                            particleData["y_coordinate"],
+                            particleData["direction"],
+                            particleData["weight"]);
+
+            particles.push_back(particle);
+        }
+    }
+    catch (const json::exception &e)
+    {
+        spdlog::error("Particle filter particles json parsing error: {}", e.what());
+    }
+}
+
 /// @brief Get the currently selected cell, based on the position of the particles.
 /// @return Id of the selected cell.
 int ParticleFilter::getSelectedCellIdx()
