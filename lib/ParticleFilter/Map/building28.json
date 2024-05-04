@@ -1,90 +1,77 @@
 {
     "map_name": "Building 28 - Second floor",
-    "number_of_cells": 11,
-    "number_of_walls": 17,
-    "number_of_doors": 2,
-    "cells": [
+    "allowedCoordinates": [
         {
-            "id": 1,
-            "startX": 249,
-            "startY": 9,
-            "stopX": 372,
-            "stopY": 562
+            "startX": 259,
+            "startY": 19,
+            "stopX": 382,
+            "stopY": 572
         },
         {
-            "id": 2,
-            "startX": 9,
-            "startY": 562,
-            "stopX": 372,
-            "stopY": 878
+            "startX": 19,
+            "startY": 572,
+            "stopX": 382,
+            "stopY": 888
         },
         {
-            "id": 3,
-            "startX": 9,
-            "startY": 878,
-            "stopX": 372,
-            "stopY": 1194
+            "startX": 19,
+            "startY": 888,
+            "stopX": 382,
+            "stopY": 1204
         },
         {
-            "id": 4,
-            "startX": 372,
-            "startY": 767,
-            "stopX": 853,
-            "stopY": 989 
+            "startX": 382,
+            "startY": 777,
+            "stopX": 863,
+            "stopY": 999 
         },
         {
-            "id": 5,
-            "startX": 853,
-            "startY": 767,
-            "stopX": 1334,
-            "stopY": 989 
+            "startX": 863,
+            "startY": 777,
+            "stopX": 1344,
+            "stopY": 999 
         },
         {
-            "id": 6,
-            "startX": 1334,
-            "startY": 767,
-            "stopX": 1815,
-            "stopY": 989 
+            "startX": 1344,
+            "startY": 777,
+            "stopX": 1825,
+            "stopY": 999 
         },
         {
-            "id": 7,
-            "startX": 1815,
-            "startY": 767,
-            "stopX": 2296,
-            "stopY": 989 
+            "startX": 1825,
+            "startY": 777,
+            "stopX": 2306,
+            "stopY": 999 
         },
         {
-            "id": 9,
-            "startX": 2296,
-            "startY": 878,
-            "stopX": 2659,
-            "stopY":  1194
+            "startX": 2306,
+            "startY": 888,
+            "stopX": 2669,
+            "stopY":  1204
         },
         {
-            "id": 10,
-            "startX": 2296,
-            "startY": 562,
-            "stopX": 2659,
-            "stopY":  878
+            "startX": 2306,
+            "startY": 572,
+            "stopX": 2669,
+            "stopY":  888
         },
         {
-            "id": 11,
-            "startX": 2296,
-            "startY": 167,
-            "stopX": 2419,
-            "stopY":  562
+            "startX": 2306,
+            "startY": 177,
+            "stopX": 2429,
+            "stopY":  572
         },
         {
-            "id": 12,
-            "startX": 1837,
-            "startY": 0,
-            "stopX": 2419,
-            "stopY": 158  
+            "startX": 1847,
+            "startY": 10,
+            "stopX": 2429,
+            "stopY": 168  
         }
     ],
     "walls": [
         {
             "id": 0,
+            "orientation": -1,
             "startX": 240,
             "startY": 0,
             "stopX": 381,
@@ -92,6 +79,7 @@
         },
         {
             "id": 1,
+            "orientation": -1,
             "startX": 372,
             "startY": 0, 
             "stopX": 381,
@@ -99,6 +87,7 @@
         },
         {
             "id": 2,
+            "orientation": -1,
             "startX": 372,
             "startY": 758,
             "stopX": 1542,
@@ -106,6 +95,7 @@
         },
         {
             "id": 3,
+            "orientation": -1,
             "startX": 1643,
             "startY": 758,
             "stopX": 2296,
@@ -113,6 +103,7 @@
         },
         {
             "id": 4,
+            "orientation": -1,
             "startX": 2287,
             "startY": 158,
             "stopX": 2296,
@@ -120,6 +111,7 @@
         },
         {
             "id": 5,
+            "orientation": -1,
             "startX": 1819,
             "startY": 158,
             "stopX": 2296,
@@ -127,6 +119,7 @@
         },
         {
             "id": 6,
+            "orientation": -1,
             "startX": 2419,
             "startY": 158,
             "stopX": 2428,
@@ -134,6 +127,7 @@
         },
         {
             "id": 7,
+            "orientation": -1,
             "startX": 2419,
             "startY": 553,
             "stopX": 2668,
@@ -141,6 +135,7 @@
         },
         {
             "id": 8,
+            "orientation": -1,
             "startX": 2659,
             "startY": 553,
             "stopX": 2668,
@@ -148,6 +143,7 @@
         },
         {
             "id": 9,
+            "orientation": -1,
             "startX": 2296,
             "startY": 1194,
             "stopX": 2668,
@@ -155,6 +151,7 @@
         },
         {
             "id": 10,
+            "orientation": -1,
             "startX": 2296,
             "startY": 989,
             "stopX": 2305,
@@ -162,6 +159,7 @@
         },
         {
             "id": 11,
+            "orientation": -1,
             "startX": 372,
             "startY": 989,
             "stopX": 2305,
@@ -169,6 +167,7 @@
         },
         {
             "id": 12,
+            "orientation": -1,
             "startX": 372,
             "startY": 989,
             "stopX": 381,
@@ -176,6 +175,7 @@
         },
         {
             "id": 13,
+            "orientation": -1,
             "startX": 0,
             "startY": 1194,
             "stopX": 381,
@@ -183,6 +183,7 @@
         },
         {
             "id": 14,
+            "orientation": -1,
             "startX": 0,
             "startY": 553,
             "stopX": 9,
@@ -190,6 +191,7 @@
         },
         {
             "id": 15,
+            "orientation": -1,
             "startX": 0,
             "startY": 553,
             "stopX": 249,
@@ -197,6 +199,7 @@
         },
         {
             "id": 16,
+            "orientation": -1,
             "startX": 240,
             "startY": 0,
             "stopX": 249,

@@ -71,7 +71,6 @@ MapData MapData::loadMapData(const char *filename, bool &success)
             for (int i = 0; i < numWalls; i++)
             {
                 Wall wall = Wall::fromJson(jsonData["walls"][i]);
-                ;
 
                 mapData.walls.push_back(wall);
             }

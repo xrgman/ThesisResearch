@@ -1,0 +1,213 @@
+{
+    "map_name": "Middle_floor",
+    "allowedCoordinates": [
+        {
+            "startX": 11,
+            "startY": 11,
+            "stopX": 265,
+            "stopY": 306
+        },
+        {
+            "startX": 277,
+            "startY": 11,
+            "stopX": 543,
+            "stopY": 407
+        },
+        {
+            "startX": 253,
+            "startY": 517,
+            "stopX": 543,
+            "stopY": 823
+        },
+        {
+            "startX": 11,
+            "startY": 618,
+            "stopX": 241,
+            "stopY": 823
+        },
+        {
+            "startX": 127,
+            "startY": 318,
+            "stopX": 265,
+            "stopY": 407
+        }
+        ,
+        {
+            "startX": 127,
+            "startY": 407,
+            "stopX": 241,
+            "stopY": 606
+        }
+    ],
+    "cells": [
+    ],
+    "walls": [
+        {
+            "id": 0,
+            "orientation": 0.0,
+            "startX": 0,
+            "startY": 0,
+            "stopX": 554,
+            "stopY": 10
+        },
+        {
+            "id": 1,
+            "orientation": 90.0,
+            "startX": 266,
+            "startY": 0,
+            "stopX": 276,
+            "stopY": 317
+        },
+        {
+            "id": 2,
+            "orientation": 90.0,
+            "startX": 232,
+            "startY": 307,
+            "stopX": 276,
+            "stopY": 317
+        },
+        {
+            "id": 3,
+            "orientation": 90.0,
+            "startX": 544,
+            "startY": 0,
+            "stopX": 554,
+            "stopY": 418
+        },
+        {
+            "id": 4,
+            "orientation": 180.0,
+            "startX": 242,
+            "startY": 408,
+            "stopX": 554,
+            "stopY": 418
+        },
+        {
+            "id": 5,
+            "orientation": 90.0,
+            "startX": 242,
+            "startY": 408,
+            "stopX": 252,
+            "stopY": 516
+        },
+        {
+            "id": 6,
+            "orientation": 0.0,
+            "startX": 242,
+            "startY": 506,
+            "stopX": 554,
+            "stopY": 516
+        },
+        {
+            "id": 7,
+            "orientation": 90.0,
+            "startX": 544,
+            "startY": 506,
+            "stopX": 554,
+            "stopY": 834
+        },
+        {
+            "id": 8,
+            "orientation": 180.0,
+            "startX": 0,
+            "startY": 824,
+            "stopX": 554,
+            "stopY": 834
+        },
+        {
+            "id": 9,
+            "orientation": 270.0,
+            "startX": 242,
+            "startY": 607,
+            "stopX": 252,
+            "stopY": 834
+        },
+        {
+            "id": 10,
+            "orientation": 270.0,
+            "startX": 232,
+            "startY": 607,
+            "stopX": 242,
+            "stopY": 617
+        },
+        {
+            "id": 11,
+            "orientation": 0.0,
+            "startX": 0,
+            "startY": 607,
+            "stopX": 141,
+            "stopY": 617
+        },
+        {
+            "id": 11,
+            "orientation": 0.0,
+            "startX": 0,
+            "startY": 607,
+            "stopX": 10,
+            "stopY": 834
+        },
+        {
+            "id": 12,
+            "orientation": 270.0,
+            "startX": 116,
+            "startY": 307,
+            "stopX": 126,
+            "stopY": 617
+        },
+        {
+            "id": 13,
+            "orientation": 180.0,
+            "startX": 0,
+            "startY": 307,
+            "stopX": 141,
+            "stopY": 317
+        },
+        {
+            "id": 14,
+            "orientation": 180.0,
+            "startX": 0,
+            "startY": 307,
+            "stopX": 141,
+            "stopY": 317
+        },
+        {
+            "id": 14,
+            "orientation": 180.0,
+            "startX": 0,
+            "startY": 0,
+            "stopX": 10,
+            "stopY": 317
+        }
+
+    ],
+    "doors": [
+        {
+            "id": 0,
+            "startX": 141,
+            "startY": 307,
+            "stopX": 232,
+            "stopY": 317
+        },
+        {
+            "id": 1,
+            "startX": 266,
+            "startY": 317,
+            "stopX": 276,
+            "stopY": 408
+        },
+        {
+            "id": 2,
+            "startX": 242,
+            "startY": 516,
+            "stopX": 252,
+            "stopY": 607
+        },
+        {
+            "id": 2,
+            "startX": 141,
+            "startY": 607,
+            "stopX": 232,
+            "stopY": 617
+        }
+    ]
+}

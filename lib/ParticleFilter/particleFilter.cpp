@@ -298,7 +298,7 @@ void ParticleFilter::processMessageTable(int senderId, double distance, double a
             double shortestPath = shortestPaths[ownCellId][senderCellId];
             double longestPath = longestPaths[ownCellId][senderCellId];
 
-            if (ownCellId == 2 && senderCellId == 0)
+            if (ownCellId == 128 && senderCellId == 56)
             {
                 int y = 10;
             }
