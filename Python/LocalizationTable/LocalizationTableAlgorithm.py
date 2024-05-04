@@ -38,6 +38,16 @@ def save_particles_to_file(filename):
     ssh_client.close()
 
 
+# This function is for PF evaluation, but saved here for now:
+def calculate_current_robot_position():
+    x_position = 0
+    y_position = 0
+
+    for particle in particle_filter.get_particles():
+        x_position += particle.get_weight() * particle.x_coordinate
+        y_position += particle.get_weight() * particle.y_coordinate
+
+
 # 0. Initial setup:
 particle_filter.load_map("Map/myRoom_smallCells.json")
 particle_filter.initialize_particles_uniformly()
@@ -60,7 +70,7 @@ table_0_2_180_250 = LocalizationTable.load_table("Files/LocalizationTable_0_2_18
 
 # Process message from robot 1:
 particle_filter.process_table_own(table_0_1_270_300)
-save_particles_to_file("r1.json")
+save_particles_to_file("r1boe.json")
 
 if not particle_filter.check_particles_per_cell():
     print("ERROR!!!")
