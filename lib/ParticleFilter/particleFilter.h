@@ -17,7 +17,7 @@
 
 //TODO: Determine these based on testing result of doa and distance approaches :)
 #define DISTANCE_ERROR_CM 20.0
-#define ANGLE_ERROR_DEGREE 40.0
+#define ANGLE_ERROR_DEGREE 25.0
 
 class ParticleFilter
 {

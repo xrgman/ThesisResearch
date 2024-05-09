@@ -285,7 +285,9 @@ void recordToWavFile(const char *filename, const int seconds)
 void loadParticleFilter(bool initializeMapRenderer)
 {
     //const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
-    const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
+    // const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
+    // const uint8_t scale = 1;
+    const char *filenameMap = "../lib/ParticleFilter/Map/middle_floor.json";
     const uint8_t scale = 1;
 
     // const char *filenameMap = "../lib/ParticleFilter/Map/building28.json";
