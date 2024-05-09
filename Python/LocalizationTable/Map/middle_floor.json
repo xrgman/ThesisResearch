@@ -1,0 +1,2047 @@
+{
+    "map_name": "Middle_floor",
+    "allowedCoordinates": [
+        {
+            "startX": 11,
+            "startY": 11,
+            "stopX": 265,
+            "stopY": 306
+        },
+        {
+            "startX": 277,
+            "startY": 11,
+            "stopX": 543,
+            "stopY": 407
+        },
+        {
+            "startX": 253,
+            "startY": 517,
+            "stopX": 543,
+            "stopY": 823
+        },
+        {
+            "startX": 11,
+            "startY": 618,
+            "stopX": 241,
+            "stopY": 823
+        },
+        {
+            "startX": 127,
+            "startY": 318,
+            "stopX": 265,
+            "stopY": 407
+        }
+        ,
+        {
+            "startX": 127,
+            "startY": 407,
+            "stopX": 241,
+            "stopY": 606
+        }
+    ],
+    "cells": [
+         {
+            "id": 0,
+            "startX": 11,
+            "startY": 11,
+            "stopX": 51,
+            "stopY": 51
+        },
+        {
+            "id": 1,
+            "startX": 51,
+            "startY": 11,
+            "stopX": 91,
+            "stopY": 51
+        },
+        {
+            "id": 2,
+            "startX": 91,
+            "startY": 11,
+            "stopX": 131,
+            "stopY": 51
+        },
+        {
+            "id": 3,
+            "startX": 131,
+            "startY": 11,
+            "stopX": 171,
+            "stopY": 51
+        },
+        {
+            "id": 4,
+            "startX": 171,
+            "startY": 11,
+            "stopX": 211,
+            "stopY": 51
+        },
+        {
+            "id": 5,
+            "startX": 211,
+            "startY": 11,
+            "stopX": 251,
+            "stopY": 51
+        },
+        {
+            "id": 6,
+            "startX": 251,
+            "startY": 11,
+            "stopX": 265,
+            "stopY": 51
+        },
+        {
+            "id": 7,
+            "startX": 277,
+            "startY": 11,
+            "stopX": 317,
+            "stopY": 51
+        },
+        {
+            "id": 8,
+            "startX": 317,
+            "startY": 11,
+            "stopX": 357,
+            "stopY": 51
+        },
+        {
+            "id": 9,
+            "startX": 357,
+            "startY": 11,
+            "stopX": 397,
+            "stopY": 51
+        },
+        {
+            "id": 10,
+            "startX": 397,
+            "startY": 11,
+            "stopX": 437,
+            "stopY": 51
+        },
+        {
+            "id": 11,
+            "startX": 437,
+            "startY": 11,
+            "stopX": 477,
+            "stopY": 51
+        },
+        {
+            "id": 12,
+            "startX": 477,
+            "startY": 11,
+            "stopX": 517,
+            "stopY": 51
+        },
+        {
+            "id": 13,
+            "startX": 517,
+            "startY": 11,
+            "stopX": 543,
+            "stopY": 51
+        },
+        {
+            "id": 14,
+            "startX": 11,
+            "startY": 51,
+            "stopX": 51,
+            "stopY": 91
+        },
+        {
+            "id": 15,
+            "startX": 51,
+            "startY": 51,
+            "stopX": 91,
+            "stopY": 91
+        },
+        {
+            "id": 16,
+            "startX": 91,
+            "startY": 51,
+            "stopX": 131,
+            "stopY": 91
+        },
+        {
+            "id": 17,
+            "startX": 131,
+            "startY": 51,
+            "stopX": 171,
+            "stopY": 91
+        },
+        {
+            "id": 18,
+            "startX": 171,
+            "startY": 51,
+            "stopX": 211,
+            "stopY": 91
+        },
+        {
+            "id": 19,
+            "startX": 211,
+            "startY": 51,
+            "stopX": 251,
+            "stopY": 91
+        },
+        {
+            "id": 20,
+            "startX": 251,
+            "startY": 51,
+            "stopX": 265,
+            "stopY": 91
+        },
+        {
+            "id": 21,
+            "startX": 277,
+            "startY": 51,
+            "stopX": 317,
+            "stopY": 91
+        },
+        {
+            "id": 22,
+            "startX": 317,
+            "startY": 51,
+            "stopX": 357,
+            "stopY": 91
+        },
+        {
+            "id": 23,
+            "startX": 357,
+            "startY": 51,
+            "stopX": 397,
+            "stopY": 91
+        },
+        {
+            "id": 24,
+            "startX": 397,
+            "startY": 51,
+            "stopX": 437,
+            "stopY": 91
+        },
+        {
+            "id": 25,
+            "startX": 437,
+            "startY": 51,
+            "stopX": 477,
+            "stopY": 91
+        },
+        {
+            "id": 26,
+            "startX": 477,
+            "startY": 51,
+            "stopX": 517,
+            "stopY": 91
+        },
+        {
+            "id": 27,
+            "startX": 517,
+            "startY": 51,
+            "stopX": 543,
+            "stopY": 91
+        },
+        {
+            "id": 28,
+            "startX": 11,
+            "startY": 91,
+            "stopX": 51,
+            "stopY": 131
+        },
+        {
+            "id": 29,
+            "startX": 51,
+            "startY": 91,
+            "stopX": 91,
+            "stopY": 131
+        },
+        {
+            "id": 30,
+            "startX": 91,
+            "startY": 91,
+            "stopX": 131,
+            "stopY": 131
+        },
+        {
+            "id": 31,
+            "startX": 131,
+            "startY": 91,
+            "stopX": 171,
+            "stopY": 131
+        },
+        {
+            "id": 32,
+            "startX": 171,
+            "startY": 91,
+            "stopX": 211,
+            "stopY": 131
+        },
+        {
+            "id": 33,
+            "startX": 211,
+            "startY": 91,
+            "stopX": 251,
+            "stopY": 131
+        },
+        {
+            "id": 34,
+            "startX": 251,
+            "startY": 91,
+            "stopX": 265,
+            "stopY": 131
+        },
+        {
+            "id": 35,
+            "startX": 277,
+            "startY": 91,
+            "stopX": 317,
+            "stopY": 131
+        },
+        {
+            "id": 36,
+            "startX": 317,
+            "startY": 91,
+            "stopX": 357,
+            "stopY": 131
+        },
+        {
+            "id": 37,
+            "startX": 357,
+            "startY": 91,
+            "stopX": 397,
+            "stopY": 131
+        },
+        {
+            "id": 38,
+            "startX": 397,
+            "startY": 91,
+            "stopX": 437,
+            "stopY": 131
+        },
+        {
+            "id": 39,
+            "startX": 437,
+            "startY": 91,
+            "stopX": 477,
+            "stopY": 131
+        },
+        {
+            "id": 40,
+            "startX": 477,
+            "startY": 91,
+            "stopX": 517,
+            "stopY": 131
+        },
+        {
+            "id": 41,
+            "startX": 517,
+            "startY": 91,
+            "stopX": 543,
+            "stopY": 131
+        },
+        {
+            "id": 42,
+            "startX": 11,
+            "startY": 131,
+            "stopX": 51,
+            "stopY": 171
+        },
+        {
+            "id": 43,
+            "startX": 51,
+            "startY": 131,
+            "stopX": 91,
+            "stopY": 171
+        },
+        {
+            "id": 44,
+            "startX": 91,
+            "startY": 131,
+            "stopX": 131,
+            "stopY": 171
+        },
+        {
+            "id": 45,
+            "startX": 131,
+            "startY": 131,
+            "stopX": 171,
+            "stopY": 171
+        },
+        {
+            "id": 46,
+            "startX": 171,
+            "startY": 131,
+            "stopX": 211,
+            "stopY": 171
+        },
+        {
+            "id": 47,
+            "startX": 211,
+            "startY": 131,
+            "stopX": 251,
+            "stopY": 171
+        },
+        {
+            "id": 48,
+            "startX": 251,
+            "startY": 131,
+            "stopX": 265,
+            "stopY": 171
+        },
+        {
+            "id": 49,
+            "startX": 277,
+            "startY": 131,
+            "stopX": 317,
+            "stopY": 171
+        },
+        {
+            "id": 50,
+            "startX": 317,
+            "startY": 131,
+            "stopX": 357,
+            "stopY": 171
+        },
+        {
+            "id": 51,
+            "startX": 357,
+            "startY": 131,
+            "stopX": 397,
+            "stopY": 171
+        },
+        {
+            "id": 52,
+            "startX": 397,
+            "startY": 131,
+            "stopX": 437,
+            "stopY": 171
+        },
+        {
+            "id": 53,
+            "startX": 437,
+            "startY": 131,
+            "stopX": 477,
+            "stopY": 171
+        },
+        {
+            "id": 54,
+            "startX": 477,
+            "startY": 131,
+            "stopX": 517,
+            "stopY": 171
+        },
+        {
+            "id": 55,
+            "startX": 517,
+            "startY": 131,
+            "stopX": 543,
+            "stopY": 171
+        },
+        {
+            "id": 56,
+            "startX": 11,
+            "startY": 171,
+            "stopX": 51,
+            "stopY": 211
+        },
+        {
+            "id": 57,
+            "startX": 51,
+            "startY": 171,
+            "stopX": 91,
+            "stopY": 211
+        },
+        {
+            "id": 58,
+            "startX": 91,
+            "startY": 171,
+            "stopX": 131,
+            "stopY": 211
+        },
+        {
+            "id": 59,
+            "startX": 131,
+            "startY": 171,
+            "stopX": 171,
+            "stopY": 211
+        },
+        {
+            "id": 60,
+            "startX": 171,
+            "startY": 171,
+            "stopX": 211,
+            "stopY": 211
+        },
+        {
+            "id": 61,
+            "startX": 211,
+            "startY": 171,
+            "stopX": 251,
+            "stopY": 211
+        },
+        {
+            "id": 62,
+            "startX": 251,
+            "startY": 171,
+            "stopX": 265,
+            "stopY": 211
+        },
+        {
+            "id": 63,
+            "startX": 277,
+            "startY": 171,
+            "stopX": 317,
+            "stopY": 211
+        },
+        {
+            "id": 64,
+            "startX": 317,
+            "startY": 171,
+            "stopX": 357,
+            "stopY": 211
+        },
+        {
+            "id": 65,
+            "startX": 357,
+            "startY": 171,
+            "stopX": 397,
+            "stopY": 211
+        },
+        {
+            "id": 66,
+            "startX": 397,
+            "startY": 171,
+            "stopX": 437,
+            "stopY": 211
+        },
+        {
+            "id": 67,
+            "startX": 437,
+            "startY": 171,
+            "stopX": 477,
+            "stopY": 211
+        },
+        {
+            "id": 68,
+            "startX": 477,
+            "startY": 171,
+            "stopX": 517,
+            "stopY": 211
+        },
+        {
+            "id": 69,
+            "startX": 517,
+            "startY": 171,
+            "stopX": 543,
+            "stopY": 211
+        },
+        {
+            "id": 70,
+            "startX": 11,
+            "startY": 211,
+            "stopX": 51,
+            "stopY": 251
+        },
+        {
+            "id": 71,
+            "startX": 51,
+            "startY": 211,
+            "stopX": 91,
+            "stopY": 251
+        },
+        {
+            "id": 72,
+            "startX": 91,
+            "startY": 211,
+            "stopX": 131,
+            "stopY": 251
+        },
+        {
+            "id": 73,
+            "startX": 131,
+            "startY": 211,
+            "stopX": 171,
+            "stopY": 251
+        },
+        {
+            "id": 74,
+            "startX": 171,
+            "startY": 211,
+            "stopX": 211,
+            "stopY": 251
+        },
+        {
+            "id": 75,
+            "startX": 211,
+            "startY": 211,
+            "stopX": 251,
+            "stopY": 251
+        },
+        {
+            "id": 76,
+            "startX": 251,
+            "startY": 211,
+            "stopX": 265,
+            "stopY": 251
+        },
+        {
+            "id": 77,
+            "startX": 277,
+            "startY": 211,
+            "stopX": 317,
+            "stopY": 251
+        },
+        {
+            "id": 78,
+            "startX": 317,
+            "startY": 211,
+            "stopX": 357,
+            "stopY": 251
+        },
+        {
+            "id": 79,
+            "startX": 357,
+            "startY": 211,
+            "stopX": 397,
+            "stopY": 251
+        },
+        {
+            "id": 80,
+            "startX": 397,
+            "startY": 211,
+            "stopX": 437,
+            "stopY": 251
+        },
+        {
+            "id": 81,
+            "startX": 437,
+            "startY": 211,
+            "stopX": 477,
+            "stopY": 251
+        },
+        {
+            "id": 82,
+            "startX": 477,
+            "startY": 211,
+            "stopX": 517,
+            "stopY": 251
+        },
+        {
+            "id": 83,
+            "startX": 517,
+            "startY": 211,
+            "stopX": 543,
+            "stopY": 251
+        },
+        {
+            "id": 84,
+            "startX": 11,
+            "startY": 251,
+            "stopX": 51,
+            "stopY": 291
+        },
+        {
+            "id": 85,
+            "startX": 51,
+            "startY": 251,
+            "stopX": 91,
+            "stopY": 291
+        },
+        {
+            "id": 86,
+            "startX": 91,
+            "startY": 251,
+            "stopX": 131,
+            "stopY": 291
+        },
+        {
+            "id": 87,
+            "startX": 131,
+            "startY": 251,
+            "stopX": 171,
+            "stopY": 291
+        },
+        {
+            "id": 88,
+            "startX": 171,
+            "startY": 251,
+            "stopX": 211,
+            "stopY": 291
+        },
+        {
+            "id": 89,
+            "startX": 211,
+            "startY": 251,
+            "stopX": 251,
+            "stopY": 291
+        },
+        {
+            "id": 90,
+            "startX": 251,
+            "startY": 251,
+            "stopX": 265,
+            "stopY": 291
+        },
+        {
+            "id": 91,
+            "startX": 277,
+            "startY": 251,
+            "stopX": 317,
+            "stopY": 291
+        },
+        {
+            "id": 92,
+            "startX": 317,
+            "startY": 251,
+            "stopX": 357,
+            "stopY": 291
+        },
+        {
+            "id": 93,
+            "startX": 357,
+            "startY": 251,
+            "stopX": 397,
+            "stopY": 291
+        },
+        {
+            "id": 94,
+            "startX": 397,
+            "startY": 251,
+            "stopX": 437,
+            "stopY": 291
+        },
+        {
+            "id": 95,
+            "startX": 437,
+            "startY": 251,
+            "stopX": 477,
+            "stopY": 291
+        },
+        {
+            "id": 96,
+            "startX": 477,
+            "startY": 251,
+            "stopX": 517,
+            "stopY": 291
+        },
+        {
+            "id": 97,
+            "startX": 517,
+            "startY": 251,
+            "stopX": 543,
+            "stopY": 291
+        },
+        {
+            "id": 98,
+            "startX": 11,
+            "startY": 291,
+            "stopX": 51,
+            "stopY": 306
+        },
+        {
+            "id": 99,
+            "startX": 51,
+            "startY": 291,
+            "stopX": 91,
+            "stopY": 306
+        },
+        {
+            "id": 100,
+            "startX": 91,
+            "startY": 291,
+            "stopX": 131,
+            "stopY": 306
+        },
+        {
+            "id": 101,
+            "startX": 131,
+            "startY": 291,
+            "stopX": 171,
+            "stopY": 306
+        },
+        {
+            "id": 102,
+            "startX": 171,
+            "startY": 291,
+            "stopX": 211,
+            "stopY": 306
+        },
+        {
+            "id": 103,
+            "startX": 211,
+            "startY": 291,
+            "stopX": 251,
+            "stopY": 306
+        },
+        {
+            "id": 104,
+            "startX": 251,
+            "startY": 291,
+            "stopX": 265,
+            "stopY": 306
+        },
+        {
+            "id": 105,
+            "startX": 277,
+            "startY": 291,
+            "stopX": 317,
+            "stopY": 331
+        },
+        {
+            "id": 106,
+            "startX": 317,
+            "startY": 291,
+            "stopX": 357,
+            "stopY": 331
+        },
+        {
+            "id": 107,
+            "startX": 357,
+            "startY": 291,
+            "stopX": 397,
+            "stopY": 331
+        },
+        {
+            "id": 108,
+            "startX": 397,
+            "startY": 291,
+            "stopX": 437,
+            "stopY": 331
+        },
+        {
+            "id": 109,
+            "startX": 437,
+            "startY": 291,
+            "stopX": 477,
+            "stopY": 331
+        },
+        {
+            "id": 110,
+            "startX": 477,
+            "startY": 291,
+            "stopX": 517,
+            "stopY": 331
+        },
+        {
+            "id": 111,
+            "startX": 517,
+            "startY": 291,
+            "stopX": 543,
+            "stopY": 331
+        },
+        {
+            "id": 112,
+            "startX": 127,
+            "startY": 318,
+            "stopX": 167,
+            "stopY": 331
+        },
+        {
+            "id": 113,
+            "startX": 167,
+            "startY": 318,
+            "stopX": 207,
+            "stopY": 331
+        },
+        {
+            "id": 114,
+            "startX": 207,
+            "startY": 318,
+            "stopX": 247,
+            "stopY": 331
+        },
+        {
+            "id": 115,
+            "startX": 127,
+            "startY": 331,
+            "stopX": 167,
+            "stopY": 371
+        },
+        {
+            "id": 116,
+            "startX": 167,
+            "startY": 331,
+            "stopX": 207,
+            "stopY": 371
+        },
+        {
+            "id": 117,
+            "startX": 207,
+            "startY": 331,
+            "stopX": 247,
+            "stopY": 371
+        },
+        {
+            "id": 118,
+            "startX": 247,
+            "startY": 331,
+            "stopX": 265,
+            "stopY": 371
+        },
+        {
+            "id": 119,
+            "startX": 277,
+            "startY": 331,
+            "stopX": 317,
+            "stopY": 371
+        },
+        {
+            "id": 120,
+            "startX": 317,
+            "startY": 331,
+            "stopX": 357,
+            "stopY": 371
+        },
+        {
+            "id": 121,
+            "startX": 357,
+            "startY": 331,
+            "stopX": 397,
+            "stopY": 371
+        },
+        {
+            "id": 122,
+            "startX": 397,
+            "startY": 331,
+            "stopX": 437,
+            "stopY": 371
+        },
+        {
+            "id": 123,
+            "startX": 437,
+            "startY": 331,
+            "stopX": 477,
+            "stopY": 371
+        },
+        {
+            "id": 124,
+            "startX": 477,
+            "startY": 331,
+            "stopX": 517,
+            "stopY": 371
+        },
+        {
+            "id": 125,
+            "startX": 517,
+            "startY": 331,
+            "stopX": 543,
+            "stopY": 371
+        },
+        {
+            "id": 126,
+            "startX": 127,
+            "startY": 371,
+            "stopX": 167,
+            "stopY": 411
+        },
+        {
+            "id": 127,
+            "startX": 167,
+            "startY": 371,
+            "stopX": 207,
+            "stopY": 411
+        },
+        {
+            "id": 128,
+            "startX": 207,
+            "startY": 371,
+            "stopX": 247,
+            "stopY": 407
+        },
+        {
+            "id": 129,
+            "startX": 247,
+            "startY": 371,
+            "stopX": 265,
+            "stopY": 407
+        },
+        {
+            "id": 130,
+            "startX": 277,
+            "startY": 371,
+            "stopX": 317,
+            "stopY": 407
+        },
+        {
+            "id": 131,
+            "startX": 317,
+            "startY": 371,
+            "stopX": 357,
+            "stopY": 407
+        },
+        {
+            "id": 132,
+            "startX": 357,
+            "startY": 371,
+            "stopX": 397,
+            "stopY": 407
+        },
+        {
+            "id": 133,
+            "startX": 397,
+            "startY": 371,
+            "stopX": 437,
+            "stopY": 407
+        },
+        {
+            "id": 134,
+            "startX": 437,
+            "startY": 371,
+            "stopX": 477,
+            "stopY": 407
+        },
+        {
+            "id": 135,
+            "startX": 477,
+            "startY": 371,
+            "stopX": 517,
+            "stopY": 407
+        },
+        {
+            "id": 136,
+            "startX": 517,
+            "startY": 371,
+            "stopX": 543,
+            "stopY": 407
+        },
+        {
+            "id": 137,
+            "startX": 207,
+            "startY": 407,
+            "stopX": 241,
+            "stopY": 411
+        },
+        {
+            "id": 138,
+            "startX": 127,
+            "startY": 411,
+            "stopX": 167,
+            "stopY": 451
+        },
+        {
+            "id": 139,
+            "startX": 167,
+            "startY": 411,
+            "stopX": 207,
+            "stopY": 451
+        },
+        {
+            "id": 140,
+            "startX": 207,
+            "startY": 411,
+            "stopX": 241,
+            "stopY": 451
+        },
+        {
+            "id": 141,
+            "startX": 127,
+            "startY": 451,
+            "stopX": 167,
+            "stopY": 491
+        },
+        {
+            "id": 142,
+            "startX": 167,
+            "startY": 451,
+            "stopX": 207,
+            "stopY": 491
+        },
+        {
+            "id": 143,
+            "startX": 207,
+            "startY": 451,
+            "stopX": 241,
+            "stopY": 491
+        },
+        {
+            "id": 144,
+            "startX": 127,
+            "startY": 491,
+            "stopX": 167,
+            "stopY": 531
+        },
+        {
+            "id": 145,
+            "startX": 167,
+            "startY": 491,
+            "stopX": 207,
+            "stopY": 531
+        },
+        {
+            "id": 146,
+            "startX": 207,
+            "startY": 491,
+            "stopX": 241,
+            "stopY": 531
+        },
+        {
+            "id": 147,
+            "startX": 253,
+            "startY": 517,
+            "stopX": 293,
+            "stopY": 531
+        },
+        {
+            "id": 148,
+            "startX": 293,
+            "startY": 517,
+            "stopX": 333,
+            "stopY": 531
+        },
+        {
+            "id": 149,
+            "startX": 333,
+            "startY": 517,
+            "stopX": 373,
+            "stopY": 531
+        },
+        {
+            "id": 150,
+            "startX": 373,
+            "startY": 517,
+            "stopX": 413,
+            "stopY": 531
+        },
+        {
+            "id": 151,
+            "startX": 413,
+            "startY": 517,
+            "stopX": 453,
+            "stopY": 531
+        },
+        {
+            "id": 152,
+            "startX": 453,
+            "startY": 517,
+            "stopX": 493,
+            "stopY": 531
+        },
+        {
+            "id": 153,
+            "startX": 493,
+            "startY": 517,
+            "stopX": 533,
+            "stopY": 531
+        },
+        {
+            "id": 154,
+            "startX": 533,
+            "startY": 517,
+            "stopX": 543,
+            "stopY": 531
+        },
+        {
+            "id": 155,
+            "startX": 127,
+            "startY": 531,
+            "stopX": 167,
+            "stopY": 571
+        },
+        {
+            "id": 156,
+            "startX": 167,
+            "startY": 531,
+            "stopX": 207,
+            "stopY": 571
+        },
+        {
+            "id": 157,
+            "startX": 207,
+            "startY": 531,
+            "stopX": 241,
+            "stopY": 571
+        },
+        {
+            "id": 158,
+            "startX": 253,
+            "startY": 531,
+            "stopX": 293,
+            "stopY": 571
+        },
+        {
+            "id": 159,
+            "startX": 293,
+            "startY": 531,
+            "stopX": 333,
+            "stopY": 571
+        },
+        {
+            "id": 160,
+            "startX": 333,
+            "startY": 531,
+            "stopX": 373,
+            "stopY": 571
+        },
+        {
+            "id": 161,
+            "startX": 373,
+            "startY": 531,
+            "stopX": 413,
+            "stopY": 571
+        },
+        {
+            "id": 162,
+            "startX": 413,
+            "startY": 531,
+            "stopX": 453,
+            "stopY": 571
+        },
+        {
+            "id": 163,
+            "startX": 453,
+            "startY": 531,
+            "stopX": 493,
+            "stopY": 571
+        },
+        {
+            "id": 164,
+            "startX": 493,
+            "startY": 531,
+            "stopX": 533,
+            "stopY": 571
+        },
+        {
+            "id": 165,
+            "startX": 533,
+            "startY": 531,
+            "stopX": 543,
+            "stopY": 571
+        },
+        {
+            "id": 166,
+            "startX": 127,
+            "startY": 571,
+            "stopX": 167,
+            "stopY": 606
+        },
+        {
+            "id": 167,
+            "startX": 167,
+            "startY": 571,
+            "stopX": 207,
+            "stopY": 606
+        },
+        {
+            "id": 168,
+            "startX": 207,
+            "startY": 571,
+            "stopX": 241,
+            "stopY": 606
+        },
+        {
+            "id": 169,
+            "startX": 253,
+            "startY": 571,
+            "stopX": 293,
+            "stopY": 611
+        },
+        {
+            "id": 170,
+            "startX": 293,
+            "startY": 571,
+            "stopX": 333,
+            "stopY": 611
+        },
+        {
+            "id": 171,
+            "startX": 333,
+            "startY": 571,
+            "stopX": 373,
+            "stopY": 611
+        },
+        {
+            "id": 172,
+            "startX": 373,
+            "startY": 571,
+            "stopX": 413,
+            "stopY": 611
+        },
+        {
+            "id": 173,
+            "startX": 413,
+            "startY": 571,
+            "stopX": 453,
+            "stopY": 611
+        },
+        {
+            "id": 174,
+            "startX": 453,
+            "startY": 571,
+            "stopX": 493,
+            "stopY": 611
+        },
+        {
+            "id": 175,
+            "startX": 493,
+            "startY": 571,
+            "stopX": 533,
+            "stopY": 611
+        },
+        {
+            "id": 176,
+            "startX": 533,
+            "startY": 571,
+            "stopX": 543,
+            "stopY": 611
+        },
+        {
+            "id": 177,
+            "startX": 11,
+            "startY": 618,
+            "stopX": 51,
+            "stopY": 651
+        },
+        {
+            "id": 178,
+            "startX": 51,
+            "startY": 618,
+            "stopX": 91,
+            "stopY": 651
+        },
+        {
+            "id": 179,
+            "startX": 91,
+            "startY": 618,
+            "stopX": 131,
+            "stopY": 651
+        },
+        {
+            "id": 180,
+            "startX": 131,
+            "startY": 618,
+            "stopX": 171,
+            "stopY": 651
+        },
+        {
+            "id": 181,
+            "startX": 171,
+            "startY": 618,
+            "stopX": 211,
+            "stopY": 651
+        },
+        {
+            "id": 182,
+            "startX": 211,
+            "startY": 618,
+            "stopX": 241,
+            "stopY": 651
+        },
+        {
+            "id": 183,
+            "startX": 253,
+            "startY": 611,
+            "stopX": 293,
+            "stopY": 651
+        },
+        {
+            "id": 184,
+            "startX": 293,
+            "startY": 611,
+            "stopX": 333,
+            "stopY": 651
+        },
+        {
+            "id": 185,
+            "startX": 333,
+            "startY": 611,
+            "stopX": 373,
+            "stopY": 651
+        },
+        {
+            "id": 186,
+            "startX": 373,
+            "startY": 611,
+            "stopX": 413,
+            "stopY": 651
+        },
+        {
+            "id": 187,
+            "startX": 413,
+            "startY": 611,
+            "stopX": 453,
+            "stopY": 651
+        },
+        {
+            "id": 188,
+            "startX": 453,
+            "startY": 611,
+            "stopX": 493,
+            "stopY": 651
+        },
+        {
+            "id": 189,
+            "startX": 493,
+            "startY": 611,
+            "stopX": 533,
+            "stopY": 651
+        },
+        {
+            "id": 190,
+            "startX": 533,
+            "startY": 611,
+            "stopX": 543,
+            "stopY": 651
+        },
+        {
+            "id": 191,
+            "startX": 11,
+            "startY": 651,
+            "stopX": 51,
+            "stopY": 691
+        },
+        {
+            "id": 192,
+            "startX": 51,
+            "startY": 651,
+            "stopX": 91,
+            "stopY": 691
+        },
+        {
+            "id": 193,
+            "startX": 91,
+            "startY": 651,
+            "stopX": 131,
+            "stopY": 691
+        },
+        {
+            "id": 194,
+            "startX": 131,
+            "startY": 651,
+            "stopX": 171,
+            "stopY": 691
+        },
+        {
+            "id": 195,
+            "startX": 171,
+            "startY": 651,
+            "stopX": 211,
+            "stopY": 691
+        },
+        {
+            "id": 196,
+            "startX": 211,
+            "startY": 651,
+            "stopX": 241,
+            "stopY": 691
+        },
+        {
+            "id": 197,
+            "startX": 253,
+            "startY": 651,
+            "stopX": 293,
+            "stopY": 691
+        },
+        {
+            "id": 198,
+            "startX": 293,
+            "startY": 651,
+            "stopX": 333,
+            "stopY": 691
+        },
+        {
+            "id": 199,
+            "startX": 333,
+            "startY": 651,
+            "stopX": 373,
+            "stopY": 691
+        },
+        {
+            "id": 200,
+            "startX": 373,
+            "startY": 651,
+            "stopX": 413,
+            "stopY": 691
+        },
+        {
+            "id": 201,
+            "startX": 413,
+            "startY": 651,
+            "stopX": 453,
+            "stopY": 691
+        },
+        {
+            "id": 202,
+            "startX": 453,
+            "startY": 651,
+            "stopX": 493,
+            "stopY": 691
+        },
+        {
+            "id": 203,
+            "startX": 493,
+            "startY": 651,
+            "stopX": 533,
+            "stopY": 691
+        },
+        {
+            "id": 204,
+            "startX": 533,
+            "startY": 651,
+            "stopX": 543,
+            "stopY": 691
+        },
+        {
+            "id": 205,
+            "startX": 11,
+            "startY": 691,
+            "stopX": 51,
+            "stopY": 731
+        },
+        {
+            "id": 206,
+            "startX": 51,
+            "startY": 691,
+            "stopX": 91,
+            "stopY": 731
+        },
+        {
+            "id": 207,
+            "startX": 91,
+            "startY": 691,
+            "stopX": 131,
+            "stopY": 731
+        },
+        {
+            "id": 208,
+            "startX": 131,
+            "startY": 691,
+            "stopX": 171,
+            "stopY": 731
+        },
+        {
+            "id": 209,
+            "startX": 171,
+            "startY": 691,
+            "stopX": 211,
+            "stopY": 731
+        },
+        {
+            "id": 210,
+            "startX": 211,
+            "startY": 691,
+            "stopX": 241,
+            "stopY": 731
+        },
+        {
+            "id": 211,
+            "startX": 253,
+            "startY": 691,
+            "stopX": 293,
+            "stopY": 731
+        },
+        {
+            "id": 212,
+            "startX": 293,
+            "startY": 691,
+            "stopX": 333,
+            "stopY": 731
+        },
+        {
+            "id": 213,
+            "startX": 333,
+            "startY": 691,
+            "stopX": 373,
+            "stopY": 731
+        },
+        {
+            "id": 214,
+            "startX": 373,
+            "startY": 691,
+            "stopX": 413,
+            "stopY": 731
+        },
+        {
+            "id": 215,
+            "startX": 413,
+            "startY": 691,
+            "stopX": 453,
+            "stopY": 731
+        },
+        {
+            "id": 216,
+            "startX": 453,
+            "startY": 691,
+            "stopX": 493,
+            "stopY": 731
+        },
+        {
+            "id": 217,
+            "startX": 493,
+            "startY": 691,
+            "stopX": 533,
+            "stopY": 731
+        },
+        {
+            "id": 218,
+            "startX": 533,
+            "startY": 691,
+            "stopX": 543,
+            "stopY": 731
+        },
+        {
+            "id": 219,
+            "startX": 11,
+            "startY": 731,
+            "stopX": 51,
+            "stopY": 771
+        },
+        {
+            "id": 220,
+            "startX": 51,
+            "startY": 731,
+            "stopX": 91,
+            "stopY": 771
+        },
+        {
+            "id": 221,
+            "startX": 91,
+            "startY": 731,
+            "stopX": 131,
+            "stopY": 771
+        },
+        {
+            "id": 222,
+            "startX": 131,
+            "startY": 731,
+            "stopX": 171,
+            "stopY": 771
+        },
+        {
+            "id": 223,
+            "startX": 171,
+            "startY": 731,
+            "stopX": 211,
+            "stopY": 771
+        },
+        {
+            "id": 224,
+            "startX": 211,
+            "startY": 731,
+            "stopX": 241,
+            "stopY": 771
+        },
+        {
+            "id": 225,
+            "startX": 253,
+            "startY": 731,
+            "stopX": 293,
+            "stopY": 771
+        },
+        {
+            "id": 226,
+            "startX": 293,
+            "startY": 731,
+            "stopX": 333,
+            "stopY": 771
+        },
+        {
+            "id": 227,
+            "startX": 333,
+            "startY": 731,
+            "stopX": 373,
+            "stopY": 771
+        },
+        {
+            "id": 228,
+            "startX": 373,
+            "startY": 731,
+            "stopX": 413,
+            "stopY": 771
+        },
+        {
+            "id": 229,
+            "startX": 413,
+            "startY": 731,
+            "stopX": 453,
+            "stopY": 771
+        },
+        {
+            "id": 230,
+            "startX": 453,
+            "startY": 731,
+            "stopX": 493,
+            "stopY": 771
+        },
+        {
+            "id": 231,
+            "startX": 493,
+            "startY": 731,
+            "stopX": 533,
+            "stopY": 771
+        },
+        {
+            "id": 232,
+            "startX": 533,
+            "startY": 731,
+            "stopX": 543,
+            "stopY": 771
+        },
+        {
+            "id": 233,
+            "startX": 11,
+            "startY": 771,
+            "stopX": 51,
+            "stopY": 811
+        },
+        {
+            "id": 234,
+            "startX": 51,
+            "startY": 771,
+            "stopX": 91,
+            "stopY": 811
+        },
+        {
+            "id": 235,
+            "startX": 91,
+            "startY": 771,
+            "stopX": 131,
+            "stopY": 811
+        },
+        {
+            "id": 236,
+            "startX": 131,
+            "startY": 771,
+            "stopX": 171,
+            "stopY": 811
+        },
+        {
+            "id": 237,
+            "startX": 171,
+            "startY": 771,
+            "stopX": 211,
+            "stopY": 811
+        },
+        {
+            "id": 238,
+            "startX": 211,
+            "startY": 771,
+            "stopX": 241,
+            "stopY": 811
+        },
+        {
+            "id": 239,
+            "startX": 253,
+            "startY": 771,
+            "stopX": 293,
+            "stopY": 811
+        },
+        {
+            "id": 240,
+            "startX": 293,
+            "startY": 771,
+            "stopX": 333,
+            "stopY": 811
+        },
+        {
+            "id": 241,
+            "startX": 333,
+            "startY": 771,
+            "stopX": 373,
+            "stopY": 811
+        },
+        {
+            "id": 242,
+            "startX": 373,
+            "startY": 771,
+            "stopX": 413,
+            "stopY": 811
+        },
+        {
+            "id": 243,
+            "startX": 413,
+            "startY": 771,
+            "stopX": 453,
+            "stopY": 811
+        },
+        {
+            "id": 244,
+            "startX": 453,
+            "startY": 771,
+            "stopX": 493,
+            "stopY": 811
+        },
+        {
+            "id": 245,
+            "startX": 493,
+            "startY": 771,
+            "stopX": 533,
+            "stopY": 811
+        },
+        {
+            "id": 246,
+            "startX": 533,
+            "startY": 771,
+            "stopX": 543,
+            "stopY": 811
+        },
+        {
+            "id": 247,
+            "startX": 11,
+            "startY": 811,
+            "stopX": 51,
+            "stopY": 823
+        },
+        {
+            "id": 248,
+            "startX": 51,
+            "startY": 811,
+            "stopX": 91,
+            "stopY": 823
+        },
+        {
+            "id": 249,
+            "startX": 91,
+            "startY": 811,
+            "stopX": 131,
+            "stopY": 823
+        },
+        {
+            "id": 250,
+            "startX": 131,
+            "startY": 811,
+            "stopX": 171,
+            "stopY": 823
+        },
+        {
+            "id": 251,
+            "startX": 171,
+            "startY": 811,
+            "stopX": 211,
+            "stopY": 823
+        },
+        {
+            "id": 252,
+            "startX": 211,
+            "startY": 811,
+            "stopX": 241,
+            "stopY": 823
+        },
+        {
+            "id": 253,
+            "startX": 253,
+            "startY": 811,
+            "stopX": 293,
+            "stopY": 823
+        },
+        {
+            "id": 254,
+            "startX": 293,
+            "startY": 811,
+            "stopX": 333,
+            "stopY": 823
+        },
+        {
+            "id": 255,
+            "startX": 333,
+            "startY": 811,
+            "stopX": 373,
+            "stopY": 823
+        },
+        {
+            "id": 256,
+            "startX": 373,
+            "startY": 811,
+            "stopX": 413,
+            "stopY": 823
+        },
+        {
+            "id": 257,
+            "startX": 413,
+            "startY": 811,
+            "stopX": 453,
+            "stopY": 823
+        },
+        {
+            "id": 258,
+            "startX": 453,
+            "startY": 811,
+            "stopX": 493,
+            "stopY": 823
+        },
+        {
+            "id": 259,
+            "startX": 493,
+            "startY": 811,
+            "stopX": 533,
+            "stopY": 823
+        },
+        {
+            "id": 260,
+            "startX": 533,
+            "startY": 811,
+            "stopX": 543,
+            "stopY": 823
+        },
+        {
+            "id": 261,
+            "startX": 247,
+            "startY": 318,
+            "stopX": 265,
+            "stopY": 331
+        }
+    ],
+    "walls": [
+        {
+            "id": 0,
+            "orientation": 0.0,
+            "startX": 0,
+            "startY": 0,
+            "stopX": 554,
+            "stopY": 10
+        },
+        {
+            "id": 1,
+            "orientation": 90.0,
+            "startX": 266,
+            "startY": 0,
+            "stopX": 276,
+            "stopY": 317
+        },
+        {
+            "id": 2,
+            "orientation": 90.0,
+            "startX": 232,
+            "startY": 307,
+            "stopX": 276,
+            "stopY": 317
+        },
+        {
+            "id": 3,
+            "orientation": 90.0,
+            "startX": 544,
+            "startY": 0,
+            "stopX": 554,
+            "stopY": 418
+        },
+        {
+            "id": 4,
+            "orientation": 180.0,
+            "startX": 242,
+            "startY": 408,
+            "stopX": 554,
+            "stopY": 418
+        },
+        {
+            "id": 5,
+            "orientation": 90.0,
+            "startX": 242,
+            "startY": 408,
+            "stopX": 252,
+            "stopY": 516
+        },
+        {
+            "id": 6,
+            "orientation": 0.0,
+            "startX": 242,
+            "startY": 506,
+            "stopX": 554,
+            "stopY": 516
+        },
+        {
+            "id": 7,
+            "orientation": 90.0,
+            "startX": 544,
+            "startY": 506,
+            "stopX": 554,
+            "stopY": 834
+        },
+        {
+            "id": 8,
+            "orientation": 180.0,
+            "startX": 0,
+            "startY": 824,
+            "stopX": 554,
+            "stopY": 834
+        },
+        {
+            "id": 9,
+            "orientation": 270.0,
+            "startX": 242,
+            "startY": 607,
+            "stopX": 252,
+            "stopY": 834
+        },
+        {
+            "id": 10,
+            "orientation": 270.0,
+            "startX": 232,
+            "startY": 607,
+            "stopX": 242,
+            "stopY": 617
+        },
+        {
+            "id": 11,
+            "orientation": 0.0,
+            "startX": 0,
+            "startY": 607,
+            "stopX": 141,
+            "stopY": 617
+        },
+        {
+            "id": 11,
+            "orientation": 0.0,
+            "startX": 0,
+            "startY": 607,
+            "stopX": 10,
+            "stopY": 834
+        },
+        {
+            "id": 12,
+            "orientation": 270.0,
+            "startX": 116,
+            "startY": 307,
+            "stopX": 126,
+            "stopY": 617
+        },
+        {
+            "id": 13,
+            "orientation": 180.0,
+            "startX": 0,
+            "startY": 307,
+            "stopX": 141,
+            "stopY": 317
+        },
+        {
+            "id": 14,
+            "orientation": 180.0,
+            "startX": 0,
+            "startY": 307,
+            "stopX": 141,
+            "stopY": 317
+        },
+        {
+            "id": 14,
+            "orientation": 180.0,
+            "startX": 0,
+            "startY": 0,
+            "stopX": 10,
+            "stopY": 317
+        }
+
+    ],
+    "doors": [
+        {
+            "id": 0,
+            "startX": 141,
+            "startY": 307,
+            "stopX": 232,
+            "stopY": 317
+        },
+        {
+            "id": 1,
+            "startX": 266,
+            "startY": 317,
+            "stopX": 276,
+            "stopY": 408
+        },
+        {
+            "id": 2,
+            "startX": 242,
+            "startY": 516,
+            "stopX": 252,
+            "stopY": 607
+        },
+        {
+            "id": 2,
+            "startX": 141,
+            "startY": 607,
+            "stopX": 232,
+            "stopY": 617
+        }
+    ]
+}

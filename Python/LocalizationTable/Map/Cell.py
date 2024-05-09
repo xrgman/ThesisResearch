@@ -73,10 +73,17 @@ class Cell(Rectangle):
         return farthestCoordinates
 
     def get_relative_angle_to_cell(self, other: "Cell") -> int:
-        otherCenter = other.get_center()
-        dx = otherCenter[0] - self.center[0]
-        dy = otherCenter[1] - self.center[1]
-        angle = math.degrees(math.atan2(dy, dx))
+        dx = other.center_x - self.center_x
+        dy = other.center_y - self.center_y
+
+        angle = math.atan2(dy, dx)
+        angle = angle * 180.0 / math.pi
+
+        angle = int(angle)
+
+        if angle < 0:
+            angle += 360
+
         return (int(angle) + 90) % 360
 
     def get_cell_name(self) -> str:

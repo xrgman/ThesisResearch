@@ -52,6 +52,16 @@ class LocalizationTable:
 
         return localization_table
 
+    def save_table(self, filename):
+        with (open(filename, 'w') as file):
+            for row in self.table:
+                for column in row:
+                    file.write('1, ' if column else '0, ')
+
+                file.write('\n')
+
+                #file.write(' '.join(map(str, row)) + '\n')
+
     def clear(self):
         for i in range(self.total_number_of_cells):
             for j in range(self.total_number_of_cells):

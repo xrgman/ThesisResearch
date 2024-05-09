@@ -1,0 +1,26 @@
+0. Robots 0, 1, 2, 3, 4 start with uniform probabilities for each cell
+---------------------------------------------------------------------------
+
+1. Robot 0 receives a message from robot 1 at 270 degree 320cm
+- Message contains uniform probabilities_per_cell of robot 1, since that robot hasn't heard anyone yet.
+- No other robots can hear robot 0
+
+2. Robot 1 broadcasts his message with updated probabilities_per_cell from previous step:
+- Robot 1 hears this message at 90 degree 320cm and will update his probabilities_per_cell using received data.
+- Robot 2 hears this message at 0 degree 240cm and will update his probabilities_per_cell using received data.
+- Robot 4 hears this message at 329 degree 141cm and will update his probabilities_per_cell using received data.
+
+3. Robot 0 receives a message from robot 2 at 180 degree 240 cm
+- Message contains updated probabilities from robot 2, since it already received a message from robot 0
+- Robot 4 can also hear this message at 213 degree and 144cm and will also be updated
+
+4. Robot 0 receives a message from robot 4 at 148 degree 141cm
+- Message contains updates probabilities from robot 4, which has been updates from receiving from 0 and 2
+- Robot 2 can also hear this message at 34 degree and 144cm and will also be updated
+
+5. Robot 3 cannot hear anyone so starts driving forwards until collision with the wall and then to the right until collision and then forward again.
+
+6. Robot 3 enters the room and robot 2 receives a message from him at 180 degree 280cm
+- Robot 3 has no data yet, so uniform probabilities per cell is used here.
+- Upon receiving this, robot 2 will again broadcast its new probabilities tables, which will spread through the network
+

@@ -1,6 +1,6 @@
 import math
 from typing import List, Tuple
-from Line import Line
+from .Line import Line
 
 
 def on_segment(p1x, p1y, p2x, p2y, p3x, p3y):
@@ -11,6 +11,7 @@ def determine_orientation_three_points(p1x, p1y, p2x, p2y, p3x, p3y):
     val = (p2y - p1y) * (p3x - p2x) - (p2x - p1x) * (p3y - p2y)
 
     return 0 if val == 0 else (1 if val > 0 else 2)
+
 
 class Rectangle(object):
     def __init__(self, id: int, start_x: int, stop_x: int, start_y: int, stop_y: int):
@@ -69,13 +70,13 @@ class Rectangle(object):
 
     def is_intersected_by(self, line: Line):
         # Determine the four orientations needed
-        o1 = self.determine_orientation_three_points(self.start_x, self.start_y, self.stop_x, self.stop_y, line.start_x,
+        o1 = determine_orientation_three_points(self.start_x, self.start_y, self.stop_x, self.stop_y, line.start_x,
                                                      line.start_y)
-        o2 = self.determine_orientation_three_points(self.start_x, self.start_y, self.stop_x, self.stop_y, line.stop_x,
+        o2 = determine_orientation_three_points(self.start_x, self.start_y, self.stop_x, self.stop_y, line.stop_x,
                                                      line.stop_y)
-        o3 = self.determine_orientation_three_points(line.start_x, line.start_y, line.stop_x, line.stop_y, self.start_x,
+        o3 = determine_orientation_three_points(line.start_x, line.start_y, line.stop_x, line.stop_y, self.start_x,
                                                      self.start_y)
-        o4 = self.determine_orientation_three_points(line.start_x, line.start_y, line.stop_x, line.stop_y, self.stop_x,
+        o4 = determine_orientation_three_points(line.start_x, line.start_y, line.stop_x, line.stop_y, self.stop_x,
                                                      self.stop_y)
 
         # General case
@@ -83,18 +84,18 @@ class Rectangle(object):
             return True
 
         # Special cases
-        if o1 == 0 and self.on_segment(self.start_x, self.start_y, line.start_x, line.start_y, self.stop_x,
+        if o1 == 0 and on_segment(self.start_x, self.start_y, line.start_x, line.start_y, self.stop_x,
                                        self.stop_y):
             return True
 
-        if o2 == 0 and self.on_segment(self.start_x, self.start_y, line.stop_x, line.stop_y, self.stop_x, self.stop_y):
+        if o2 == 0 and on_segment(self.start_x, self.start_y, line.stop_x, line.stop_y, self.stop_x, self.stop_y):
             return True
 
-        if o3 == 0 and self.on_segment(line.start_x, line.start_y, self.start_x, self.start_y, line.stop_x,
+        if o3 == 0 and on_segment(line.start_x, line.start_y, self.start_x, self.start_y, line.stop_x,
                                        line.stop_y):
             return True
 
-        if o4 == 0 and self.on_segment(line.start_x, line.start_y, self.stop_x, self.stop_y, line.stop_x, line.stop_y):
+        if o4 == 0 and on_segment(line.start_x, line.start_y, self.stop_x, self.stop_y, line.stop_x, line.stop_y):
             return True
 
         return False
