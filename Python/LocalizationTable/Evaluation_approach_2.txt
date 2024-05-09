@@ -1,0 +1,16 @@
+R 0 237
+R 1 175
+R 2 245
+R 3 11
+H 1 0       //Robot 1 receives message from robot 0
+H 2 0       //Robot 2 receives message from robot 0
+H 0 1       //Robot 0 Receives message from robot 1
+H 2 1       //Robot 2 Receives message from robot 1
+H 0 2       //Robot 0 Receives message from robot 2
+H 1 2       //Robot 1 Receives message from robot 2
+M 3 19      //Robot 3 moves to cell 19
+M 3 99      //Robot 3 moves to cell 99
+H 1 3       //Robot 1 Receives message from robot 3
+H 2 1       //Robot 2 Receives message from robot 1
+H 0 1       //Robot 0 Receives message from robot 1
+H 0 2       //Robot 0 Receives message from robot 2

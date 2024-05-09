@@ -1,0 +1,20 @@
+R 0 18
+R 1 10
+R 2 98
+R 3 223
+R 4 53
+H 0 1 270 320   //Robot 0 receives message from robot 1 at 270 degrees and 320cm
+H 1 0 90 320    //Robot 1 receives message from robot 0 at 90 degrees and 320cm
+H 2 0 0 240     //Robot 2 receives message from robot 0 at 180 degrees and 240cm
+H 4 0 329 141
+H 0 2 180 240
+H 4 2 213 144
+H 0 4 148 141
+H 2 4 34 144
+M 3 182         //Move robot 3 from cell 223 -> 182
+M 3 193         //Move robot 3 from cell 182 -> 193
+M 3 180         //Move robot 3 from cell 193 -> 180
+H 2 3 157 303
+H 0 2 180 240
+H 4 2 213 144
+H 0 4 148 141
