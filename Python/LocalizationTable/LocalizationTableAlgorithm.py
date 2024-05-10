@@ -13,7 +13,7 @@ import os
 NUM_ROBOTS = 6
 NUMBER_OF_PARTICLES = 10108
 NOISE_THRESHOLD = 5
-FAST_TABLE_APPROACH = True
+FAST_TABLE_APPROACH = False
 number_of_cells = -1
 
 robot_to_view = 0
@@ -218,6 +218,27 @@ def move_robot_to_cell(r_id, target_cell):
         robot_to_view_cell = particle_filters[robot_id].get_map_data().cells[robot_positions[r_id]]
 
 
+def check_convergence():
+    for probability in particle_filters[robot_to_view].probabilities_per_cell:
+        if probability > 0.5:
+            plot_distance_error_vs_iterations(distance_errors_per_iteration)
+            nr_of_iterations_till_convergence = len(distance_errors_per_iteration)
+
+            # Saving distance error and nr of iterations at convergence:
+            with open(results_file_name, 'a') as file:
+                line_to_write = " ".join(map(str, initialized_robots)) + " " + str(
+                    distance_errors_per_iteration[len(distance_errors_per_iteration) - 1]) + " " + str(
+                    nr_of_iterations_till_convergence)
+                file.write(line_to_write + "\n")
+
+            with open(results_file_name_errors, 'a') as file:
+                file.write(" ".join(map(str, distance_errors_per_iteration)) + "\n")
+
+            exit(0)
+
+    return False
+
+
 def find_closest_robot(r_id):
     robot_cell_id = robot_positions[r_id]
     min_distance = 99999
@@ -323,6 +344,7 @@ initialized_robots = [x for x in robot_positions if x >= 0]
 convergence = False
 
 results_file_name = "Results/IterationsResults/results_" + str(len(initialized_robots)) + "_robots" + ("_fast" if FAST_TABLE_APPROACH else "_slow") +".txt"
+results_file_name_errors = "Results/ErrorsVsIterations/errors_" + str(len(initialized_robots)) + "_robots.txt"
 
 while not convergence:
     out_of_scope_robots = []
@@ -344,6 +366,9 @@ while not convergence:
             # Logging distance error:
             if robot_id == robot_to_view:
                 log_distance_error(robot_id)
+
+                check_convergence()
+
 
         # Mark robot out of scope:
         if robot_out_of_scope:
@@ -400,6 +425,8 @@ while not convergence:
             if robot_id == robot_to_view:
                 log_distance_error(robot_id)
 
+                check_convergence()
+
     # 4. Sharing table with other robots (about other robots:
     for robot_id, robots_cell in enumerate(initialized_robots):
         for sender_id, senders_cell in enumerate(initialized_robots):
@@ -421,22 +448,22 @@ while not convergence:
                 if robot_id == robot_to_view:
                     log_distance_error(robot_id)
 
+                    check_convergence()
+
     # 5. Checking for convergence:
-    for probability in particle_filters[robot_to_view].probabilities_per_cell:
-        if probability > 0.7:
-            convergence = True
+
 
     bb = 10
 
 # Plotting distance error:
-plot_distance_error_vs_iterations(distance_errors_per_iteration)
-nr_of_iterations_till_convergence = len(distance_errors_per_iteration)
-
-with open(results_file_name, 'a') as file:
-    line_to_write = " ".join(map(str, initialized_robots)) + " " + str(nr_of_iterations_till_convergence)
-    file.write(line_to_write + "\n")
-
-
+# plot_distance_error_vs_iterations(distance_errors_per_iteration)
+# nr_of_iterations_till_convergence = len(distance_errors_per_iteration)
+#
+# with open(results_file_name, 'a') as file:
+#     line_to_write = " ".join(map(str, initialized_robots)) + " " + str(distance_errors_per_iteration[len(distance_errors_per_iteration) - 1]) + " " + str(nr_of_iterations_till_convergence)
+#     file.write(line_to_write + "\n")
+#
+#
 
 bla = 10
 
