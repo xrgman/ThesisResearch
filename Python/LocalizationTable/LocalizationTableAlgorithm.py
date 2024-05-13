@@ -11,10 +11,15 @@ import paramiko
 import os
 import random
 
+MAX_DISTANCE_HEARING = 350
+
 NUM_ROBOTS = 3
 NUMBER_OF_PARTICLES = 10108
+READ_POSITIONS_FILE = False
+MOVE_OUT_OF_SCOPE_ROBOTS = False
 NOISE_THRESHOLD = 5
 FAST_TABLE_APPROACH = True
+MOVE_ROBOTS = True
 number_of_cells = -1
 
 robot_to_view = 0
@@ -26,6 +31,18 @@ evaluation_file = "Evaluation_approach_mf_1.txt"
 particle_filters: List[ParticleFilter] = []
 
 robot_positions: List[int] = [-1] * NUM_ROBOTS
+robot_angles: List[float] = [90] * NUM_ROBOTS
+
+possible_directions = [
+    (0, 40),
+    (45, 60),
+    (90, 40),
+    (135, 60),
+    (180, 40),
+    (225, 60),
+    (270, 40),
+    (315, 60),
+]
 
 # Storage of errors and such:
 iteration = 1
@@ -43,16 +60,19 @@ for i in range(NUM_ROBOTS):
     particle_filters.append(particle_filter)
 
 # Initialize robot positions randomly:
-# for i in range(NUM_ROBOTS):
-#     # Picking a random cell to place robot in:
-#     random_cell = random.randint(0, number_of_cells)
-#
-#     # Keep generating a new random number until it is not in the existing list
-#     while random_cell in robot_positions:
-#         random_cell = random.randint(0, number_of_cells)
-#
-#     # Setting robots position:
-#     robot_positions[i] = random_cell
+for i in range(NUM_ROBOTS):
+    # Picking a random cell to place robot in:
+    random_cell = random.randint(0, number_of_cells)
+
+    # Keep generating a new random number until it is not in the existing list
+    while random_cell in robot_positions:
+        random_cell = random.randint(0, number_of_cells)
+
+    # Setting robots position:
+    robot_positions[i] = random_cell
+
+# Saving map data for easy access:
+map_data = particle_filters[0].get_map_data()
 
 
 def calculate_euclidean_distance(p1_x, p1_y, p2_x, p2_y):
@@ -61,6 +81,21 @@ def calculate_euclidean_distance(p1_x, p1_y, p2_x, p2_y):
 
     return math.sqrt(diff_x * diff_x + diff_y * diff_y)
 
+
+#120 - 107
+cell_232 = map_data.cells[232]
+cell_231 = map_data.cells[231]
+cell_217 = map_data.cells[217]
+cell_216 = map_data.cells[217]
+
+angle1 = cell_232.get_relative_angle_to_cell(cell_231)
+angle2 = cell_232.get_relative_angle_to_cell(cell_217)
+angle3 = cell_232.get_relative_angle_to_cell(cell_216)
+
+avg_angle = (angle1 + angle2 + angle3) / 3
+#distandedd = calculate_euclidean_distance(cell_107.center_x, cell_107.center_y, cell_120.center_x, cell_120.center_y)
+
+bla = 10
 
 def save_particles_to_file(filename):
     particles = particle_filter.get_particles()
@@ -89,6 +124,14 @@ def save_particles_to_file(filename):
     ssh_client.close()
 
 
+def coordinate_inside_door(x, y):
+    for door in particle_filters[0].get_map_data().doors:
+        if door.contains_point(x, y):
+            return True
+
+    return False
+
+
 # This function is for PF evaluation, but saved here for now:
 def calculate_current_robot_position():
     x_position = 0
@@ -99,34 +142,42 @@ def calculate_current_robot_position():
         y_position += particle.get_weight() * particle.y_coordinate
 
 
-def robot_hears_another_robot(r_id, sender_id):
-    cell_robot = particle_filters[r_id].get_map_data().cells[robot_positions[r_id]]
-    cell_sender = particle_filters[r_id].get_map_data().cells[robot_positions[sender_id]]
-    angle = cell_robot.get_relative_angle_to_cell(cell_sender)
+def robot_hears_another_robot(r_id, s_id):
+    cell_robot = map_data.cells[robot_positions[r_id]]
+    cell_sender = map_data.cells[robot_positions[s_id]]
 
-    distance = int(particle_filters[r_id].get_map_data().shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
+    # Finding distance and angle between robots based on shortest path:
+    distance = int(map_data.shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
 
-    if distance > 350:
+    if particle_filters[0].are_cells_los(cell_robot.id, cell_sender.id):
+        angle = cell_robot.get_relative_angle_to_cell(cell_sender)
+    else:
+        path_between_robots = map_data.get_path_between_cells(cell_robot.id, cell_sender.id)
+
+        angle = particle_filters[r_id].get_relative_angle_between_cells_based_on_path(cell_robot, path_between_robots)
+
+    # Checking if we can hear the robot:
+    if distance > MAX_DISTANCE_HEARING:
         print(
-            "Robot" + str(r_id) + " cannot hear robot " + str(sender_id) + ", distance too big (" + str(distance) + ")")
+            "Robot" + str(r_id) + " cannot hear robot " + str(s_id) + ", distance too big (" + str(distance) + ")")
         return False
 
-    current_step = "Robot " + str(r_id) + " heard from robot " + str(sender_id) + " at " + str(
+    current_step = "Robot " + str(r_id) + " heard from robot " + str(s_id) + " at " + str(
         angle) + " degrees and " + str(distance) + "cm."
 
     # Check if table already exists in cache, else generate it:
     possible_filename = "Files_" + particle_filters[0].get_map_data().name + "/LocalizationTable_" + str(
-        r_id) + "_" + str(sender_id) + "_" + str(
+        r_id) + "_" + str(s_id) + "_" + str(
         int(angle)) + "_" + str(distance) + ".csv"
 
     if os.path.exists(possible_filename):
         table = LocalizationTable.load_table(possible_filename, number_of_cells)
     else:
-        table = particle_filters[r_id].generate_table(sender_id, distance, angle)
+        table = particle_filters[r_id].generate_table(s_id, distance, angle)
         table.save_table(possible_filename)
 
     # Update particles based on table data:
-    particle_filters[r_id].process_table_own(table, particle_filters[sender_id].probabilities_per_cell)
+    particle_filters[r_id].process_table_own(table, particle_filters[s_id].probabilities_per_cell)
 
     # Update map renderer if updated robot is the one to localize:
     if r_id == robot_to_view:
@@ -143,7 +194,7 @@ def robot_receives_table_own_from_other(r_id, s_id):
 
     distance = int(particle_filters[r_id].get_map_data().shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
 
-    if distance > 350:
+    if distance > MAX_DISTANCE_HEARING:
         print(
             "Robot" + str(r_id) + " cannot hear robot " + str(s_id) + ", distance too big (" + str(distance) + "). Skipping own table sharing.")
         return False
@@ -182,7 +233,7 @@ def robot_receives_table_other_from_other(r_id, s_id, t_robot_id):
     distance_receiver_sender = int(particle_filters[r_id].get_map_data().shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
     distance_sender_other = int(particle_filters[r_id].get_map_data().shortest_distances[cell_table_robot.id][cell_sender.id]) + 20 + 20
 
-    if distance_sender_other > 350 or distance_receiver_sender > 350:
+    if distance_sender_other > MAX_DISTANCE_HEARING or distance_receiver_sender > MAX_DISTANCE_HEARING:
         print(
             "Robot" + str(s_id) + " cannot hear robot " + str(t_robot_id) + ", distance too big (" + str(
                 distance_sender_other) + "). Skipping table sharing about this robot")
@@ -229,52 +280,129 @@ def move_robot_to_cell(r_id, target_cell):
     # Keeping track of cell the robot is in:
     robot_positions[r_id] = target_cell
 
-    if r_id == robot_to_view:
-        robot_to_view_cell = particle_filters[robot_id].get_map_data().cells[robot_positions[r_id]]
+    # if r_id == robot_to_view:
+    #     robot_to_view_cell = particle_filters[robot_id].get_map_data().cells[robot_positions[r_id]]
 
 
 def move_robot_one_iteration(r_id):
-    movement_angle = 90
+    # movement_angle = 90
     movement_distance = 40  # Move approximately one cell.
+    max_distance = -1
+    path_to_destination = None
 
     # Grabbing current position:
     current_cell_robot = particle_filters[r_id].get_map_data().cells[robot_positions[r_id]]
     current_position_robot = (current_cell_robot.center_x, current_cell_robot.center_y)
 
+    # Determine cell to move to:
+    for other_cell in robot_positions:
+        if other_cell == current_cell_robot.id:
+            continue
+
+        distance_between_cells = particle_filters[r_id].get_map_data().longest_distances[current_cell_robot.id][other_cell]
+
+        if distance_between_cells > max_distance:
+            max_distance = distance_between_cells
+            path_to_destination = particle_filters[r_id].get_map_data().get_path_between_cells(current_cell_robot.id, other_cell)
+
+    move_robot_to_cell(r_id, path_to_destination[1])
+
     # Calculating possible new position for the robot:
-    # m_x, m_y = calculate_movement_along_axis(movement_distance, movement_angle)
-    new_robot_position = (-1, -1) # (current_position_robot[0] + m_x, current_position_robot[1] + m_y)
-    coordinate_allowed, cell_id = particle_filters[r_id].is_coordinate_allowed(new_robot_position[0], new_robot_position[1])
-
-    while not coordinate_allowed or particle_filters[r_id].did_particle_travel_through_wall(current_position_robot[0], current_position_robot[1], new_robot_position[0], new_robot_position[1]):
-        # Calculating new position:
-        m_x, m_y = calculate_movement_along_axis(movement_distance, movement_angle)
-        new_robot_position = (current_position_robot[0] + m_x, current_position_robot[1] + m_y)
-
-        coordinate_allowed, cell_id = particle_filters[r_id].is_coordinate_allowed(new_robot_position[0], new_robot_position[1])
-
-        # Updating angle:
-        movement_angle += 90
-
-    # Grabbing new cell of robot:
-    new_cell_robot = particle_filters[r_id].get_map_data().cells[cell_id]
+    # m_x, m_y = calculate_movement_along_axis(movement_distance, robot_angles[r_id])
+    # new_robot_position = (current_position_robot[0] + m_x, current_position_robot[1] + m_y)
+    # coordinate_allowed, cell_id = particle_filters[r_id].is_coordinate_allowed(new_robot_position[0], new_robot_position[1])
+    #
+    # while (not coordinate_allowed
+    #        or particle_filters[r_id].did_particle_travel_through_wall(current_position_robot[0], current_position_robot[1], new_robot_position[0], new_robot_position[1])
+    #         or cell_id in robot_positions):
+    #     # Checking if coordinate is inside door:
+    #     if coordinate_inside_door(new_robot_position[0], new_robot_position[1]):
+    #         movement_distance += 10
+    #     else:
+    #         # Updating angle:
+    #         robot_angles[r_id] = (robot_angles[r_id] + 90) % 360
+    #
+    #     # Calculating new position:
+    #     m_x, m_y = calculate_movement_along_axis(movement_distance, robot_angles[r_id])
+    #     new_robot_position = (current_position_robot[0] + m_x, current_position_robot[1] + m_y)
+    #
+    #     coordinate_allowed, cell_id = particle_filters[r_id].is_coordinate_allowed(new_robot_position[0], new_robot_position[1])
+    #
+    # # Grabbing new cell of robot:
+    # new_cell_robot = particle_filters[r_id].get_map_data().cells[cell_id]
 
     # Processing movement in particle filter:
-    distance_between_cells = calculate_euclidean_distance(current_cell_robot.center_x, current_cell_robot.center_y, new_cell_robot.center_x, new_cell_robot.center_y)
-    angle_between_cells = current_cell_robot.get_relative_angle_to_cell(new_cell_robot)
+    # distance_between_cells = calculate_euclidean_distance(current_cell_robot.center_x, current_cell_robot.center_y, new_cell_robot.center_x, new_cell_robot.center_y)
+    # angle_between_cells = current_cell_robot.get_relative_angle_to_cell(new_cell_robot)
+    #
+    # particle_filters[r_id].process_movement(distance_between_cells, angle_between_cells, NOISE_THRESHOLD)
+    #
+    # # Update robots position:
+    # robot_positions[r_id] = cell_id
+    #
+    # Showing change:
+    # current_step = "Robot " + str(r_id) + " moves " + str(distance_between_cells) + "cm at " + str(
+    #     angle_between_cells) + " degrees."
+    current_step = "Robot " + str(r_id) + " moves to cell " + str(path_to_destination[1])
 
-    particle_filters[r_id].process_movement(distance_between_cells, angle_between_cells, NOISE_THRESHOLD)
+    map_renderer.update_map(particle_filters[robot_to_view], None, particle_filters[robot_to_view].get_guessed_position(),
+                            robot_positions[robot_to_view], current_step, robot_positions)
 
-    # Update robots position:
-    robot_positions[r_id] = cell_id
 
-    # Showing change if current robot is the one to localize:
-    if r_id == robot_to_view:
-        current_step = "Robot " + str(r_id) + " moves " + str(distance_between_cells) + "cm at " + str(
-            angle_between_cells) + " degrees."
+def move_robot_random_direction(r_id):
+    movement_distance = 40  # Move approximately one cell.
 
-        map_renderer.update_map(particle_filters[r_id], None, particle_filters[r_id].get_guessed_position(),
-                                robot_positions[robot_to_view], current_step, robot_positions)
+    # Grabbing robots current position:
+    current_cell_robot = particle_filters[r_id].get_map_data().cells[robot_positions[r_id]]
+    current_x = current_cell_robot.center_x
+    current_y = current_cell_robot.center_y
+
+    # If robot can hear one of the other robots, then move in the direction of the furthest robot:
+    robots_it_can_hear = []
+
+    for robot_id, robot_cell in enumerate(robot_positions):
+        if robot_id == r_id:
+            continue
+
+        distance_between_robots = map_data.shortest_distances[current_cell_robot.id][robot_cell]
+
+        if distance_between_robots <= MAX_DISTANCE_HEARING:
+            robots_it_can_hear.append(robot_id, robot_cell, distance_between_robots)
+
+    if len(robots_it_can_hear) > 0:
+        # Sorting highest distance first:
+        robots_it_can_hear = sorted(robots_it_can_hear, key=lambda x: x[2], reverse=True)
+
+        # Grabbing path between robots:
+        path_between_robots = map_data.get_path_between_cells(current_cell_robot.id, robots_it_can_hear[0][1])
+
+        # Moving robot:
+        move_robot_to_cell(r_id, path_between_robots[1])
+
+        return
+
+    # If robot cannot hear anyone, move to one of eight cells randomly:
+    moved_successfully = False
+
+    while not moved_successfully:
+        random_direction = possible_directions[random.randint(0, 7)]
+
+        # Calculating movement and new coordinates:
+        m_x, m_y = calculate_movement_along_axis(random_direction[1], random_direction[0])
+
+        new_x = current_x + m_x
+        new_y = current_y + m_y
+
+        # Checking if new coordinates are allowed:
+        coordinate_allowed, cell_id = particle_filters[r_id].is_coordinate_allowed(new_x, new_y)
+
+        if coordinate_allowed and cell_id not in robot_positions:
+            if particle_filters[r_id].did_particle_travel_through_wall(current_x, current_y, new_x, new_y):
+                moved_successfully = True
+
+                move_robot_to_cell(r_id, cell_id)
+
+                break
 
 
 def check_convergence():
@@ -367,36 +495,37 @@ map_renderer.update_map(particle_filters[robot_to_view], None, particle_filters[
                         robot_positions[robot_to_view], "Initial", robot_positions)
 
 # 1. Processing evaluation sequence:
-with open(evaluation_file, 'r') as file:
-    for line in file:
-        split_row = line.strip().split()
+if READ_POSITIONS_FILE:
+    with open(evaluation_file, 'r') as file:
+        for line in file:
+            split_row = line.strip().split()
 
-        # Skipping empty rows:
-        if len(split_row) <= 1:
-            continue
+            # Skipping empty rows:
+            if len(split_row) <= 1:
+                continue
 
-        command = split_row[0]
-        robot_id = int(split_row[1])
+            command = split_row[0]
+            robot_id = int(split_row[1])
 
-        # Initial position command:
-        if command == 'R':
-            robots_cell = int(split_row[2])
+            # Initial position command:
+            if command == 'R':
+                robots_cell = int(split_row[2])
 
-            if robot_id == robot_to_view:
-                robot_to_view_cell = particle_filters[robot_id].get_map_data().cells[robots_cell]
+                if robot_id == robot_to_view:
+                    robot_to_view_cell = particle_filters[robot_id].get_map_data().cells[robots_cell]
 
-            robot_positions[robot_id] = robots_cell
+                robot_positions[robot_id] = robots_cell
 
-        # Heard robot command:
-        if command == 'H':
-            sender_id = int(split_row[2])
+            # Heard robot command:
+            if command == 'H':
+                sender_id = int(split_row[2])
 
-            robot_hears_another_robot(robot_id, sender_id)
-        # Movement command:
-        elif command == 'M':
-            cell_to_move_to = int(split_row[2])
+                robot_hears_another_robot(robot_id, sender_id)
+            # Movement command:
+            elif command == 'M':
+                cell_to_move_to = int(split_row[2])
 
-            move_robot_to_cell(robot_id, cell_to_move_to)
+                move_robot_to_cell(robot_id, cell_to_move_to)
 
 # Running until convergence approach:
 initialized_robots = [x for x in robot_positions if x >= 0]
@@ -434,39 +563,40 @@ while not convergence:
             out_of_scope_robots.append(robot_id)
 
     # 2. Moving out-of-scope robots:
-    for robot_id in out_of_scope_robots:
-        robot_out_of_scope = True
+    if MOVE_OUT_OF_SCOPE_ROBOTS:
+        for robot_id in out_of_scope_robots:
+            robot_out_of_scope = True
 
-        closest_robot = find_closest_robot(robot_id)
-        path_to_robot = particle_filters[robot_id].get_map_data().get_path_between_cells(robot_positions[robot_id],
-                                                                                         robot_positions[closest_robot])
-        path_idx = 1
+            closest_robot = find_closest_robot(robot_id)
+            path_to_robot = particle_filters[robot_id].get_map_data().get_path_between_cells(robot_positions[robot_id],
+                                                                                             robot_positions[closest_robot])
+            path_idx = 1
 
-        while robot_out_of_scope:
-            # Move robot to next cell in path:
-            cell_to_move_to = path_to_robot[path_idx]
+            while robot_out_of_scope:
+                # Move robot to next cell in path:
+                cell_to_move_to = path_to_robot[path_idx]
 
-            # Selecting next cell:
-            path_idx += 1
+                # Selecting next cell:
+                path_idx += 1
 
-            # Moving robot:
-            move_robot_to_cell(robot_id, cell_to_move_to)
+                # Moving robot:
+                move_robot_to_cell(robot_id, cell_to_move_to)
 
-            # Checking if robot is in the scope now:
-            for sender_id, senders_cell in enumerate(initialized_robots):
+                # Checking if robot is in the scope now:
+                for sender_id, senders_cell in enumerate(initialized_robots):
 
-                # Skipping self:
-                if robot_id == sender_id:
-                    continue
+                    # Skipping self:
+                    if robot_id == sender_id:
+                        continue
 
-                # Process message hearing, robots too far away automatically skipped:
-                if robot_hears_another_robot(robot_id, sender_id):
-                    robot_out_of_scope = False
+                    # Process message hearing, robots too far away automatically skipped:
+                    if robot_hears_another_robot(robot_id, sender_id):
+                        robot_out_of_scope = False
 
-                    # Other robot hears me too:
-                    robot_hears_another_robot(sender_id, robot_id)
+                        # Other robot hears me too:
+                        robot_hears_another_robot(sender_id, robot_id)
 
-        bla = 10
+            bla = 10
 
     # 3. Sharing table with other robots (about hearing them):
     for robot_id, robots_cell in enumerate(initialized_robots):
@@ -510,12 +640,15 @@ while not convergence:
     #                 check_convergence()
 
     # 5. Making all robots drive:
-    for robot_id, robots_cell in enumerate(initialized_robots):
-        move_robot_one_iteration(robot_id)
+    if MOVE_ROBOTS:
+        for robot_id, robots_cell in enumerate(initialized_robots):
+            move_robot_one_iteration(robot_id)
 
+            if robot_id == robot_to_view:
+                log_distance_error(robot_id)
 
+                check_convergence()
 
-    bb = 10
 
 # Plotting distance error:
 # plot_distance_error_vs_iterations(distance_errors_per_iteration)

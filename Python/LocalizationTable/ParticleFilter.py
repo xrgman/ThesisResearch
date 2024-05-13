@@ -256,6 +256,16 @@ class ParticleFilter:
 
         return False, -1
 
+    def are_cells_los(self, cell1_id, cell2_id):
+        cell1 = self.map_data.cells[cell1_id]
+        cell2 = self.map_data.cells[cell2_id]
+
+        # Cells are los if the line between them does not traverse any walls:
+        if self.did_particle_travel_through_wall(cell1.center_x, cell1.center_y, cell2.center_x, cell2.center_y):
+            return False
+
+        return True
+
     def did_particle_travel_through_wall(self, start_x, start_y, stop_x, stop_y) -> bool:
         line = Line(start_x, start_y, stop_x, stop_y)
 
@@ -264,6 +274,53 @@ class ParticleFilter:
                 return True
 
         return False
+
+    def get_relative_angle_between_cells_based_on_path(self, cell_start: Cell, path):
+        # Keep moving over path until no los can exist:
+        current_path_id = 1
+        current_end_cell = self.map_data.cells[path[current_path_id]]
+
+        while True:
+            current_path_id += 1
+
+            possible_new_end_cell = self.map_data.cells[path[current_path_id]]
+
+            if self.did_particle_travel_through_wall(cell_start.center_x, cell_start.center_y,
+                                                     possible_new_end_cell.center_x, possible_new_end_cell.center_y):
+                break
+
+            current_end_cell = possible_new_end_cell
+
+        return cell_start.get_relative_angle_to_cell(current_end_cell)
+
+
+        # Calculate angle between at max 3 consecutive cells:
+        # number_of_cells_used = 3 if len(path) >= 4 else len(path)
+        # angle_sum = 0
+        #
+        # for i in range(number_of_cells_used):
+        #     cell_in_path = self.map_data.cells[path[i + 1]]
+        #
+        #     relative_angle = cell_start.get_relative_angle_to_cell(cell_in_path)
+        #
+        #     angle_sum += relative_angle
+        #
+        # return angle_sum / number_of_cells_used
+
+
+
+        # first_cell_in_path = self.map_data.cells[path[1]]
+        #
+        # angle_between_cells = cell_start.get_relative_angle_to_cell(first_cell_in_path)
+        #
+        # if len(path) > 2:
+        #     second_cell_in_path = self.map_data.cells[path[2]]
+        #
+        #     relative_angle_between_cells = cell_start.get_relative_angle_to_cell(second_cell_in_path)
+        #
+        #     angle_between_cells = relative_angle_between_cells
+        #
+        # return angle_between_cells
 
     def resample_incorrect_particles(self, correct_particles, incorrect_particles, noise_threshold):
         # Checking if all particles are out of bound, if so do nothing and cry:
@@ -344,19 +401,14 @@ class ParticleFilter:
 
                 # Checking distance requirement:
                 if max_distance_travelled >= shortest_path and min_distance_travelled <= longest_path:
-                    # Finding path between cells:
-                    path = self.map_data.get_path_between_cells(cell_start.id, cell_stop.id)
+                    # When cells are los to each other simply take the relative angle to ech other:
+                    if self.are_cells_los(cell_start.id, cell_stop.id):
+                        angle_between_cells = cell_start.get_relative_angle_to_cell(cell_stop)
+                    else:
+                        # Finding path between cells:
+                        path = self.map_data.get_path_between_cells(cell_start.id, cell_stop.id)
 
-                    first_cell_in_path = self.map_data.cells[path[1]]
-
-                    angle_between_cells = cell_start.get_relative_angle_to_cell(first_cell_in_path)
-
-                    if len(path) > 2:
-                        second_cell_in_path = self.map_data.cells[path[2]]
-
-                        relative_angle_between_cells = cell_start.get_relative_angle_to_cell(second_cell_in_path)
-
-                        angle_between_cells = relative_angle_between_cells
+                        angle = self.get_relative_angle_between_cells_based_on_path(cell_start, path)
 
                     # Calculating angle difference:
                     angle_diff = positive_modulo((angle - angle_between_cells + 180 + 360), 360) - 180
