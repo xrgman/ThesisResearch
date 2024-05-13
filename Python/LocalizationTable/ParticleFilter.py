@@ -420,12 +420,18 @@ class ParticleFilter:
     # Again we assume here that we also have a table about them:
     def process_table_other(self, localization_table: LocalizationTable, probabilities_per_cell_other_robot: List[float], probabilities_per_cell_other_sender: List[float]):
         # 0. Determining invalid cells:
-        invalid_sender_cells = localization_table.get_invalid_columns()
-        invalid_receiver_cells = localization_table.get_invalid_rows()
+        invalid_cells_other_robot = localization_table.get_invalid_rows()
+        invalid_cells_other_sender = localization_table.get_invalid_columns()
+
+        if self.robot_id == 0:
+            bla = 10
 
         # Processing data onto table of the robot id:
         if self.received_tables[localization_table.robot_id] is not None:
-            for invalid_receiver_cell in invalid_receiver_cells:
+            original_invalid_columns = self.received_tables[localization_table.robot_id].get_invalid_columns()
+            difference = [item for item in invalid_cells_other_robot if item not in original_invalid_columns]
+
+            for invalid_receiver_cell in invalid_cells_other_robot:
                 self.received_tables[localization_table.robot_id].set_column_invalid(invalid_receiver_cell)
 
             # 1. Updating number of tables processed:
@@ -440,9 +446,15 @@ class ParticleFilter:
             # 4. Resample particles based on the new probabilities:
             self.resample_particles_based_on_cell_probability()
 
+            # 5. Normalize particle weights:
+            self.normalize_particle_weights()
+
         # Processing data onto table of sender id (robot_id_table)
         if self.received_tables[localization_table.sender_id] is not None:
-            for invalid_sender_cell in invalid_sender_cells:
+            original_invalid_columns = self.received_tables[localization_table.robot_id].get_invalid_columns()
+            difference = [item for item in invalid_cells_other_sender if item not in original_invalid_columns]
+
+            for invalid_sender_cell in invalid_cells_other_sender:
                 self.received_tables[localization_table.sender_id].set_column_invalid(invalid_sender_cell)
 
             # 1. Updating number of tables processed:
@@ -457,8 +469,8 @@ class ParticleFilter:
             # 4. Resample particles based on the new probabilities:
             self.resample_particles_based_on_cell_probability()
 
-        # 4. Normalize particle weights:
-        self.normalize_particle_weights()
+            # 5. Normalize particle weights:
+            self.normalize_particle_weights()
 
     def calculate_probabilities_per_row(self, localization_table: LocalizationTable, probabilities_per_cell_other: List[float]):
         # 1. Start overlaying probabilities over the table::

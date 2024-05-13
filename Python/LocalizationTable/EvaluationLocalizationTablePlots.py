@@ -2,7 +2,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-PLOT_NR_ROBOTS_VS_NR_ITERATIONS = False
+PLOT_NR_ROBOTS_VS_NR_ITERATIONS = True
 PLOT_NR_ROBOTS_VS_DISTANCE_ERROR = True
 PLOT_AVERAGE_ERROR_PER_ITERATION = False
 
@@ -71,6 +71,32 @@ def plot_number_of_iterations_vs_nr_of_robots(slow_data, fast_data):
     plt.savefig("../Figures/Algorithm/Nr_robots_vs_iterations_slow.png")
     plt.show()
 
+def plot_number_of_iterations_vs_nr_of_robots_one_plot(slow_data, fast_data):
+    # Prepare data for plotting
+    x_slow = list(slow_data.keys())
+    x_slow = sorted(x_slow)
+    values_slow = [sum(slow_data[nr]) / len(slow_data[nr]) for nr in x_slow]
+
+    x_fast = list(fast_data.keys())
+    x_fast = sorted(x_fast)
+    values_fast = [sum(fast_data[nr]) / len(fast_data[nr]) for nr in x_fast]
+
+    # Plotting
+    plt.plot(x_slow, values_slow, marker='o', label='Slow')
+    plt.plot(x_fast, values_fast, marker='o', label='Fast')
+
+    # Add labels, title, and legend
+    plt.xlabel('Number of Robots')
+    plt.ylabel('Average Number of Iterations')
+    plt.title('Number of iterations until convergence w/o driving')
+    plt.xticks(x_slow)  # Assuming both slow and fast data have the same x values
+
+    plt.grid(True)
+    plt.legend()
+
+    plt.savefig("../Figures/Algorithm/Nr_robots_vs_iterations_combined.png")
+    plt.show()
+
 
 def plot_nr_of_robots_vs_distance_error(slow_data, fast_data):
     # Prepare data for plotting
@@ -112,6 +138,32 @@ def plot_nr_of_robots_vs_distance_error(slow_data, fast_data):
     plt.savefig("../Figures/Algorithm/Nr_robots_vs_error_slow.png")
     plt.show()
 
+
+def plot_nr_of_robots_vs_distance_error_one_plot(slow_data, fast_data):
+    # Prepare data for plotting
+    x_slow = list(slow_data.keys())
+    x_slow = sorted(x_slow)
+    values_slow = [sum(slow_data[nr]) / len(slow_data[nr]) for nr in x_slow]
+
+    x_fast = list(fast_data.keys())
+    x_fast = sorted(x_fast)
+    values_fast = [sum(fast_data[nr]) / len(fast_data[nr]) for nr in x_fast]
+
+    # Plotting
+    plt.plot(x_slow, values_slow, marker='o', label='Slow')
+    plt.plot(x_fast, values_fast, marker='o', label='Fast')
+
+    # Add labels, title, and legend
+    plt.xlabel('Number of Robots')
+    plt.ylabel('Average distance error (cm)')
+    plt.title('Average distance error vs nr. of robots w/o driving ')
+    plt.xticks(x_slow)  # Assuming both slow and fast data have the same x values
+
+    plt.grid(True)
+    plt.legend()
+
+    plt.savefig("../Figures/Algorithm/Nr_robots_vs_error_combined.png")
+    plt.show()
 
 def plot_average_distance_error():
     base_folder_distance_error = "Results/ErrorsVsIterations"
@@ -210,10 +262,12 @@ for (nr_of_robots, fast), data in average_iterations.items():
         slow_errors.setdefault(nr_of_robots, []).append(data['avg_error'])
 
 if PLOT_NR_ROBOTS_VS_NR_ITERATIONS:
-    plot_number_of_iterations_vs_nr_of_robots(slow_iterations, fast_iterations)
+    #plot_number_of_iterations_vs_nr_of_robots(slow_iterations, fast_iterations)
+    plot_number_of_iterations_vs_nr_of_robots_one_plot(slow_iterations, fast_iterations)
 
 if PLOT_NR_ROBOTS_VS_DISTANCE_ERROR:
-    plot_nr_of_robots_vs_distance_error(slow_errors, fast_errors)
+    #plot_nr_of_robots_vs_distance_error(slow_errors, fast_errors)
+    plot_nr_of_robots_vs_distance_error_one_plot(slow_errors, fast_errors)
 
 if PLOT_AVERAGE_ERROR_PER_ITERATION:
     plot_average_distance_error()

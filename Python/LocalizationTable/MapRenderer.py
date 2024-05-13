@@ -8,7 +8,7 @@ import math
 import sys
 import os
 
-WINDOW_WIDTH = 570
+WINDOW_WIDTH = 590
 WINDOW_HEIGHT = 955
 
 BORDER_WIDTH = 5
@@ -17,6 +17,15 @@ BORDER_HEIGHT = 95
 FONT = "times"
 FONT_SIZE = 14
 FONT_SIZE_BIG = 21
+
+colors_robots = [
+    (0, 0, 255),
+    (255, 153, 0),
+    (0, 153, 51),
+    (255, 0, 102),
+    (153, 102, 51),
+    (102, 255, 51)
+]
 
 
 def calculate_euclidean_distance(p1_x, p1_y, p2_x, p2_y):
@@ -65,7 +74,7 @@ class MapRenderer:
 
         return True
 
-    def update_map(self, particle_filter: ParticleFilter, real_position, guess_position, cell_to_find, current_step):
+    def update_map(self, particle_filter: ParticleFilter, real_position, guess_position, cell_to_find, current_step, robot_positions):
         for event in pygame.event.get():
             if event.type == QUIT:
                 return False
@@ -84,7 +93,7 @@ class MapRenderer:
         self.window.fill((255, 255, 255))
 
         # Render map layout
-        self.render_map(particle_filter.get_selected_cell_id())
+        self.render_map(particle_filter.get_selected_cell_id(), robot_positions)
 
         # Render particles on the map
         if self.draw_particles:
@@ -116,7 +125,7 @@ class MapRenderer:
     def is_new_key_pressed(self):
         return self.new_key_pressed
 
-    def render_map(self, selected_cell_idx):
+    def render_map(self, selected_cell_idx, robot_positions):
         # Drawing all walls
         walls = self.map_data.get_walls()
 
@@ -142,6 +151,11 @@ class MapRenderer:
 
                 if selected_cell_idx == i:
                     pygame.draw.rect(self.window, (0, 0, 255), rect)
+                elif i in robot_positions:
+                    robot_id = robot_positions.index(i)
+                    color = colors_robots[robot_id]
+
+                    pygame.draw.rect(self.window, color, rect)
                 else:
                     pygame.draw.rect(self.window, (0, 0, 255), rect, 1)
 
@@ -216,6 +230,18 @@ class MapRenderer:
 
         text_surface = self.font_big.render("Cell " + str(cell_most_particles) + " has most particles: " + str(particle_filter.particles_per_cell[cell_most_particles]), True, (0, 0, 0))
         self.window.blit(text_surface, (10, 50))
+
+        # Draw colors:
+        height_color_row = 5
+
+        for r_id, color in enumerate(colors_robots):
+            rect = pygame.Rect(495, height_color_row, 20, 10)
+            pygame.draw.rect(self.window, color, rect)
+
+            text_surface = self.font_big.render("Robot " + str(r_id), True, (0, 0, 0))
+            self.window.blit(text_surface, (525, height_color_row - 2))
+
+            height_color_row += 15
 
 
 

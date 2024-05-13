@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from ParticleFilter import ParticleFilter
+from ParticleFilter import ParticleFilter, calculate_movement_along_axis
 from LocalizationTable import LocalizationTable
 from MapRenderer import MapRenderer
 from Map.Cell import Cell
@@ -9,11 +9,12 @@ import json
 import math
 import paramiko
 import os
+import random
 
-NUM_ROBOTS = 6
+NUM_ROBOTS = 3
 NUMBER_OF_PARTICLES = 10108
 NOISE_THRESHOLD = 5
-FAST_TABLE_APPROACH = False
+FAST_TABLE_APPROACH = True
 number_of_cells = -1
 
 robot_to_view = 0
@@ -40,6 +41,18 @@ for i in range(NUM_ROBOTS):
         number_of_cells = particle_filter.get_map_data().number_of_cells
 
     particle_filters.append(particle_filter)
+
+# Initialize robot positions randomly:
+# for i in range(NUM_ROBOTS):
+#     # Picking a random cell to place robot in:
+#     random_cell = random.randint(0, number_of_cells)
+#
+#     # Keep generating a new random number until it is not in the existing list
+#     while random_cell in robot_positions:
+#         random_cell = random.randint(0, number_of_cells)
+#
+#     # Setting robots position:
+#     robot_positions[i] = random_cell
 
 
 def calculate_euclidean_distance(p1_x, p1_y, p2_x, p2_y):
@@ -118,7 +131,7 @@ def robot_hears_another_robot(r_id, sender_id):
     # Update map renderer if updated robot is the one to localize:
     if r_id == robot_to_view:
         map_renderer.update_map(particle_filters[r_id], None, particle_filters[r_id].get_guessed_position(),
-                                robot_positions[robot_to_view], current_step)
+                                robot_positions[robot_to_view], current_step, robot_positions)
 
     return True
 
@@ -155,22 +168,24 @@ def robot_receives_table_own_from_other(r_id, s_id):
     # Update map renderer if updated robot is the one to localize:
     if r_id == robot_to_view:
         map_renderer.update_map(particle_filters[r_id], None, particle_filters[r_id].get_guessed_position(),
-                                robot_positions[robot_to_view], current_step)
+                                robot_positions[robot_to_view], current_step, robot_positions)
 
     return True
 
 
 def robot_receives_table_other_from_other(r_id, s_id, t_robot_id):
+    cell_robot = particle_filters[r_id].get_map_data().cells[robot_positions[r_id]]
     cell_table_robot = particle_filters[r_id].get_map_data().cells[robot_positions[t_robot_id]]
     cell_sender = particle_filters[r_id].get_map_data().cells[robot_positions[s_id]]
     angle = cell_sender.get_relative_angle_to_cell(cell_table_robot)
 
-    distance = int(particle_filters[r_id].get_map_data().shortest_distances[cell_table_robot.id][cell_sender.id]) + 20 + 20
+    distance_receiver_sender = int(particle_filters[r_id].get_map_data().shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
+    distance_sender_other = int(particle_filters[r_id].get_map_data().shortest_distances[cell_table_robot.id][cell_sender.id]) + 20 + 20
 
-    if distance > 350:
+    if distance_sender_other > 350 or distance_receiver_sender > 350:
         print(
             "Robot" + str(s_id) + " cannot hear robot " + str(t_robot_id) + ", distance too big (" + str(
-                distance) + "). Skipping table sharing about this robot")
+                distance_sender_other) + "). Skipping table sharing about this robot")
         return False
 
     current_step = "Robot " + str(r_id) + " received a table from robot " + str(s_id) + " about robot " + str(t_robot_id)
@@ -178,7 +193,7 @@ def robot_receives_table_other_from_other(r_id, s_id, t_robot_id):
     # Check if table already exists in cache, else generate it:
     possible_filename = "Files_" + particle_filters[0].get_map_data().name + "/LocalizationTable_" + str(
         s_id) + "_" + str(t_robot_id) + "_" + str(
-        int(angle)) + "_" + str(distance) + ".csv"
+        int(angle)) + "_" + str(distance_sender_other) + ".csv"
 
     if os.path.exists(possible_filename):
         table = LocalizationTable.load_table(possible_filename, number_of_cells)
@@ -193,7 +208,7 @@ def robot_receives_table_other_from_other(r_id, s_id, t_robot_id):
     # Update map renderer if updated robot is the one to localize:
     if r_id == robot_to_view:
         map_renderer.update_map(particle_filters[r_id], None, particle_filters[r_id].get_guessed_position(),
-                                robot_positions[robot_to_view], current_step)
+                                robot_positions[robot_to_view], current_step, robot_positions)
 
     return True
 
@@ -218,9 +233,53 @@ def move_robot_to_cell(r_id, target_cell):
         robot_to_view_cell = particle_filters[robot_id].get_map_data().cells[robot_positions[r_id]]
 
 
+def move_robot_one_iteration(r_id):
+    movement_angle = 90
+    movement_distance = 40  # Move approximately one cell.
+
+    # Grabbing current position:
+    current_cell_robot = particle_filters[r_id].get_map_data().cells[robot_positions[r_id]]
+    current_position_robot = (current_cell_robot.center_x, current_cell_robot.center_y)
+
+    # Calculating possible new position for the robot:
+    # m_x, m_y = calculate_movement_along_axis(movement_distance, movement_angle)
+    new_robot_position = (-1, -1) # (current_position_robot[0] + m_x, current_position_robot[1] + m_y)
+    coordinate_allowed, cell_id = particle_filters[r_id].is_coordinate_allowed(new_robot_position[0], new_robot_position[1])
+
+    while not coordinate_allowed or particle_filters[r_id].did_particle_travel_through_wall(current_position_robot[0], current_position_robot[1], new_robot_position[0], new_robot_position[1]):
+        # Calculating new position:
+        m_x, m_y = calculate_movement_along_axis(movement_distance, movement_angle)
+        new_robot_position = (current_position_robot[0] + m_x, current_position_robot[1] + m_y)
+
+        coordinate_allowed, cell_id = particle_filters[r_id].is_coordinate_allowed(new_robot_position[0], new_robot_position[1])
+
+        # Updating angle:
+        movement_angle += 90
+
+    # Grabbing new cell of robot:
+    new_cell_robot = particle_filters[r_id].get_map_data().cells[cell_id]
+
+    # Processing movement in particle filter:
+    distance_between_cells = calculate_euclidean_distance(current_cell_robot.center_x, current_cell_robot.center_y, new_cell_robot.center_x, new_cell_robot.center_y)
+    angle_between_cells = current_cell_robot.get_relative_angle_to_cell(new_cell_robot)
+
+    particle_filters[r_id].process_movement(distance_between_cells, angle_between_cells, NOISE_THRESHOLD)
+
+    # Update robots position:
+    robot_positions[r_id] = cell_id
+
+    # Showing change if current robot is the one to localize:
+    if r_id == robot_to_view:
+        current_step = "Robot " + str(r_id) + " moves " + str(distance_between_cells) + "cm at " + str(
+            angle_between_cells) + " degrees."
+
+        map_renderer.update_map(particle_filters[r_id], None, particle_filters[r_id].get_guessed_position(),
+                                robot_positions[robot_to_view], current_step, robot_positions)
+
+
 def check_convergence():
     for probability in particle_filters[robot_to_view].probabilities_per_cell:
-        if probability > 0.5:
+        if probability > 0.7:
             plot_distance_error_vs_iterations(distance_errors_per_iteration)
             nr_of_iterations_till_convergence = len(distance_errors_per_iteration)
 
@@ -305,7 +364,7 @@ distance_cells = calculate_euclidean_distance(cell_1.center_x, cell_1.center_y, 
 map_renderer = MapRenderer(True, True, robot_to_view)
 map_renderer.initialize(particle_filters[0].get_map_data(), 1)
 map_renderer.update_map(particle_filters[robot_to_view], None, particle_filters[robot_to_view].get_guessed_position(),
-                        robot_positions[robot_to_view], "Initial")
+                        robot_positions[robot_to_view], "Initial", robot_positions)
 
 # 1. Processing evaluation sequence:
 with open(evaluation_file, 'r') as file:
@@ -428,29 +487,32 @@ while not convergence:
                 check_convergence()
 
     # 4. Sharing table with other robots (about other robots:
+    # for robot_id, robots_cell in enumerate(initialized_robots):
+    #     for sender_id, senders_cell in enumerate(initialized_robots):
+    #         # Skipping self:
+    #         if robot_id == sender_id:
+    #             continue
+    #
+    #         for robot_table_id, robot_tables_cell_id in enumerate(initialized_robots):
+    #
+    #             # Skipping robot that is the same as robot who is receiving:
+    #             if robot_id == robot_table_id or sender_id == robot_table_id:
+    #                 continue
+    #
+    #             # Process message hearing, robots too far away automatically skipped:
+    #             if not robot_receives_table_other_from_other(robot_id, sender_id, robot_table_id):
+    #                 continue
+    #
+    #             # Logging distance error:
+    #             if robot_id == robot_to_view:
+    #                 log_distance_error(robot_id)
+    #
+    #                 check_convergence()
+
+    # 5. Making all robots drive:
     for robot_id, robots_cell in enumerate(initialized_robots):
-        for sender_id, senders_cell in enumerate(initialized_robots):
-            # Skipping self:
-            if robot_id == sender_id:
-                continue
+        move_robot_one_iteration(robot_id)
 
-            for robot_table_id, robot_tables_cell_id in enumerate(initialized_robots):
-
-                # Skipping robot that is the same as robot who is receiving:
-                if robot_id == robot_table_id or sender_id == robot_table_id:
-                    continue
-
-                # Process message hearing, robots too far away automatically skipped:
-                if not robot_receives_table_other_from_other(robot_id, sender_id, robot_table_id):
-                    continue
-
-                # Logging distance error:
-                if robot_id == robot_to_view:
-                    log_distance_error(robot_id)
-
-                    check_convergence()
-
-    # 5. Checking for convergence:
 
 
     bb = 10
@@ -466,64 +528,3 @@ while not convergence:
 #
 
 bla = 10
-
-#
-# # 1. Situation we hear a message from robot 1 (90, 200):
-# table_0_1_270_320 = LocalizationTable.load_table("Files/LocalizationTable_0_1_270_320.csv", number_of_cells)
-#
-# table_1_0_90_320 = LocalizationTable.load_table("Files/LocalizationTable_1_0_90_320.csv", number_of_cells)
-# table_2_0_0_240 = LocalizationTable.load_table("Files/LocalizationTable_2_0_0_240.csv", number_of_cells)
-# table_4_0_329_141 = LocalizationTable.load_table("Files/LocalizationTable_4_0_329_141.csv", number_of_cells)
-#
-# table_0_2_180_240 = LocalizationTable.load_table("Files/LocalizationTable_0_2_180_240.csv", number_of_cells)
-# table_4_2_213_144 = LocalizationTable.load_table("Files/LocalizationTable_4_2_213_144.csv", number_of_cells)
-#
-# table_0_4_148_141 = LocalizationTable.load_table("Files/LocalizationTable_0_4_148_141.csv", number_of_cells)
-# table_2_4_34_144 = LocalizationTable.load_table("Files/LocalizationTable_2_4_34_144.csv", number_of_cells)
-#
-# table_2_3_157_303 = LocalizationTable.load_table("Files/LocalizationTable_2_3_157_303.csv", number_of_cells)
-#
-# # 1. Robot 0 receives a message from robot 1 at 270 degree 320cm:
-# particle_filters[0].process_table_own(table_0_1_270_320, particle_filters[1].probabilities_per_cell)
-#
-# map_renderer.update_map(particle_filters[0], None, particle_filters[0].get_guessed_position())
-#
-# # 2. Robot 0 broadcasts message with his table to robot 1, 2, and 4:
-# particle_filters[1].process_table_own(table_1_0_90_320, particle_filters[0].probabilities_per_cell)
-# particle_filters[2].process_table_own(table_2_0_0_240, particle_filters[0].probabilities_per_cell)
-# particle_filters[4].process_table_own(table_4_0_329_141, particle_filters[0].probabilities_per_cell)
-#
-# # 3. Robot 0 receives message from robot 2 at 180 degrees 240cm:
-# particle_filters[0].process_table_own(table_0_2_180_240, particle_filters[2].probabilities_per_cell)
-# particle_filters[4].process_table_own(table_4_2_213_144, particle_filters[2].probabilities_per_cell)
-#
-# map_renderer.update_map(particle_filters[0], None, particle_filters[0].get_guessed_position())
-#
-# # 4. Robot 0 receives message from robot 4 at 148 degrees 141cm
-# particle_filters[0].process_table_own(table_0_4_148_141, particle_filters[4].probabilities_per_cell)
-# particle_filters[2].process_table_own(table_2_4_34_144, particle_filters[4].probabilities_per_cell)
-#
-# map_renderer.update_map(particle_filters[0], None, particle_filters[0].get_guessed_position())
-#
-# # 5. Robot 3 cannot hear anyone so starts moving:
-# particle_filters[3].process_movement(113, 0, NOISE_THRESHOLD)  # 223 -> 182
-# particle_filters[3].process_movement(460, 90, NOISE_THRESHOLD)  # 182 -> 193
-# particle_filters[3].process_movement(40, 0, NOISE_THRESHOLD)  # 193 -> 180
-#
-# #map_renderer.update_map(particle_filters[2], None, particle_filters[2].get_guessed_position())
-#
-# # 6. Robot 3 enters the room and robot 2 hears from him at 157 degrees 303cm:
-# particle_filters[2].process_table_own(table_2_3_157_303, particle_filters[3].probabilities_per_cell)
-#
-# #map_renderer.update_map(particle_filters[2], None, particle_filters[2].get_guessed_position())
-#
-# # Robot 2 broadcasts these new probabilities to 0 and 4
-# probs_normalized = particle_filters[2].get_normalized_probabilities_per_cell()
-#
-# particle_filters[0].process_table_own(table_0_2_180_240, particle_filters[2].probabilities_per_cell)
-# particle_filters[4].process_table_own(table_4_2_213_144, particle_filters[2].probabilities_per_cell)
-#
-# map_renderer.update_map(particle_filters[0], None, particle_filters[0].get_guessed_position())
-#
-# if not particle_filters[0].check_particles_per_cell():
-#     print("ERROR!!!")
