@@ -146,21 +146,22 @@ def robot_hears_another_robot(r_id, s_id):
     cell_robot = map_data.cells[robot_positions[r_id]]
     cell_sender = map_data.cells[robot_positions[s_id]]
 
-    # Finding distance and angle between robots based on shortest path:
+    # Finding distance based on shortest path:
     distance = int(map_data.shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
-
-    if particle_filters[0].are_cells_los(cell_robot.id, cell_sender.id):
-        angle = cell_robot.get_relative_angle_to_cell(cell_sender)
-    else:
-        path_between_robots = map_data.get_path_between_cells(cell_robot.id, cell_sender.id)
-
-        angle = particle_filters[r_id].get_relative_angle_between_cells_based_on_path(cell_robot, path_between_robots)
 
     # Checking if we can hear the robot:
     if distance > MAX_DISTANCE_HEARING:
         print(
             "Robot" + str(r_id) + " cannot hear robot " + str(s_id) + ", distance too big (" + str(distance) + ")")
         return False
+
+    # Determine angle between robots:
+    if particle_filters[0].are_cells_los(cell_robot.id, cell_sender.id):
+        angle = cell_robot.get_relative_angle_to_cell(cell_sender)
+    else:
+        path_between_robots = map_data.get_path_between_cells(cell_robot.id, cell_sender.id)
+
+        angle = particle_filters[r_id].get_relative_angle_between_cells_based_on_path(cell_robot, path_between_robots)
 
     current_step = "Robot " + str(r_id) + " heard from robot " + str(s_id) + " at " + str(
         angle) + " degrees and " + str(distance) + "cm."
@@ -190,14 +191,22 @@ def robot_hears_another_robot(r_id, s_id):
 def robot_receives_table_own_from_other(r_id, s_id):
     cell_robot = particle_filters[r_id].get_map_data().cells[robot_positions[r_id]]
     cell_sender = particle_filters[r_id].get_map_data().cells[robot_positions[s_id]]
-    angle = cell_sender.get_relative_angle_to_cell(cell_robot)
 
-    distance = int(particle_filters[r_id].get_map_data().shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
+    # Determine distance between robots:
+    distance = int(map_data.shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
 
     if distance > MAX_DISTANCE_HEARING:
         print(
             "Robot" + str(r_id) + " cannot hear robot " + str(s_id) + ", distance too big (" + str(distance) + "). Skipping own table sharing.")
         return False
+
+    # Determine angle between robots:
+    if particle_filters[0].are_cells_los(cell_sender.id, cell_robot.id):
+        angle = cell_sender.get_relative_angle_to_cell(cell_robot)
+    else:
+        path_between_robots = map_data.get_path_between_cells(cell_sender.id, cell_robot.id)
+
+        angle = particle_filters[r_id].get_relative_angle_between_cells_based_on_path(cell_sender, path_between_robots)
 
     current_step = "Robot " + str(r_id) + " received a table from robot " + str(s_id) + " about robot " + str(r_id)
 
@@ -225,19 +234,28 @@ def robot_receives_table_own_from_other(r_id, s_id):
 
 
 def robot_receives_table_other_from_other(r_id, s_id, t_robot_id):
-    cell_robot = particle_filters[r_id].get_map_data().cells[robot_positions[r_id]]
-    cell_table_robot = particle_filters[r_id].get_map_data().cells[robot_positions[t_robot_id]]
-    cell_sender = particle_filters[r_id].get_map_data().cells[robot_positions[s_id]]
-    angle = cell_sender.get_relative_angle_to_cell(cell_table_robot)
+    cell_robot = map_data.cells[robot_positions[r_id]]
+    # Sender hears from table_robot
+    cell_sender = map_data.cells[robot_positions[s_id]]
+    cell_table_robot = map_data.cells[robot_positions[t_robot_id]]
 
-    distance_receiver_sender = int(particle_filters[r_id].get_map_data().shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
-    distance_sender_other = int(particle_filters[r_id].get_map_data().shortest_distances[cell_table_robot.id][cell_sender.id]) + 20 + 20
+    # Check if robots can hear each other:
+    distance_receiver_sender = int(map_data.shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
+    distance_sender_other = int(map_data.shortest_distances[cell_table_robot.id][cell_sender.id]) + 20 + 20
 
     if distance_sender_other > MAX_DISTANCE_HEARING or distance_receiver_sender > MAX_DISTANCE_HEARING:
         print(
             "Robot" + str(s_id) + " cannot hear robot " + str(t_robot_id) + ", distance too big (" + str(
                 distance_sender_other) + "). Skipping table sharing about this robot")
         return False
+
+    # Determine angle between robots:
+    if particle_filters[0].are_cells_los(cell_sender.id, cell_table_robot.id):
+        angle = cell_sender.get_relative_angle_to_cell(cell_table_robot)
+    else:
+        path_between_robots = map_data.get_path_between_cells(cell_sender.id, cell_table_robot.id)
+
+        angle = particle_filters[r_id].get_relative_angle_between_cells_based_on_path(cell_sender, path_between_robots)
 
     current_step = "Robot " + str(r_id) + " received a table from robot " + str(s_id) + " about robot " + str(t_robot_id)
 
