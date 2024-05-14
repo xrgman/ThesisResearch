@@ -11,7 +11,7 @@ from typing import List
 
 # NUMBER_OF_PARTICLES = 10108  # Precisely 38 particles per cell this way
 CELL_SIZE = 40
-NOISE_DEVIATION = 1
+NOISE_DEVIATION = 5
 
 DISTANCE_ERROR_CM = 20
 ANGLE_ERROR_DEGREE = 25
@@ -204,8 +204,8 @@ class ParticleFilter:
 
             return
 
-        #print("Processing movement of " + str(distance) + "cm at " + str(angle) + " degrees. X: " + str(
-            #movement_x) + ", Y: " + str(movement_y))
+        # print("Processing movement of " + str(distance) + "cm at " + str(angle) + " degrees. X: " + str(
+        # movement_x) + ", Y: " + str(movement_y))
 
         # Resetting particles per cell:
         self.reset_particles_per_cell()
@@ -226,7 +226,8 @@ class ParticleFilter:
             # Checking if new coordinates are allowed:
             coordinate_allowed, cell_id = self.is_coordinate_allowed(new_x, new_y)
 
-            if coordinate_allowed and not self.did_particle_travel_through_wall(particle.x_coordinate, particle.y_coordinate, new_x, new_y):
+            if coordinate_allowed and not self.did_particle_travel_through_wall(particle.x_coordinate,
+                                                                                particle.y_coordinate, new_x, new_y):
                 correct_particles.append(particle.ID)
 
                 # Setting new coordinates of the particle:
@@ -293,7 +294,6 @@ class ParticleFilter:
 
         return cell_start.get_relative_angle_to_cell(current_end_cell)
 
-
         # Calculate angle between at max 3 consecutive cells:
         # number_of_cells_used = 3 if len(path) >= 4 else len(path)
         # angle_sum = 0
@@ -306,8 +306,6 @@ class ParticleFilter:
         #     angle_sum += relative_angle
         #
         # return angle_sum / number_of_cells_used
-
-
 
         # first_cell_in_path = self.map_data.cells[path[1]]
         #
@@ -345,7 +343,8 @@ class ParticleFilter:
             correct_particle_idx = empirical_distribution[i]
             chosen_particle = self.particles[correct_particle_idx]
 
-            a, cell_id_chosen_particle = self.is_coordinate_allowed(chosen_particle.x_coordinate, chosen_particle.y_coordinate)
+            a, cell_id_chosen_particle = self.is_coordinate_allowed(chosen_particle.x_coordinate,
+                                                                    chosen_particle.y_coordinate)
 
             while True:
                 noise1 = calculate_gaussian_noise(NOISE_DEVIATION, noise_threshold)
@@ -433,7 +432,8 @@ class ParticleFilter:
         probabilities_per_row = self.calculate_probabilities_per_row(localization_table, probabilities_per_cell_other)
 
         # 3. Calculating probabilities per cell, using probabilities per row:
-        self.calculate_new_probabilities_per_cell_using_probabilities(self.map_data.number_of_cells, probabilities_per_row)
+        self.calculate_new_probabilities_per_cell_using_probabilities(self.map_data.number_of_cells,
+                                                                      probabilities_per_row)
 
         # 4. Resample particles based on the new probabilities:
         self.resample_particles_based_on_cell_probability()
@@ -442,7 +442,8 @@ class ParticleFilter:
         self.normalize_particle_weights()
 
     # This type of table tells us which cells I cannot be in by looking at columns with all zeros.
-    def process_table_other_of_myself(self, localization_table: LocalizationTable, probabilities_per_cell_other: List[float]):
+    def process_table_other_of_myself(self, localization_table: LocalizationTable,
+                                      probabilities_per_cell_other: List[float]):
         # 0. Flipping the table and then overlay it onto the one we already have:
         # Assumption, if we not have the table itself yet, we assume we do as sound travels to each robot so each should already have the table before sharing:
         localization_table.flip()
@@ -460,7 +461,8 @@ class ParticleFilter:
 
         # 3. Calculating probabilities per cell, using probabilities per row:
         # self.calculate_new_probabilities_per_cell(localization_table.total_number_of_cells, invalid_cells)
-        self.calculate_new_probabilities_per_cell_using_probabilities(self.map_data.number_of_cells, probabilities_per_row)
+        self.calculate_new_probabilities_per_cell_using_probabilities(self.map_data.number_of_cells,
+                                                                      probabilities_per_row)
 
         # 4. Resample particles based on the new probabilities:
         self.resample_particles_based_on_cell_probability()
@@ -470,7 +472,9 @@ class ParticleFilter:
 
     # This tells us about two other robots, namely the sender (Invalid columns) and receiver (Invalid rows)
     # Again we assume here that we also have a table about them:
-    def process_table_other(self, localization_table: LocalizationTable, probabilities_per_cell_other_robot: List[float], probabilities_per_cell_other_sender: List[float]):
+    def process_table_other(self, localization_table: LocalizationTable,
+                            probabilities_per_cell_other_robot: List[float],
+                            probabilities_per_cell_other_sender: List[float]):
         # 0. Determining invalid cells:
         invalid_cells_other_robot = localization_table.get_invalid_rows()
         invalid_cells_other_sender = localization_table.get_invalid_columns()
@@ -490,10 +494,12 @@ class ParticleFilter:
             self.tables_processed += 1
 
             # 2. Calculating new probabilities per row:
-            probabilities_per_row = self.calculate_probabilities_per_row(localization_table, probabilities_per_cell_other_robot)
+            probabilities_per_row = self.calculate_probabilities_per_row(localization_table,
+                                                                         probabilities_per_cell_other_robot)
 
             # 3. Calculating probabilities per cell, using probabilities per row:
-            self.calculate_new_probabilities_per_cell_using_probabilities(self.map_data.number_of_cells, probabilities_per_row)
+            self.calculate_new_probabilities_per_cell_using_probabilities(self.map_data.number_of_cells,
+                                                                          probabilities_per_row)
 
             # 4. Resample particles based on the new probabilities:
             self.resample_particles_based_on_cell_probability()
@@ -513,10 +519,12 @@ class ParticleFilter:
             self.tables_processed += 1
 
             # 2. Calculating new probabilities per row:
-            probabilities_per_row = self.calculate_probabilities_per_row(localization_table, probabilities_per_cell_other_sender)
+            probabilities_per_row = self.calculate_probabilities_per_row(localization_table,
+                                                                         probabilities_per_cell_other_sender)
 
             # 3. Calculating probabilities per cell, using probabilities per row:
-            self.calculate_new_probabilities_per_cell_using_probabilities(self.map_data.number_of_cells, probabilities_per_row)
+            self.calculate_new_probabilities_per_cell_using_probabilities(self.map_data.number_of_cells,
+                                                                          probabilities_per_row)
 
             # 4. Resample particles based on the new probabilities:
             self.resample_particles_based_on_cell_probability()
@@ -524,7 +532,8 @@ class ParticleFilter:
             # 5. Normalize particle weights:
             self.normalize_particle_weights()
 
-    def calculate_probabilities_per_row(self, localization_table: LocalizationTable, probabilities_per_cell_other: List[float]):
+    def calculate_probabilities_per_row(self, localization_table: LocalizationTable,
+                                        probabilities_per_cell_other: List[float]):
         # 1. Start overlaying probabilities over the table::
         probabilities_per_row = [0] * self.map_data.number_of_cells
 
@@ -583,7 +592,8 @@ class ParticleFilter:
                 self.probabilities_per_cell[cell_id] += row_probability
             else:
                 self.probabilities_per_cell[cell_id] = (((self.tables_processed - 1) * current_cell_probability +
-                                                         (0 if cell_invalid else row_probability)) / self.tables_processed)
+                                                         (
+                                                             0 if cell_invalid else row_probability)) / self.tables_processed)
 
             # If cell is valid, update the weight of the particles in it:
             if cell_invalid:
@@ -728,7 +738,8 @@ class ParticleFilter:
                     self.particles_per_cell[x[0]] += 1
 
                     particle_difference -= 1
-                elif particle_difference > 0 >= cells_with_added_particles_count and not more_added_than_removed and not x[3]:
+                elif particle_difference > 0 >= cells_with_added_particles_count and not more_added_than_removed and not \
+                x[3]:
                     self.particles_per_cell[x[0]] += 1
 
                     particle_difference -= 1
@@ -789,3 +800,11 @@ class ParticleFilter:
 
         for particle_in_cell in particles_in_cell:
             self.particles[particle_in_cell.ID].update_weight(new_weight)
+
+    def check_convergence(self) -> bool:
+        particle_array = np.array([(p.x_coordinate, p.y_coordinate) for p in self.particles])
+
+        variance = np.var(particle_array, axis=0)
+
+        return np.all(variance < 700)
+

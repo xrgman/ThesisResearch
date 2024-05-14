@@ -13,12 +13,13 @@ import random
 
 MAX_DISTANCE_HEARING = 350
 
-NUM_ROBOTS = 3
+NUM_ROBOTS = 6
 NUMBER_OF_PARTICLES = 10108
 READ_POSITIONS_FILE = False
 MOVE_OUT_OF_SCOPE_ROBOTS = False
-NOISE_THRESHOLD = 5
+NOISE_THRESHOLD = 10
 FAST_TABLE_APPROACH = True
+CONVERGENCE_PERCENTAGE = 0.7
 MOVE_ROBOTS = True
 number_of_cells = -1
 
@@ -368,8 +369,6 @@ def move_robot_one_iteration(r_id):
 
 
 def move_robot_random_direction(r_id):
-    movement_distance = 40  # Move approximately one cell.
-
     # Grabbing robots current position:
     current_cell_robot = particle_filters[r_id].get_map_data().cells[robot_positions[r_id]]
     current_x = current_cell_robot.center_x
@@ -377,6 +376,7 @@ def move_robot_random_direction(r_id):
 
     # If robot can hear one of the other robots, then move in the direction of the furthest robot:
     robots_it_can_hear = []
+    moved_to_cell_id = -1
 
     for robot_id, robot_cell in enumerate(robot_positions):
         if robot_id == r_id:
@@ -385,7 +385,7 @@ def move_robot_random_direction(r_id):
         distance_between_robots = map_data.shortest_distances[current_cell_robot.id][robot_cell]
 
         if distance_between_robots <= MAX_DISTANCE_HEARING:
-            robots_it_can_hear.append(robot_id, robot_cell, distance_between_robots)
+            robots_it_can_hear.append((robot_id, robot_cell, distance_between_robots))
 
     if len(robots_it_can_hear) > 0:
         # Sorting highest distance first:
@@ -396,36 +396,42 @@ def move_robot_random_direction(r_id):
 
         # Moving robot:
         move_robot_to_cell(r_id, path_between_robots[1])
+        moved_to_cell_id = path_between_robots[1]
+    else:
+        # If robot cannot hear anyone, move to one of eight cells randomly:
+        moved_successfully = False
 
-        return
+        while not moved_successfully:
+            random_direction = possible_directions[random.randint(0, 7)]
 
-    # If robot cannot hear anyone, move to one of eight cells randomly:
-    moved_successfully = False
+            # Calculating movement and new coordinates:
+            m_x, m_y = calculate_movement_along_axis(random_direction[1], random_direction[0])
 
-    while not moved_successfully:
-        random_direction = possible_directions[random.randint(0, 7)]
+            new_x = current_x + m_x
+            new_y = current_y + m_y
 
-        # Calculating movement and new coordinates:
-        m_x, m_y = calculate_movement_along_axis(random_direction[1], random_direction[0])
+            # Checking if new coordinates are allowed:
+            coordinate_allowed, cell_id = particle_filters[r_id].is_coordinate_allowed(new_x, new_y)
 
-        new_x = current_x + m_x
-        new_y = current_y + m_y
+            if coordinate_allowed and cell_id not in robot_positions:
+                if not particle_filters[r_id].did_particle_travel_through_wall(current_x, current_y, new_x, new_y):
+                    moved_successfully = True
 
-        # Checking if new coordinates are allowed:
-        coordinate_allowed, cell_id = particle_filters[r_id].is_coordinate_allowed(new_x, new_y)
+                    move_robot_to_cell(r_id, cell_id)
+                    moved_to_cell_id = cell_id
 
-        if coordinate_allowed and cell_id not in robot_positions:
-            if particle_filters[r_id].did_particle_travel_through_wall(current_x, current_y, new_x, new_y):
-                moved_successfully = True
+                    break
 
-                move_robot_to_cell(r_id, cell_id)
+    current_step = "Robot " + str(r_id) + " moves to cell " + str(moved_to_cell_id)
 
-                break
+    map_renderer.update_map(particle_filters[robot_to_view], None,
+                            particle_filters[robot_to_view].get_guessed_position(),
+                            robot_positions[robot_to_view], current_step, robot_positions)
 
 
 def check_convergence():
     for probability in particle_filters[robot_to_view].probabilities_per_cell:
-        if probability > 0.7:
+        if probability > CONVERGENCE_PERCENTAGE:
             plot_distance_error_vs_iterations(distance_errors_per_iteration)
             nr_of_iterations_till_convergence = len(distance_errors_per_iteration)
 
@@ -660,7 +666,8 @@ while not convergence:
     # 5. Making all robots drive:
     if MOVE_ROBOTS:
         for robot_id, robots_cell in enumerate(initialized_robots):
-            move_robot_one_iteration(robot_id)
+            # move_robot_one_iteration(robot_id)
+            move_robot_random_direction(robot_id)
 
             if robot_id == robot_to_view:
                 log_distance_error(robot_id)

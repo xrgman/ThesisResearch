@@ -151,7 +151,7 @@ class MapRenderer:
 
                 if selected_cell_idx == i:
                     pygame.draw.rect(self.window, (0, 0, 255), rect)
-                elif i in robot_positions:
+                elif robot_positions is not None and i in robot_positions:
                     robot_id = robot_positions.index(i)
                     color = colors_robots[robot_id]
 
@@ -195,13 +195,13 @@ class MapRenderer:
              (position[1] // self.scale) + BORDER_HEIGHT),
             5)
 
-    def draw_line_between_cells(self, cell1: Cell, cell2: Cell, adjust_start_x, adjust_start_y, adjust_stop_x, adjust_stop_y):
+    def draw_line_between_cells(self, cell1: Cell, cell2: Cell, adjust_start_x, adjust_start_y, adjust_stop_x, adjust_stop_y, color):
         start_x = cell1.get_center()[0] // self.scale + BORDER_WIDTH + adjust_start_x
         start_y = cell1.get_center()[1] // self.scale + BORDER_HEIGHT + adjust_start_y
         stop_x = cell2.get_center()[0] // self.scale + BORDER_WIDTH + adjust_stop_x
         stop_y = cell2.get_center()[1] // self.scale + BORDER_HEIGHT + adjust_stop_y
 
-        pygame.draw.line(self.window, (255, 0, 0), (start_x, start_y), (stop_x, stop_y), 5)
+        pygame.draw.line(self.window, color, (start_x, start_y), (stop_x, stop_y), 5)
 
         pygame.display.flip()
 
