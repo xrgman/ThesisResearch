@@ -8,7 +8,7 @@ import math
 import sys
 import os
 
-WINDOW_WIDTH = 590
+WINDOW_WIDTH = 630
 WINDOW_HEIGHT = 955
 
 BORDER_WIDTH = 5
@@ -108,7 +108,7 @@ class MapRenderer:
             self.draw_position(guess_position, (0, 204, 255))
 
         # Draw information at top:
-        self.draw_top_information(particle_filter, cell_to_find, current_step, guess_position)
+        self.draw_top_information(particle_filter, cell_to_find, current_step, guess_position, robot_positions)
 
         # Present the renderer
         pygame.display.flip()
@@ -205,7 +205,7 @@ class MapRenderer:
 
         pygame.display.flip()
 
-    def draw_top_information(self, particle_filter: ParticleFilter, cell_to_find: int, current_step, guess_position):
+    def draw_top_information(self, particle_filter: ParticleFilter, cell_to_find: int, current_step, guess_position, robot_positions):
         if cell_to_find is not None:
             # Writing current amount of particles in cell to localize:
             particles_in_cell = particle_filter.particles_per_cell[cell_to_find]
@@ -238,7 +238,11 @@ class MapRenderer:
             rect = pygame.Rect(495, height_color_row, 20, 10)
             pygame.draw.rect(self.window, color, rect)
 
-            text_surface = self.font_big.render("Robot " + str(r_id), True, (0, 0, 0))
+            if robot_positions is not None and r_id < len(robot_positions):
+                text_surface = self.font_big.render("Robot " + str(r_id) + " - " + str(robot_positions[r_id]), True, (0, 0, 0))
+            else:
+                text_surface = self.font_big.render("Robot " + str(r_id), True, (0, 0, 0))
+
             self.window.blit(text_surface, (525, height_color_row - 2))
 
             height_color_row += 15

@@ -1,10 +1,28 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+from Util.Util import clear_all_files_in_folder
+
+CLEAR_FILES = True
 
 PLOT_NR_ROBOTS_VS_NR_ITERATIONS = True
 PLOT_NR_ROBOTS_VS_DISTANCE_ERROR = True
 PLOT_AVERAGE_ERROR_PER_ITERATION = False
+
+folder_distance_results = "Results/Algorithm_WM_Results/Distance"
+folder_errors_results = "Results/Algorithm_WM_Results/Errors"
+folder_iterations_results = "Results/Algorithm_WM_Results/Iterations"
+folder_messages_processed_results = "Results/Algorithm_WM_Results/MessagesProcessed"
+folder_results = "Results/Algorithm_WM_Results/Results"
+folder_rmse_results = "Results/Algorithm_WM_Results/RMSE"
+
+if CLEAR_FILES:
+    clear_all_files_in_folder(folder_distance_results)
+    clear_all_files_in_folder(folder_errors_results)
+    clear_all_files_in_folder(folder_iterations_results)
+    clear_all_files_in_folder(folder_messages_processed_results)
+    clear_all_files_in_folder(folder_results)
+    clear_all_files_in_folder(folder_rmse_results)
 
 
 def calculate_average_iterations_and_errors(iterations_data):

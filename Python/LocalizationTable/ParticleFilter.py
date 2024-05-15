@@ -723,6 +723,9 @@ class ParticleFilter:
         more_added_than_removed = particles_increased > particles_decreased
         particle_difference = np.abs(np.sum(self.particles_per_cell) - self.number_of_particles)
 
+        if particle_difference != (np.abs(particles_increased - particles_decreased)):
+            print("ERRORROROROROR")
+
         # TODO: Fix while loop stuck when none of the cells are increased.
         cells_with_added_particles_count = np.sum(1 for x in new_particles_per_cell if x[3])
 
@@ -805,6 +808,8 @@ class ParticleFilter:
         particle_array = np.array([(p.x_coordinate, p.y_coordinate) for p in self.particles])
 
         variance = np.var(particle_array, axis=0)
+
+
 
         return np.all(variance < 700)
 

@@ -8,6 +8,7 @@ import copy
 
 from ParticleFilter import ParticleFilter, calculate_movement_along_axis
 from MapRenderer import MapRenderer
+from Util.Util import append_line_to_file
 import threading
 import time
 
@@ -84,11 +85,6 @@ def keep_running():
 
         if not map_renderer.update_map(particle_filter, current_position, (guess_x, guess_y), None, None, None):
             break
-
-
-def append_line_to_file(filename, line):
-    with open(filename, "a") as file:
-        file.write(str(line) + "\n")
 
 
 def run_convergence_sequence(start_position, start_angle, movement_data, stop_cell):
