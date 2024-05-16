@@ -16,8 +16,8 @@ import random
 
 MAX_DISTANCE_HEARING = 350
 
-NUM_ROBOTS = 3
-NUM_ITERATIONS = 1
+NUM_ROBOTS = 6
+NUM_ITERATIONS = 10
 NUMBER_OF_PARTICLES = 10108
 READ_POSITIONS_FILE = False
 MOVE_OUT_OF_SCOPE_ROBOTS = False
@@ -28,9 +28,9 @@ RECEIVE_OTHER_OWN = False
 MOVE_ROBOTS = True
 number_of_cells = -1
 
-INIT_MIN_DISTANCE_BETWEEN_ROBOTS = 100
+INIT_MIN_DISTANCE_BETWEEN_ROBOTS = 200
 
-SAVE_RESULTS = True
+SAVE_RESULTS = False
 
 robot_to_view = 0
 robot_to_view_cell: Cell = None
@@ -82,7 +82,7 @@ def initialize_robots_randomly():
 
         while not robot_placed:
             # Picking a random cell to place robot in:
-            random_cell_id = random.randint(0, number_of_cells)
+            random_cell_id = random.randint(0, number_of_cells - 1)
             random_cell = map_data.cells[random_cell_id]
 
             random_cell_valid = True
@@ -108,7 +108,7 @@ def initialize_robots_randomly():
 
 
 def save_particles_to_file(filename):
-    particles = particle_filter.get_particles()
+    particles = particle_filters[robot_to_view].get_particles()
 
     with open("Output/" + filename, 'w') as json_file:
         json.dump([obj.__dict__ for obj in particles], json_file, indent=4)
@@ -142,14 +142,43 @@ def coordinate_inside_door(x, y):
     return False
 
 
-# This function is for PF evaluation, but saved here for now:
-def calculate_current_robot_position():
-    x_position = 0
-    y_position = 0
+def draw_effect_table(r_id, s_id):
+    cell_robot = map_data.cells[robot_positions[r_id]]
+    cell_sender = map_data.cells[robot_positions[s_id]]
 
-    for particle in particle_filter.get_particles():
-        x_position += particle.get_weight() * particle.x_coordinate
-        y_position += particle.get_weight() * particle.y_coordinate
+    # Finding distance based on shortest path:
+    distance = int(map_data.shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
+
+    # Checking if we can hear the robot:
+    if distance > MAX_DISTANCE_HEARING:
+        # print(
+        #     "Robot" + str(r_id) + " cannot hear robot " + str(s_id) + ", distance too big (" + str(distance) + ")")
+        return False
+
+    # Determine angle between robots:
+    if particle_filters[0].are_cells_los(cell_robot.id, cell_sender.id):
+        angle = cell_robot.get_relative_angle_to_cell(cell_sender)
+    else:
+        path_between_robots = map_data.get_path_between_cells(cell_robot.id, cell_sender.id)
+
+        angle = particle_filters[r_id].get_relative_angle_between_cells_based_on_path(cell_robot, path_between_robots)
+
+    # Check if table already exists in cache, else generate it:
+    possible_filename = "Files_" + particle_filters[0].get_map_data().name + "/LocalizationTable_" + str(
+        r_id) + "_" + str(s_id) + "_" + str(
+        int(angle)) + "_" + str(distance) + ".csv"
+
+    if os.path.exists(possible_filename):
+        table = LocalizationTable.load_table(possible_filename, number_of_cells)
+    else:
+        table = particle_filters[r_id].generate_table(s_id, distance, angle)
+        # table.save_table(possible_filename)
+
+    invalid_cells = table.get_invalid_rows()
+
+    map_renderer.color_cells(invalid_cells, (160, 50, 168))
+
+    return True
 
 
 def robot_hears_another_robot(r_id, s_id):
@@ -161,8 +190,8 @@ def robot_hears_another_robot(r_id, s_id):
 
     # Checking if we can hear the robot:
     if distance > MAX_DISTANCE_HEARING:
-        print(
-            "Robot" + str(r_id) + " cannot hear robot " + str(s_id) + ", distance too big (" + str(distance) + ")")
+        # print(
+        #     "Robot" + str(r_id) + " cannot hear robot " + str(s_id) + ", distance too big (" + str(distance) + ")")
         return False
 
     # Determine angle between robots:
@@ -206,8 +235,8 @@ def robot_receives_table_own_from_other(r_id, s_id):
     distance = int(map_data.shortest_distances[cell_robot.id][cell_sender.id]) + 20 + 20
 
     if distance > MAX_DISTANCE_HEARING:
-        print(
-            "Robot" + str(r_id) + " cannot hear robot " + str(s_id) + ", distance too big (" + str(distance) + "). Skipping own table sharing.")
+        # print(
+        #     "Robot" + str(r_id) + " cannot hear robot " + str(s_id) + ", distance too big (" + str(distance) + "). Skipping own table sharing.")
         return False
 
     # Determine angle between robots:
@@ -443,7 +472,10 @@ def get_distance_error(r_id):
     distance_error = calculate_euclidean_distance(robot_cell.center_x, robot_cell.center_y, robot_guessed_position[0],
                                                   robot_guessed_position[1])
 
-    return distance_error
+    mse_x = np.power(robot_cell.center_x - round(robot_guessed_position[0]), 2)
+    mse_y = np.power(robot_cell.center_y - round(robot_guessed_position[1]), 2)
+
+    return distance_error, mse_x, mse_y
 
 
 def plot_distance_error_vs_iterations(distance_errors):
@@ -510,13 +542,16 @@ if READ_POSITIONS_FILE:
                 move_robot_to_cell(robot_id, cell_to_move_to)
 
 # Running until convergence approach:
-convergence = False
 
 
 for it in range(NUM_ITERATIONS):
     # Place the robots at random positions:
     if not READ_POSITIONS_FILE:
         initialize_robots_randomly()
+
+    # Reset all particle filter objects:
+    for particle_filter in particle_filters:
+        particle_filter.initialize_particles_uniformly()
 
     # Store initial positions
     robot_positions_initial = copy.deepcopy(robot_positions)
@@ -533,6 +568,13 @@ for it in range(NUM_ITERATIONS):
     robots_heard = [set() for _ in range(NUM_ROBOTS)]
     distance_errors = []
     distance_errors_per_iteration = []
+
+    mse_x_sum = 0
+    mse_y_sum = 0
+    number_of_steps = 0
+    convergence = False
+
+    # draw_effect_table(0, 5)
 
     while not convergence:
         out_of_scope_robots = []
@@ -555,7 +597,12 @@ for it in range(NUM_ITERATIONS):
 
                     # Logging distance error:
                     if robot_id == robot_to_view:
-                        distance_errors.append(get_distance_error(robot_id))
+                        distance_error, mse_x, mse_y = get_distance_error(robot_id)
+
+                        distance_errors.append(distance_error)
+                        mse_x_sum += mse_x
+                        mse_y_sum += mse_y
+                        number_of_steps += 1
 
                         nr_of_messages_processed += 1
 
@@ -618,7 +665,12 @@ for it in range(NUM_ITERATIONS):
 
                     # Logging distance error:
                     if robot_id == robot_to_view:
-                        distance_errors.append(get_distance_error(robot_id))
+                        distance_error, mse_x, mse_y = get_distance_error(robot_id)
+
+                        distance_errors.append(distance_error)
+                        mse_x_sum += mse_x
+                        mse_y_sum += mse_y
+                        number_of_steps += 1
 
                         if check_convergence(robot_id):
                             convergence = True
@@ -655,7 +707,12 @@ for it in range(NUM_ITERATIONS):
                 distance = move_robot_random_direction(robot_id)
 
                 if robot_id == robot_to_view:
-                    distance_errors.append(get_distance_error(robot_id))
+                    distance_error, mse_x, mse_y = get_distance_error(robot_id)
+
+                    distance_errors.append(distance_error)
+                    mse_x_sum += mse_x
+                    mse_y_sum += mse_y
+                    number_of_steps += 1
 
                     distance_moved += distance
 
@@ -664,7 +721,9 @@ for it in range(NUM_ITERATIONS):
                         break
 
         # Keeping track of the number of iterations:
-        distance_errors_per_iteration.append(get_distance_error(robot_id))
+        distance_error, mse_x, mse_y = get_distance_error(robot_to_view)
+        distance_errors_per_iteration.append(distance_error)
+
         nr_of_iterations += 1
 
     # Determine which robots were part of process:
@@ -673,31 +732,43 @@ for it in range(NUM_ITERATIONS):
     print("Total distance moved: " + str(distance_moved) + "cm")
     print("Total number of iterations: " + str(nr_of_iterations))
     print("Total number of messages processed: " + str(nr_of_messages_processed))
+    print("Final error: " + str(distance_errors[len(distance_errors) - 1]))
     print("Robots heard: " + str(robots_used_in_progress))
 
     plot_distance_error_vs_iterations(distance_errors_per_iteration)
 
     if SAVE_RESULTS:
         num_robots_in_iterations = len(robots_used_in_progress)
+        filename_addition = str(num_robots_in_iterations) + "_robots" + ("_moving" if MOVE_ROBOTS else "") + ("_own" if RECEIVE_OTHER_OWN else "")
+        filename_extension = ".txt"
 
         # Saving total distance moved:
-        filename_distance = base_folder_results + "Distance/" + str(num_robots_in_iterations) + "_robots.txt"
+        if MOVE_ROBOTS:
+            filename_distance = base_folder_results + "Distance/" + filename_addition + filename_extension
 
-        append_line_to_file(filename_distance, distance_moved)
+            append_line_to_file(filename_distance, distance_moved)
 
         # Saving Nr. of iterations:
-        filename_iterations = base_folder_results + "Iterations/" + str(num_robots_in_iterations) + "_robots.txt"
+        filename_iterations = base_folder_results + "Iterations/" + filename_addition + filename_extension
 
         append_line_to_file(filename_iterations, nr_of_iterations)
 
         # Saving Nr. of messages:
-        filename_messages = base_folder_results + "MessagesProcessed/" + str(num_robots_in_iterations) + "_robots.txt"
+        filename_messages = base_folder_results + "MessagesProcessed/" + filename_addition + filename_extension
 
         append_line_to_file(filename_messages, nr_of_messages_processed)
 
+        # Saving RMSE:
+        filename_rmse = base_folder_results + "RMSE/" + filename_addition + filename_extension
+        mse_x = np.sqrt(mse_x / number_of_steps)
+        mse_y = np.sqrt(mse_y / number_of_steps)
+
+        rmse = np.sqrt(mse_x * mse_x + mse_y * mse_y)
+
+        append_line_to_file(filename_rmse, rmse)
+
         # Saving result of one single sequence until convergence:
-        filename_results = base_folder_results + "Results/" + str(num_robots_in_iterations) + "_robots" + (
-            "_fast" if FAST_TABLE_APPROACH else "_slow") + ".txt"
+        filename_results = base_folder_results + "Results/" + filename_addition + ("_fast" if FAST_TABLE_APPROACH else "_slow") + filename_extension
 
         print(filename_results)
 
@@ -708,7 +779,7 @@ for it in range(NUM_ITERATIONS):
         append_line_to_file(filename_results, line_to_write)
 
         # Saving all errors:
-        filename_errors = base_folder_results + "Errors/" + str(num_robots_in_iterations) + "_robots.txt"
+        filename_errors = base_folder_results + "Errors/" + filename_addition + filename_extension
 
         append_line_to_file(filename_errors, " ".join(map(str, distance_errors)))
 

@@ -395,11 +395,13 @@ class ParticleFilter:
                 shortest_path = self.map_data.shortest_distances[cell_start.id][cell_stop.id]
                 longest_path = self.map_data.longest_distances[cell_start.id][cell_stop.id]
 
-                if cell_start.id == 128 and cell_stop.id == 56:
+                if cell_start.id == 237 and cell_stop.id == 247:
                     t = 10
 
                 # Checking distance requirement:
                 if max_distance_travelled >= shortest_path and min_distance_travelled <= longest_path:
+
+
                     # When cells are los to each other simply take the relative angle to ech other:
                     if self.are_cells_los(cell_start.id, cell_stop.id):
                         angle_between_cells = cell_start.get_relative_angle_to_cell(cell_stop)
@@ -407,12 +409,15 @@ class ParticleFilter:
                         # Finding path between cells:
                         path = self.map_data.get_path_between_cells(cell_start.id, cell_stop.id)
 
-                        angle = self.get_relative_angle_between_cells_based_on_path(cell_start, path)
+                        angle_between_cells = self.get_relative_angle_between_cells_based_on_path(cell_start, path)
 
                     # Calculating angle difference:
                     angle_diff = positive_modulo((angle - angle_between_cells + 180 + 360), 360) - 180
 
                     if ANGLE_ERROR_DEGREE >= angle_diff >= -ANGLE_ERROR_DEGREE:
+                        if cell_start.id == 223:
+                            p = 10
+
                         localization_table.mark_cell_as_possible(cell_start.id, cell_stop.id)
 
         # Save table to file?
@@ -555,6 +560,8 @@ class ParticleFilter:
 
         # 2. Normalizing probabilities per row:
         normalized_probabilities_per_row = normalize_list(probabilities_per_row)
+
+
 
         return normalized_probabilities_per_row
 
@@ -702,10 +709,7 @@ class ParticleFilter:
                 (i, particles_in_cell, particles_in_cell_rounded, previous_in_cell < particles_in_cell_rounded))
 
         # If there are as many particles added as removed we can safely save the result:
-        if particles_increased == particles_decreased:
-            self.particles_per_cell = [np.round(x * self.number_of_particles).astype(int) for x
-                                       in self.probabilities_per_cell]
-
+        if np.sum(self.particles_per_cell) == self.number_of_particles:
             return
 
         bla = np.sum([x[2] for x in new_particles_per_cell])
@@ -724,7 +728,7 @@ class ParticleFilter:
         particle_difference = np.abs(np.sum(self.particles_per_cell) - self.number_of_particles)
 
         if particle_difference != (np.abs(particles_increased - particles_decreased)):
-            print("ERRORROROROROR")
+            print("Error: particle diff :d and cell inc dec diff: %s" % particle_difference, np.abs(particles_increased - particles_decreased))
 
         # TODO: Fix while loop stuck when none of the cells are increased.
         cells_with_added_particles_count = np.sum(1 for x in new_particles_per_cell if x[3])

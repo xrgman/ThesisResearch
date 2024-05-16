@@ -247,6 +247,29 @@ class MapRenderer:
 
             height_color_row += 15
 
+    def color_cells(self, cells_to_color, color):
+        if self.draw_cells:
+            cells = self.map_data.get_cells()
+
+            for i, cell in enumerate(cells):
+                rect = pygame.Rect(
+                    (cell.start_x // self.scale) + BORDER_WIDTH,
+                    (cell.start_y // self.scale) + BORDER_HEIGHT,
+                    cell.get_width() // self.scale,
+                    cell.get_height() // self.scale)
+
+                if i in cells_to_color:
+                    pygame.draw.rect(self.window, color, rect)
+                else:
+                    pygame.draw.rect(self.window, (0, 0, 255), rect, 1)
+
+                text_surface = self.font.render(cell.get_cell_name(), True, (0, 0, 0))
+
+                draw_position = (rect.center[0] - (FONT_SIZE / 2), rect.center[1] - (FONT_SIZE / 2))
+
+                self.window.blit(text_surface, draw_position)
+
+        pygame.display.flip()
 
 
 
