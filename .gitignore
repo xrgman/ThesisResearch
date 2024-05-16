@@ -37,6 +37,9 @@ build
 
 Python/Audio_files/
 
+Python/LocalizationTable/Files_Middle_floor/
+Python/LocalizationTable/Files_My room/
+
 # Ignore changes to the config file:
 src/config.json
 

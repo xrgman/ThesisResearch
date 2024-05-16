@@ -561,8 +561,6 @@ class ParticleFilter:
         # 2. Normalizing probabilities per row:
         normalized_probabilities_per_row = normalize_list(probabilities_per_row)
 
-
-
         return normalized_probabilities_per_row
 
     def calculate_new_probabilities_per_cell(self, number_of_cells, invalid_cells):

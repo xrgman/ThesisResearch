@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from Util.Util import clear_all_files_in_folder, split_tuple_list, plot_two_tuple_data
 
-CLEAR_FILES = True
+CLEAR_FILES = False
 
 PRINT_AVERAGE_RMSE = True
 
 PLOT_DISTANCE_VS_NR_ROBOTS = True
-PLOT_ITERATIONS_VS_NR_ROBOTS = True
+PLOT_ITERATIONS_VS_NR_ROBOTS = False
 PLOT_MESSAGES_PROCESSED_VS_NR_ROBOTS = True
 PLOT_DISTANCE_ERROR_VS_NR_ROBOTS = True
 
@@ -55,7 +55,8 @@ def read_average_value_from_files(folder, take_index_from_back=None):
         # Calculating average RMSE:
         with open(path, 'r') as f:
             if take_index_from_back is not None:
-                numbers = [float(row.split()[len(row.split()) - take_index_from_back]) for row in f.read().split('\n') if len(row) > 0]
+                numbers = [float(row.split()[len(row.split()) - take_index_from_back]) for row in f.read().split('\n')
+                           if len(row) > 0]
             else:
                 numbers = [float(num) for num in f.read().split()]
 
@@ -86,6 +87,8 @@ if PRINT_AVERAGE_RMSE:
     average_rmse_data = read_average_value_from_files(folder_rmse_results)
 
     for data in average_rmse_data:
+        data = sorted(data, key=lambda x: x[0])
+
         for sub_data in data:
             print("RMSE for %d robots %s %s: %f" % (sub_data[0], ("moving" if sub_data[2] else ""), (
                 "and receiving other" if sub_data[4] else ("and receiving own" if sub_data[3] else "")), sub_data[1]))
@@ -101,7 +104,8 @@ if PLOT_DISTANCE_VS_NR_ROBOTS:
 
     # Plot moving data if available:
     if moving_data_present:
-        plot_two_tuple_data(average_distance_data[3:], 'Average distance travelled until convergence vs nr. of robots - Driving',
+        plot_two_tuple_data(average_distance_data[3:],
+                            'Average distance travelled until convergence vs nr. of robots - Driving',
                             'Number of robots', 'Distance travelled (cm)', True, plot_labels)
 
 # Plotting number of iterations against the number of robots
@@ -146,8 +150,10 @@ if PLOT_MESSAGES_PROCESSED_VS_NR_ROBOTS:
 if PLOT_DISTANCE_ERROR_VS_NR_ROBOTS:
     result_data = read_average_value_from_files(folder_results, 2)
 
-    non_moving_data_present = True if len(result_data[0]) > 0 or len(result_data[1]) > 0 or len(result_data[2]) > 0 else False
-    moving_data_present = True if len(result_data[3]) > 0 or len(result_data[4]) > 0 or len(result_data[5]) > 0 else False
+    non_moving_data_present = True if len(result_data[0]) > 0 or len(result_data[1]) > 0 or len(
+        result_data[2]) > 0 else False
+    moving_data_present = True if len(result_data[3]) > 0 or len(result_data[4]) > 0 or len(
+        result_data[5]) > 0 else False
 
     # Plot non moving data if available:
     if non_moving_data_present:
@@ -160,6 +166,7 @@ if PLOT_DISTANCE_ERROR_VS_NR_ROBOTS:
                             'Number of robots', 'Distance error (cm)', True, plot_labels)
 
 exit(0)
+
 
 def calculate_average_iterations_and_errors(iterations_data):
     # Dictionary to store the sum of iterations and count of occurrences for each combination

@@ -16,8 +16,8 @@ import random
 
 MAX_DISTANCE_HEARING = 350
 
-NUM_ROBOTS = 6
-NUM_ITERATIONS = 10
+NUM_ROBOTS = 3
+NUM_ITERATIONS = 60
 NUMBER_OF_PARTICLES = 10108
 READ_POSITIONS_FILE = False
 MOVE_OUT_OF_SCOPE_ROBOTS = False
@@ -30,7 +30,7 @@ number_of_cells = -1
 
 INIT_MIN_DISTANCE_BETWEEN_ROBOTS = 200
 
-SAVE_RESULTS = False
+SAVE_RESULTS = True
 
 robot_to_view = 0
 robot_to_view_cell: Cell = None
@@ -433,6 +433,7 @@ def check_convergence(r_id):
 
     if has_conv:
         print("Convergence!")
+        return True
 
     for probability in particle_filters[robot_to_view].probabilities_per_cell:
         if probability > CONVERGENCE_PERCENTAGE:
@@ -583,6 +584,9 @@ for it in range(NUM_ITERATIONS):
         for robot_id, robots_cell in enumerate(robot_positions):
             robot_out_of_scope = True
 
+            if convergence:
+                break
+
             for sender_id, senders_cell in enumerate(robot_positions):
 
                 # Skipping self:
@@ -653,6 +657,10 @@ for it in range(NUM_ITERATIONS):
         # 3. Sharing table with other robots (about hearing them):
         if RECEIVE_OTHER_OWN:
             for robot_id, robots_cell in enumerate(robot_positions):
+
+                if convergence:
+                    break
+
                 for sender_id, senders_cell in enumerate(robot_positions):
 
                     # Skipping self:
@@ -671,6 +679,8 @@ for it in range(NUM_ITERATIONS):
                         mse_x_sum += mse_x
                         mse_y_sum += mse_y
                         number_of_steps += 1
+
+                        nr_of_messages_processed += 1
 
                         if check_convergence(robot_id):
                             convergence = True
@@ -735,7 +745,7 @@ for it in range(NUM_ITERATIONS):
     print("Final error: " + str(distance_errors[len(distance_errors) - 1]))
     print("Robots heard: " + str(robots_used_in_progress))
 
-    plot_distance_error_vs_iterations(distance_errors_per_iteration)
+    # plot_distance_error_vs_iterations(distance_errors_per_iteration)
 
     if SAVE_RESULTS:
         num_robots_in_iterations = len(robots_used_in_progress)
