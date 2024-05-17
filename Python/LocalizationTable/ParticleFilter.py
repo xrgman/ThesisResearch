@@ -811,7 +811,5 @@ class ParticleFilter:
 
         variance = np.var(particle_array, axis=0)
 
-
-
         return np.all(variance < 700)
 

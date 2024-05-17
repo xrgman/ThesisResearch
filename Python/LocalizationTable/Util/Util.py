@@ -1,6 +1,7 @@
 import math
-import os,shutil
+import os, shutil
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def normalize_list(data):
@@ -56,7 +57,7 @@ def split_tuple_list(tuple_list, index_of_determining_value: int):
     return true_list, false_list
 
 
-def plot_two_tuple_data(tuple_list, title, x_label, y_label, grid: bool, labels):
+def plot_two_tuple_data(tuple_list, title, x_label, y_label, grid: bool, labels, filename=None):
     plt.figure(figsize=(8, 6))
     labels_to_use = []
     max_x_value = -1
@@ -83,4 +84,59 @@ def plot_two_tuple_data(tuple_list, title, x_label, y_label, grid: bool, labels)
     plt.xticks(range(min(x_values), max_x_value + 1, 1))
     plt.grid(grid)
     plt.legend(labels_to_use)
+
+    if filename is not None:
+        plt.savefig(filename)
+
     plt.show()
+
+
+def plot_list_of_errors(errors_list, title, x_label, y_label, grid: bool, labels, filename=None):
+    plt.figure(figsize=(8, 6))
+    labels_to_use = []
+    max_x_value = -1
+
+    for i, line_data in enumerate(errors_list):
+        if len(line_data) > 0:
+            x_values = list(range(len(line_data[1])))  # Index of the error in the list
+            y_values = line_data[1]
+
+            labels_to_use.append(labels[i])
+
+            if max(x_values) > max_x_value:
+                max_x_value = max(x_values)
+
+            # Plotting each line
+            plt.plot(x_values, y_values, linestyle='-')
+
+    # Creating the plot
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.xticks(range(min(x_values), max_x_value + 1, 5))
+    plt.xlim(0, 35)
+    plt.grid(grid)
+    plt.legend(labels_to_use)
+
+    if filename is not None:
+        plt.savefig(filename)
+
+    plt.show()
+
+
+def plot_probability_over_data(data, title, x_label, y_label, grid: bool, filename=None):
+    errors_sorted = np.sort(data)
+    p = 1. * np.arange(len(data)) / (len(data) - 1)
+
+    plt.plot(errors_sorted, p)
+    plt.grid(grid)
+    plt.xlim(xmin=0)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.title(title)
+
+    if filename is not None:
+        plt.savefig(filename)
+
+    plt.show()
+

@@ -16,19 +16,22 @@ import random
 
 MAX_DISTANCE_HEARING = 350
 
-NUM_ROBOTS = 3
-NUM_ITERATIONS = 60
-NUMBER_OF_PARTICLES = 10108
+NUM_ROBOTS = 5
+NUM_ITERATIONS = 2
+NUMBER_OF_PARTICLES = 9880
 READ_POSITIONS_FILE = False
 MOVE_OUT_OF_SCOPE_ROBOTS = False
 NOISE_THRESHOLD = 10
 FAST_TABLE_APPROACH = True
 CONVERGENCE_PERCENTAGE = 0.55
-RECEIVE_OTHER_OWN = False
+
+RECEIVE_OTHER_OWN = True
+RECEIVE_OTHER_OTHER = False
 MOVE_ROBOTS = True
+
 number_of_cells = -1
 
-INIT_MIN_DISTANCE_BETWEEN_ROBOTS = 200
+INIT_MIN_DISTANCE_BETWEEN_ROBOTS = 150
 
 SAVE_RESULTS = True
 
@@ -86,6 +89,7 @@ def initialize_robots_randomly():
             random_cell = map_data.cells[random_cell_id]
 
             random_cell_valid = True
+            at_least_one_robot_los = True if all(e < 0 for e in robot_positions) else False
 
             # Checking distance between all other robots:
             for robot_position in robot_positions:
@@ -100,7 +104,15 @@ def initialize_robots_randomly():
                         random_cell_valid = False
                         break
 
-            if random_cell_valid:
+                    # When robots don't move they also need to be los and be able to hear:
+                    if not MOVE_ROBOTS:
+                        shortest_path = map_data.shortest_distances[random_cell.id][other_cell.id]
+
+                        if shortest_path < MAX_DISTANCE_HEARING:
+                            if not particle_filters[r_id].did_particle_travel_through_wall(random_cell.center_x, random_cell.center_y, other_cell.center_x, other_cell.center_y):
+                                at_least_one_robot_los = True
+
+            if random_cell_valid and (MOVE_ROBOTS or at_least_one_robot_los):
                 # Setting robots position:
                 robot_positions[r_id] = random_cell_id
 
@@ -428,7 +440,7 @@ def move_robot_random_direction(r_id):
     return moved_distance
 
 
-def check_convergence(r_id):
+def check_convergence(r_id, msg_processed):
     has_conv = particle_filters[r_id].check_convergence()
 
     if has_conv:
@@ -438,6 +450,9 @@ def check_convergence(r_id):
     for probability in particle_filters[robot_to_view].probabilities_per_cell:
         if probability > CONVERGENCE_PERCENTAGE:
             return True
+
+    if msg_processed >= 100:
+        return True
 
     return False
 
@@ -610,7 +625,7 @@ for it in range(NUM_ITERATIONS):
 
                         nr_of_messages_processed += 1
 
-                        if check_convergence(robot_id):
+                        if check_convergence(robot_id, nr_of_messages_processed):
                             convergence = True
                             break
 
@@ -618,44 +633,8 @@ for it in range(NUM_ITERATIONS):
             if robot_out_of_scope:
                 out_of_scope_robots.append(robot_id)
 
-        # 2. Moving out-of-scope robots:
-        if MOVE_OUT_OF_SCOPE_ROBOTS:
-            for robot_id in out_of_scope_robots:
-                robot_out_of_scope = True
-
-                closest_robot = find_closest_robot(robot_id)
-                path_to_robot = particle_filters[robot_id].get_map_data().get_path_between_cells(robot_positions[robot_id],
-                                                                                                 robot_positions[closest_robot])
-                path_idx = 1
-
-                while robot_out_of_scope:
-                    # Move robot to next cell in path:
-                    cell_to_move_to = path_to_robot[path_idx]
-
-                    # Selecting next cell:
-                    path_idx += 1
-
-                    # Moving robot:
-                    move_robot_to_cell(robot_id, cell_to_move_to)
-
-                    # Checking if robot is in the scope now:
-                    for sender_id, senders_cell in enumerate(robot_positions):
-
-                        # Skipping self:
-                        if robot_id == sender_id:
-                            continue
-
-                        # Process message hearing, robots too far away automatically skipped:
-                        if robot_hears_another_robot(robot_id, sender_id):
-                            robot_out_of_scope = False
-
-                            # Other robot hears me too:
-                            robot_hears_another_robot(sender_id, robot_id)
-
-                bla = 10
-
         # 3. Sharing table with other robots (about hearing them):
-        if RECEIVE_OTHER_OWN:
+        if RECEIVE_OTHER_OWN and not convergence:
             for robot_id, robots_cell in enumerate(robot_positions):
 
                 if convergence:
@@ -682,37 +661,52 @@ for it in range(NUM_ITERATIONS):
 
                         nr_of_messages_processed += 1
 
-                        if check_convergence(robot_id):
+                        if check_convergence(robot_id, nr_of_messages_processed):
                             convergence = True
                             break
 
-        # 4. Sharing table with other robots (about other robots:
-        # for robot_id, robots_cell in enumerate(initialized_robots):
-        #     for sender_id, senders_cell in enumerate(initialized_robots):
-        #         # Skipping self:
-        #         if robot_id == sender_id:
-        #             continue
-        #
-        #         for robot_table_id, robot_tables_cell_id in enumerate(initialized_robots):
-        #
-        #             # Skipping robot that is the same as robot who is receiving:
-        #             if robot_id == robot_table_id or sender_id == robot_table_id:
-        #                 continue
-        #
-        #             # Process message hearing, robots too far away automatically skipped:
-        #             if not robot_receives_table_other_from_other(robot_id, sender_id, robot_table_id):
-        #                 continue
-        #
-        #             # Logging distance error:
-        #             if robot_id == robot_to_view:
-        #                 distance_errors.append(get_distance_error(robot_id))
-        #
-        #                 if check_convergence(robot_id):
-        #                     convergence = True
-        #                     break
+        # 4. Sharing table with other robots (about other robots):
+        if RECEIVE_OTHER_OTHER and not convergence:
+            for robot_id, robots_cell in enumerate(robot_positions):
+
+                if convergence:
+                    break
+
+                for sender_id, senders_cell in enumerate(robot_positions):
+                    # Skipping self:
+                    if robot_id == sender_id:
+                        continue
+
+                    if convergence:
+                        break
+
+                    for robot_table_id, robot_tables_cell_id in enumerate(robot_positions):
+
+                        # Skipping robot that is the same as robot who is receiving:
+                        if robot_id == robot_table_id or sender_id == robot_table_id:
+                            continue
+
+                        # Process message hearing, robots too far away automatically skipped:
+                        if not robot_receives_table_other_from_other(robot_id, sender_id, robot_table_id):
+                            continue
+
+                        # Logging distance error:
+                        if robot_id == robot_to_view:
+                            distance_error, mse_x, mse_y = get_distance_error(robot_id)
+
+                            distance_errors.append(distance_error)
+                            mse_x_sum += mse_x
+                            mse_y_sum += mse_y
+                            number_of_steps += 1
+
+                            nr_of_messages_processed += 1
+
+                            if check_convergence(robot_id, nr_of_messages_processed):
+                                convergence = True
+                                break
 
         # 5. Making all robots drive:
-        if MOVE_ROBOTS:
+        if MOVE_ROBOTS and not convergence:
             for robot_id, robots_cell in enumerate(robot_positions):
                 distance = move_robot_random_direction(robot_id)
 
@@ -726,7 +720,7 @@ for it in range(NUM_ITERATIONS):
 
                     distance_moved += distance
 
-                    if check_convergence(robot_id):
+                    if check_convergence(robot_id, nr_of_messages_processed):
                         convergence = True
                         break
 
@@ -739,6 +733,7 @@ for it in range(NUM_ITERATIONS):
     # Determine which robots were part of process:
     robots_used_in_progress = determine_robots_part_of_process(robot_to_view, None)
 
+    print("Iteration " + str(it) + " of " + str(NUM_ITERATIONS) + " finished!")
     print("Total distance moved: " + str(distance_moved) + "cm")
     print("Total number of iterations: " + str(nr_of_iterations))
     print("Total number of messages processed: " + str(nr_of_messages_processed))
@@ -747,7 +742,7 @@ for it in range(NUM_ITERATIONS):
 
     # plot_distance_error_vs_iterations(distance_errors_per_iteration)
 
-    if SAVE_RESULTS:
+    if SAVE_RESULTS and len(robots_used_in_progress) > 2:
         num_robots_in_iterations = len(robots_used_in_progress)
         filename_addition = str(num_robots_in_iterations) + "_robots" + ("_moving" if MOVE_ROBOTS else "") + ("_own" if RECEIVE_OTHER_OWN else "")
         filename_extension = ".txt"
@@ -779,8 +774,6 @@ for it in range(NUM_ITERATIONS):
 
         # Saving result of one single sequence until convergence:
         filename_results = base_folder_results + "Results/" + filename_addition + ("_fast" if FAST_TABLE_APPROACH else "_slow") + filename_extension
-
-        print(filename_results)
 
         line_to_write = " ".join(map(str, robot_positions_initial)) + " " + str(
             distance_errors[len(distance_errors) - 1]) + " " + str(
