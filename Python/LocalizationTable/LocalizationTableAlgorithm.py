@@ -16,8 +16,8 @@ import random
 
 MAX_DISTANCE_HEARING = 350
 
-NUM_ROBOTS = 5
-NUM_ITERATIONS = 2
+NUM_ROBOTS = 3
+NUM_ITERATIONS = 70
 NUMBER_OF_PARTICLES = 9880
 READ_POSITIONS_FILE = False
 MOVE_OUT_OF_SCOPE_ROBOTS = False
@@ -26,8 +26,8 @@ FAST_TABLE_APPROACH = True
 CONVERGENCE_PERCENTAGE = 0.55
 
 RECEIVE_OTHER_OWN = True
-RECEIVE_OTHER_OTHER = False
-MOVE_ROBOTS = True
+RECEIVE_OTHER_OTHER = True
+MOVE_ROBOTS = False
 
 number_of_cells = -1
 
@@ -295,9 +295,9 @@ def robot_receives_table_other_from_other(r_id, s_id, t_robot_id):
     distance_sender_other = int(map_data.shortest_distances[cell_table_robot.id][cell_sender.id]) + 20 + 20
 
     if distance_sender_other > MAX_DISTANCE_HEARING or distance_receiver_sender > MAX_DISTANCE_HEARING:
-        print(
-            "Robot" + str(s_id) + " cannot hear robot " + str(t_robot_id) + ", distance too big (" + str(
-                distance_sender_other) + "). Skipping table sharing about this robot")
+        # print(
+        #     "Robot" + str(s_id) + " cannot hear robot " + str(t_robot_id) + ", distance too big (" + str(
+        #         distance_sender_other) + "). Skipping table sharing about this robot")
         return False
 
     # Determine angle between robots:
@@ -744,7 +744,8 @@ for it in range(NUM_ITERATIONS):
 
     if SAVE_RESULTS and len(robots_used_in_progress) > 2:
         num_robots_in_iterations = len(robots_used_in_progress)
-        filename_addition = str(num_robots_in_iterations) + "_robots" + ("_moving" if MOVE_ROBOTS else "") + ("_own" if RECEIVE_OTHER_OWN else "")
+        filename_addition = (str(num_robots_in_iterations) + "_robots" + ("_moving" if MOVE_ROBOTS else "") +
+                             ("_other" if RECEIVE_OTHER_OTHER else "_own" if RECEIVE_OTHER_OWN else ""))
         filename_extension = ".txt"
 
         # Saving total distance moved:
