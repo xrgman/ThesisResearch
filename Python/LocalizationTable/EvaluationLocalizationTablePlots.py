@@ -7,10 +7,10 @@ CLEAR_FILES = False
 
 PRINT_AVERAGE_RMSE = True
 
-PLOT_DISTANCE_VS_NR_ROBOTS = True
+PLOT_DISTANCE_VS_NR_ROBOTS = False
 PLOT_ITERATIONS_VS_NR_ROBOTS = False
-PLOT_MESSAGES_PROCESSED_VS_NR_ROBOTS = True
-PLOT_DISTANCE_ERROR_VS_NR_ROBOTS = True
+PLOT_MESSAGES_PROCESSED_VS_NR_ROBOTS = False
+PLOT_DISTANCE_ERROR_VS_NR_ROBOTS = False
 PLOT_ERROR_VS_NR_ITERATIONS = False
 PLOT_ERROR_PROBABILITY = False
 
@@ -111,7 +111,7 @@ if PLOT_DISTANCE_VS_NR_ROBOTS:
 
     if moving_data_present:
         plot_two_tuple_data(average_distance_data[3:],
-                            'Average distance travelled until convergence vs nr. of robots - Driving',
+                            'Average distance travelled until convergence vs nr. of robots',
                             'Number of robots', 'Distance travelled (cm)', True, plot_labels, filename_plot)
 
 # Plotting number of iterations against the number of robots
