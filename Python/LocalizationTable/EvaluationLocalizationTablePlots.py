@@ -11,7 +11,7 @@ PLOT_DISTANCE_VS_NR_ROBOTS = False
 PLOT_ITERATIONS_VS_NR_ROBOTS = False
 PLOT_MESSAGES_PROCESSED_VS_NR_ROBOTS = False
 PLOT_DISTANCE_ERROR_VS_NR_ROBOTS = False
-PLOT_ERROR_VS_NR_ITERATIONS = False
+PLOT_ERROR_VS_NR_ITERATIONS = True
 PLOT_ERROR_PROBABILITY = False
 
 PLOT_NR_ROBOTS_VS_NR_ITERATIONS = False
@@ -247,50 +247,69 @@ if PLOT_ERROR_VS_NR_ITERATIONS:
 
     # Plotting data:
     labels_robots = ['3 robots', '4 robots', '5 robots', '6 robots']
+    file_base_path = folder_result_figures + "ErrorVsIterations/"
 
     if len(errors_moving_normal) > 0:
         # Sort data:
         sorted_errors = sorted(errors_moving_normal, key=lambda x: x[0])
 
-        plot_list_of_errors(sorted_errors, 'Average positioning error per iteration\nWhile driving', 'Number of iterations', 'Distance error (cm)', True, labels_robots)
+        # File name:
+        filename_plt = file_base_path + "moving_normal"
+
+        plot_list_of_errors(sorted_errors, 'Average positioning error per action\nWhile driving', 'Number of actions', 'Distance error (cm)', True, labels_robots, filename_plt)
 
     if len(errors_moving_own) > 0:
         # Sort data:
         sorted_errors = sorted(errors_moving_own, key=lambda x: x[0])
 
-        plot_list_of_errors(sorted_errors, 'Average positioning error per iteration\nWhile driving and also receiving tables about self', 'Number of iterations', 'Distance error (cm)', True, labels_robots)
+        # File name:
+        filename_plt = file_base_path + "moving_own"
+
+        plot_list_of_errors(sorted_errors, 'Average positioning error per action\nWhile driving and also receiving tables about self', 'Number of actions', 'Distance error (cm)', True, labels_robots, filename_plt)
 
     if len(errors_moving_other) > 0:
         # Sort data:
         sorted_errors = sorted(errors_moving_other, key=lambda x: x[0])
 
+        # File name:
+        filename_plt = file_base_path + "moving_other"
+
         plot_list_of_errors(sorted_errors,
-                            'Average positioning error per iteration\nWhile driving and also receiving tables about others',
-                            'Number of iterations', 'Distance error (cm)', True, labels_robots)
+                            'Average positioning error per action\nWhile driving and also receiving tables about others',
+                            'Number of actions', 'Distance error (cm)', True, labels_robots, filename_plt)
 
     if len(errors_still_normal) > 0:
         # Sort data:
         sorted_errors = sorted(errors_still_normal, key=lambda x: x[0])
 
+        # File name:
+        filename_plt = file_base_path + "still_normal"
+
         plot_list_of_errors(sorted_errors,
-                            'Average positioning error per iteration\nWhile standing still',
-                            'Number of iterations', 'Distance error (cm)', True, labels_robots)
+                            'Average positioning error per action\nWhile standing still',
+                            'Number of actions', 'Distance error (cm)', True, labels_robots, filename_plt)
 
     if len(errors_still_own) > 0:
         # Sort data:
         sorted_errors = sorted(errors_still_own, key=lambda x: x[0])
 
+        # File name:
+        filename_plt = file_base_path + "still_own"
+
         plot_list_of_errors(sorted_errors,
-                            'Average positioning error per iteration\nWhile standing still and also receiving tables about self',
-                            'Number of iterations', 'Distance error (cm)', True, labels_robots)
+                            'Average positioning error per action\nWhile standing still and also receiving tables about self',
+                            'Number of actions', 'Distance error (cm)', True, labels_robots, filename_plt)
 
     if len(errors_still_other) > 0:
         # Sort data:
         sorted_errors = sorted(errors_still_other, key=lambda x: x[0])
 
+        # File name:
+        filename_plt = file_base_path + "still_other"
+
         plot_list_of_errors(sorted_errors,
-                            'Average positioning error per iteration\nWhile standing still and also receiving tables about others',
-                            'Number of iterations', 'Distance error (cm)', True, labels_robots)
+                            'Average positioning error per action\nWhile standing still and also receiving tables about others',
+                            'Number of actions', 'Distance error (cm)', True, labels_robots, filename_plt)
 
 # Plot the error probability:
 if PLOT_ERROR_PROBABILITY:
