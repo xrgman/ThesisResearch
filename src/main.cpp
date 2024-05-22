@@ -284,9 +284,9 @@ void recordToWavFile(const char *filename, const int seconds)
 
 void loadParticleFilter(bool initializeMapRenderer)
 {
-    //const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
-    // const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
-    // const uint8_t scale = 1;
+    // const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    //  const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
+    //  const uint8_t scale = 1;
     const char *filenameMap = "../lib/ParticleFilter/Map/middle_floor.json";
     const uint8_t scale = 1;
 
@@ -1499,6 +1499,35 @@ void calibrateSignalEnergy()
     }
 }
 
+/// @brief Looping over all robot ids and send 4 messages
+void testAllRobots()
+{
+    int nrOfMessagesToSend = 4;
+    int size = audioCodec.getEncodingSize();
+    int16_t codedAudioData[size];
+
+    for (int robotId = 0; robotId < config.totalNumberRobots; robotId++)
+    {
+        // Configuring audio codec for current robot id:
+        audioCodec.setRobotId(robotId);
+
+        // Encode the message:
+        audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
+
+        // Sending amount number of messages:
+        for (int i = 0; i < nrOfMessagesToSend; i++)
+        {
+            outputMessageToSpeaker(codedAudioData, size);
+
+            // Waiting 10ms for next:
+            usleep(10000);
+        }
+    }
+
+    // Resetting original robot id:
+    audioCodec.setRobotId(config.robotId);
+}
+
 int main()
 {
     // Catching sigint event:
@@ -1561,6 +1590,12 @@ int main()
     else
     {
         audioCodec.setVolume(1.0);
+    }
+
+    // Testing all robots if so requested by config:
+    if (config.testAllRobots)
+    {
+        testAllRobots();
     }
 
     // Running keyboard input function:

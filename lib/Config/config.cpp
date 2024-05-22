@@ -56,6 +56,7 @@ Config Config::LoadConfig(const char *filename)
                       jsonData["freq_stop_bit"],
                       jsonData["calibrate_signal_energy_target"],
                       jsonData["calibrate_signal_energy"],
+                      jsonData["test_all_robots"],
                       jsonData["cell_size"]);
     }
     catch (const json::exception &e)

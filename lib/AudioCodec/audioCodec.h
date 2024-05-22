@@ -183,10 +183,13 @@ public:
     double getVolume();
     void setVolume(double volume);
 
+    void setRobotId(int robotId);
+
 private:
-    const int sampleRate, totalNumberRobots, robotId;
+    const int sampleRate, totalNumberRobots;
     const int preambleSamples, bitSamples, preambleUndersamplingDivisor, preambleUndersampledSamples;
     const int kaiserWindowBeta;
+    int robotId;
     bool printCodedBits, filterOwnSource;
     double volume;
     AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBit, frequencyPairOwn;

@@ -11,7 +11,7 @@
 
 AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
                        double frequencyStopBit, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
-                                                                                             preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor), kaiserWindowBeta(kaiserWindowBeta)
+                                                                                                                   preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor), kaiserWindowBeta(kaiserWindowBeta)
 {
     this->printCodedBits = printCodedBits;
     this->filterOwnSource = filterOwnSource;
@@ -1429,4 +1429,12 @@ void AudioCodec::setVolume(double volume)
     encodeBit(encodedBit1, 1, frequencyPairOwn, false);
 
     // Also regenerate the ones to check against!
+}
+
+void AudioCodec::setRobotId(int robotId)
+{
+    this->robotId = robotId;
+
+    //Regenerating convolution fields:
+    generateConvolutionFields(robotId);
 }
