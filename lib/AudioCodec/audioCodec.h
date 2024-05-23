@@ -127,7 +127,7 @@ class AudioCodec
 {
 public:
     AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
-           double frequencyStopBit, double bandwithPadding, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta);
+           double frequencyStopBit, double bandwithPadding, int bitPadding, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta);
 
     ~AudioCodec()
     {
@@ -189,7 +189,7 @@ private:
     const int sampleRate, totalNumberRobots;
     const int preambleSamples, bitSamples, preambleUndersamplingDivisor, preambleUndersampledSamples;
     const int kaiserWindowBeta;
-    int robotId;
+    int robotId, bitPadding;
     bool printCodedBits, filterOwnSource;
     double bandwidthPadding;
     double volume;
