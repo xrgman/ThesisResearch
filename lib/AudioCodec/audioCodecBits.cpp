@@ -6,9 +6,14 @@
 
 void AudioCodec::initializeBitEncodingData()
 {
-    // Determining frequency range for specific robot ID:
-    double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
-    double bandwidthRobot = totalBandwidth / totalNumberRobots;
+    // Determining total bandwith:
+    double bandwidthTotal = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
+
+    // Determing bandiwth needed for padding
+    double bandwithPerPadding = (totalNumberRobots - 1) * bandwidthPadding;
+
+    // Determining bandwith per robot:
+    double bandwidthRobot = (bandwidthTotal - bandwithPerPadding) / totalNumberRobots;
     // double bandwidthRobot = totalBandwidth / (totalNumberRobots * 2);
 
     senderIdsFlipped = new double *[totalNumberRobots];
@@ -29,9 +34,11 @@ void AudioCodec::initializeBitEncodingData()
     // Create sender ID flipped:
     for (uint8_t i = 0; i < totalNumberRobots; i++)
     {
+        double paddingAddition = i * bandwithPerPadding;
+
         AudioCodecFrequencyPair frequencies = {
-            frequencyPairBit.startFrequency + (i * bandwidthRobot),
-            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthRobot};
+            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthPadding,
+            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthPadding + bandwidthRobot};
 
         senderIdsFlipped[i] = new double[bitSamples];
         bit0Flipped[i] = new double[bitSamples];

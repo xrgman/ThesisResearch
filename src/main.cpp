@@ -46,7 +46,7 @@ ParticleFilter particleFilter(config.totalNumberRobots, config.robotId);
 MapRenderer mapRenderer;
 
 AudioCodec audioCodec(dataDecodedCallback, signalEnergyCallback, config.sampleRate, config.totalNumberRobots, config.robotId, config.preambleSamples, config.bitSamples, config.preambleUndersamplingDivisor,
-                      config.frequencyStartPreamble, config.frequencyStopPreamble, config.frequencyStartBit, config.frequencyStopBit, config.printBitsEncoding, config.filterOwnSource, config.kaiserWindowBeta);
+                      config.frequencyStartPreamble, config.frequencyStopPreamble, config.frequencyStartBit, config.frequencyStopBit, config.bandwidthPadding, config.printBitsEncoding, config.filterOwnSource, config.kaiserWindowBeta);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool keepProcessing = true;
