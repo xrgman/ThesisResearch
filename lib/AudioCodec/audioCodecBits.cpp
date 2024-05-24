@@ -142,14 +142,14 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     //     frequencies.stopFrequency + (totalNumberRobots * bandwidthRobot)};
 
     //THIS IS THE WORKING ONE:
-    if (bit == 1)
-    {
-        encodeChirp(output, frequencies, bitSamples, kaiserWindowBeta);
-    }
-    else
-    {
-        encodeChirp(output, frequenciesBit0, bitSamples, kaiserWindowBeta);
-    }
+    // if (bit == 1)
+    // {
+    //     encodeChirp(output, frequencies, bitSamples, kaiserWindowBeta);
+    // }
+    // else
+    // {
+    //     encodeChirp(output, frequenciesBit0, bitSamples, kaiserWindowBeta);
+    // }
 
     // ***********************
     // APPROACH 2
@@ -161,30 +161,31 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     //     bit == 0 ? 2 : 5,
     //     bit == 0 ? 4 : 3};
 
-    // int subChirpOrder[1] = {bit == 0 ? 0 : 1};
-    // int chirpSize = 1;
+    int subChirpOrder[1] = {bit == 0 ? 0 : 1};
+    int chirpSize = 1;
+    int paddingSubChirp = 100;
 
-    // double bandwidthPerSubChirp = (frequencies.stopFrequency - frequencies.startFrequency) / 2;
-    // int sizePerSubChirp = bitSamples / chirpSize;
+    double bandwidthPerSubChirp = ((frequencies.stopFrequency - frequencies.startFrequency) - paddingSubChirp) / 2;
+    int sizePerSubChirp = bitSamples / chirpSize;
 
-    // // AudioCodecFrequencyPair toUse = bit == 0 ? frequenciesBit0 : frequencies;
+    // AudioCodecFrequencyPair toUse = bit == 0 ? frequenciesBit0 : frequencies;
 
-    // for (uint8_t i = 0; i < chirpSize; i++)
-    // {
-    //     AudioCodecFrequencyPair frequencyPair = {
-    //         frequencies.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp),
-    //         (frequencies.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
+    for (uint8_t i = 0; i < chirpSize; i++)
+    {
+        AudioCodecFrequencyPair frequencyPair = {
+            frequencies.startFrequency + (i * paddingSubChirp) + (subChirpOrder[i] * bandwidthPerSubChirp),
+            (frequencies.startFrequency + (i * paddingSubChirp) + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
 
-    //     // Flipping for 0 bit:
-    //     // if (bit == 0)
-    //     // {
-    //     //     frequencyPair = {
-    //     //         frequencyPair.stopFrequency,
-    //     //         frequencyPair.startFrequency};
-    //     // }
+        // Flipping for 0 bit:
+        if (bit == 0)
+        {
+            frequencyPair = {
+                frequencyPair.stopFrequency,
+                frequencyPair.startFrequency};
+        }
 
-    //     encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, kaiserWindowBeta);
-    // }
+        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, kaiserWindowBeta);
+    }
 
     // ***********************
     // APPROACH 3
