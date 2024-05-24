@@ -1006,7 +1006,7 @@ void handleKeyboardInput()
                     outputMessageToSpeaker(codedAudioData, size);
 
                     // Waiting 10ms for next:
-                    usleep(10000);
+                    this_thread::sleep_for(chrono::milliseconds(500));
                 }
 
                 cout << "Done sending messages!\n";
