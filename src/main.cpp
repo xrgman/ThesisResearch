@@ -1503,7 +1503,7 @@ void calibrateSignalEnergy()
 /// @brief Looping over all robot ids and send 4 messages
 void testAllRobots()
 {
-    int nrOfMessagesToSend = 4;
+    int nrOfMessagesToSend = 1;
     int size = audioCodec.getEncodingSize();
     int16_t codedAudioData[size];
 
@@ -1521,7 +1521,7 @@ void testAllRobots()
             outputMessageToSpeaker(codedAudioData, size);
 
             // Waiting 10ms for next:
-            usleep(10000);
+            this_thread::sleep_for(chrono::milliseconds(500));
         }
     }
 

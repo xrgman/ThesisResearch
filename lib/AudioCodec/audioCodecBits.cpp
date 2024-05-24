@@ -166,22 +166,23 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
 
     double bandwidthPerSubChirp = ((frequencies.stopFrequency - frequencies.startFrequency) - bandwidthPaddingSubchrip) / 2;
     int sizePerSubChirp = bitSamples / chirpSize;
+    double padding = bit == 1 ? bandwidthPaddingSubchrip : 0;
 
     // AudioCodecFrequencyPair toUse = bit == 0 ? frequenciesBit0 : frequencies;
 
     for (uint8_t i = 0; i < chirpSize; i++)
     {
         AudioCodecFrequencyPair frequencyPair = {
-            frequencies.startFrequency + (i * bandwidthPaddingSubchrip) + (subChirpOrder[i] * bandwidthPerSubChirp),
-            (frequencies.startFrequency + (i * bandwidthPaddingSubchrip) + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
+            frequencies.startFrequency + padding + (subChirpOrder[i] * bandwidthPerSubChirp),
+            (frequencies.startFrequency + padding + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
 
         // Flipping for 0 bit:
-        if (bit == 0)
-        {
-            frequencyPair = {
-                frequencyPair.stopFrequency,
-                frequencyPair.startFrequency};
-        }
+        // if (bit == 0)
+        // {
+        //     frequencyPair = {
+        //         frequencyPair.stopFrequency,
+        //         frequencyPair.startFrequency};
+        // }
 
         encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, kaiserWindowBeta);
     }
