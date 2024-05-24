@@ -10,10 +10,10 @@ void AudioCodec::initializeBitEncodingData()
     double bandwidthTotal = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
 
     // Determing bandiwth needed for padding
-    double bandwithPerPadding = (totalNumberRobots - 1) * bandwidthPadding;
+    double bandwidthPerPadding = (totalNumberRobots - 1) * bandwidthPadding;
 
     // Determining bandwith per robot:
-    double bandwidthRobot = (bandwidthTotal - bandwithPerPadding) / totalNumberRobots;
+    double bandwidthRobot = (bandwidthTotal - bandwidthPerPadding) / totalNumberRobots;
     // double bandwidthRobot = totalBandwidth / (totalNumberRobots * 2);
 
     senderIdsFlipped = new double *[totalNumberRobots];
@@ -34,11 +34,11 @@ void AudioCodec::initializeBitEncodingData()
     // Create sender ID flipped:
     for (uint8_t i = 0; i < totalNumberRobots; i++)
     {
-        double paddingAddition = i * bandwithPerPadding;
+        double bandwidthPaddingAddition = i * bandwidthPerPadding;
 
         AudioCodecFrequencyPair frequencies = {
-            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthPadding,
-            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthPadding + bandwidthRobot};
+            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthPaddingAddition,
+            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthPaddingAddition + bandwidthRobot};
 
         senderIdsFlipped[i] = new double[bitSamples];
         bit0Flipped[i] = new double[bitSamples];
@@ -271,8 +271,8 @@ int AudioCodec::decodeBit(const double *window, const int windowSize, const int 
     getConvolutionResults(window, bit0Flipped[senderId], bitSamples, convolutionData0, fftConfigStoreConvBit, fftConfigStoreHilBit);
     getConvolutionResults(window, bit1Flipped[senderId], bitSamples, convolutionData1, fftConfigStoreConvBit, fftConfigStoreHilBit);
 
-    // double avg0 = calculateAverage(convolutionData0, bitSamples);
-    // double avg1 = calculateAverage(convolutionData1, bitSamples);
+    double avg0 = calculateAverage(convolutionData0, bitSamples);
+    double avg1 = calculateAverage(convolutionData1, bitSamples);
 
     // 2. Find the maximum values of both convolutions:
     double max0 = *max_element(convolutionData0, convolutionData0 + bitSamples);
