@@ -11,8 +11,6 @@
 #define NUMBER_OF_SUB_CHIRPS 8
 #define CHIRP_AMPLITUDE 1.0
 
-#define BIT_PADDING 0
-
 #define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source
 #define PREAMBLE_SIGNAL_ENERGY_CUTOFF 400 //When to assume message is from own source
 #define MINIMUM_DISTANCE_PREAMBLE_PEAKS 1000 //Two peaks should be at least be x samples apart to be considered from different sources.
@@ -265,6 +263,7 @@ private:
     bool doesDecodingResultExistForSenderId(int senderId);
 
     void completeDecoding(AudioCodecResult decodingResult);
+    double calculateBER(uint8_t *decodedBits, bool print);
     void performDistanceTracking(chrono::system_clock::time_point decodingEndTime);
 
     // General decoding functions:

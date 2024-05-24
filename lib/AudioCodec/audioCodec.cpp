@@ -11,7 +11,7 @@
 
 AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
                        double frequencyStopBit, double bandwithPadding, int bitPadding, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
-                                                                                                                   preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor), kaiserWindowBeta(kaiserWindowBeta)
+                                                                                                                                                           preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor), kaiserWindowBeta(kaiserWindowBeta)
 {
     this->bandwidthPadding = bandwithPadding;
     this->bitPadding = bitPadding;
@@ -115,7 +115,7 @@ int AudioCodec::getNumberOfBits()
 /// @return Size.
 int AudioCodec::getEncodingSize()
 {
-    return preambleSamples + bitSamples + (getNumberOfBits() * bitSamples) + (getNumberOfBits() * 2 * BIT_PADDING);
+    return preambleSamples + bitSamples + (getNumberOfBits() * bitSamples) + (getNumberOfBits() * 2 * bitPadding);
 }
 
 /// @brief Get the duration of an encoded message in seconds.
@@ -723,7 +723,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_po
                     }
 
                     decodingResults[decodingResultIdx].senderId = senderId;
-                    decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples + BIT_PADDING;
+                    decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples + bitPadding;
 
                     continue;
                 }
@@ -735,7 +735,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_po
                 decodingResults[decodingResultIdx].decodedBitsCnt++;
 
                 // Increasing read position:
-                decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples + (BIT_PADDING * 2);
+                decodingResults[decodingResultIdx].decodingBitsPosition += (bitSamples + (bitPadding * 2));
 
                 // Checking if all bits are received (-8 because of padding in back):
                 if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits())
@@ -1020,6 +1020,9 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult)
 
     // cout << "Preamble found at: " << decodingResult.preambleDetectionPosition[0] << endl;
 
+    // Show bit error rate:
+    calculateBER(decodingResult.decodedBits, true);
+
     if (crcInMessage == crcCalculated)
     {
         // Decoding robot ID of sender:
@@ -1050,6 +1053,40 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult)
     {
         // decodingStore[i].reset();
     }
+}
+
+double AudioCodec::calculateBER(uint8_t *decodedBits, bool print)
+{
+    int testMessageBits[] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        0, 0, 0, 0, 1, 0, 0, 1, 1, 0,
+        0, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+        1, 0, 0, 1, 1, 0, 0, 0, 0, 1,
+        0, 1, 1, 0, 0, 0, 0, 1, 0, 1,
+        1, 0, 1, 1, 1, 0, 0, 0, 1, 0,
+        0, 0, 0, 1, 0, 0, 1, 0, 0, 0,
+        0, 1, 0, 0, 1, 0, 0, 0, 1, 1};
+
+    int size = getNumberOfBits();
+
+    int failedBits = 0;
+
+    for (int i = 0; i < size; i++)
+    {
+        if (decodedBits[i] != testMessageBits[i])
+        {
+            failedBits++;
+        }
+    }
+
+    double ber = (double)failedBits / size;
+
+    if (print)
+    {
+        spdlog::info("Number of failed bits: {}, BER: {}", failedBits, ber);
+    }
+
+    return ber;
 }
 
 void AudioCodec::performDistanceTracking(chrono::system_clock::time_point decodingEndTime)
@@ -1437,6 +1474,6 @@ void AudioCodec::setRobotId(int robotId)
 {
     this->robotId = robotId;
 
-    //Regenerating convolution fields:
+    // Regenerating convolution fields:
     generateConvolutionFields(robotId);
 }
