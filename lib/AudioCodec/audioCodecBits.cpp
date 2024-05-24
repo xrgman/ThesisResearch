@@ -163,9 +163,8 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
 
     int subChirpOrder[1] = {bit == 0 ? 0 : 1};
     int chirpSize = 1;
-    int paddingSubChirp = 100;
 
-    double bandwidthPerSubChirp = ((frequencies.stopFrequency - frequencies.startFrequency) - paddingSubChirp) / 2;
+    double bandwidthPerSubChirp = ((frequencies.stopFrequency - frequencies.startFrequency) - bandwidthPaddingSubchrip) / 2;
     int sizePerSubChirp = bitSamples / chirpSize;
 
     // AudioCodecFrequencyPair toUse = bit == 0 ? frequenciesBit0 : frequencies;
@@ -173,8 +172,8 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     for (uint8_t i = 0; i < chirpSize; i++)
     {
         AudioCodecFrequencyPair frequencyPair = {
-            frequencies.startFrequency + (i * paddingSubChirp) + (subChirpOrder[i] * bandwidthPerSubChirp),
-            (frequencies.startFrequency + (i * paddingSubChirp) + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
+            frequencies.startFrequency + (i * bandwidthPaddingSubchrip) + (subChirpOrder[i] * bandwidthPerSubChirp),
+            (frequencies.startFrequency + (i * bandwidthPaddingSubchrip) + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
 
         // Flipping for 0 bit:
         if (bit == 0)

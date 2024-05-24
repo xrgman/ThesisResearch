@@ -10,10 +10,11 @@
 // #define KAISER_WINDOW_BETA 4
 
 AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
-                       double frequencyStopBit, double bandwithPadding, int bitPadding, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
+                       double frequencyStopBit, double bandwithPadding, double bandwidthPaddingSubchrip, int bitPadding, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
                                                                                                                                                            preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor), kaiserWindowBeta(kaiserWindowBeta)
 {
     this->bandwidthPadding = bandwithPadding;
+    this->bandwidthPaddingSubchrip = bandwidthPaddingSubchrip;
     this->bitPadding = bitPadding;
     this->printCodedBits = printCodedBits;
     this->filterOwnSource = filterOwnSource;
