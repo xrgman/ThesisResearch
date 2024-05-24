@@ -224,23 +224,23 @@ void AudioCodec::encodeBits(double *output, uint8_t *bits, int numberOfBits)
     for (int i = 0; i < numberOfBits; i++)
     {
         int bit = bits[i];
-        int start = (i * bitSamples) + (i * 2 * BIT_PADDING);
+        int start = (i * bitSamples) + (i * 2 * bitPadding);
 
         // Add padding front:
-        for (int j = 0; j < BIT_PADDING; j++)
+        for (int j = 0; j < bitPadding; j++)
         {
             output[start + j] = 0;
         }
 
         for (int j = 0; j < bitSamples; j++)
         {
-            output[start + BIT_PADDING + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
+            output[start + bitPadding + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
         }
 
         // Add padding back:
-        for (int j = 0; j < BIT_PADDING; j++)
+        for (int j = 0; j < bitPadding; j++)
         {
-            output[start + BIT_PADDING + bitSamples + j] = 0;
+            output[start + bitPadding + bitSamples + j] = 0;
         }
 
         // encodeBit(&output[i * bitSamples], bit, frequencyPairsOwn, false);
