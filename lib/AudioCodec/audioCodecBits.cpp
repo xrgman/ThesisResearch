@@ -34,7 +34,7 @@ void AudioCodec::initializeBitEncodingData()
     // Create sender ID flipped:
     for (uint8_t i = 0; i < totalNumberRobots; i++)
     {
-        double bandwidthPaddingAddition = i * bandwidthPerPadding;
+        double bandwidthPaddingAddition = i * bandwidthPadding;
 
         AudioCodecFrequencyPair frequencies = {
             frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthPaddingAddition,
