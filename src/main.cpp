@@ -129,8 +129,30 @@ void dataAvailableCallback()
 /// @param size Size of the encoded data.
 void outputMessageToSpeaker(const int16_t *codedAudioData, const int size)
 {
-    // Writing data to the buffer:
-    audioHelper.writeBytes(codedAudioData, size);
+    int bytesWritten = 0;
+
+    while (bytesWritten < size)
+    {
+        // Waiting for batch to be written:
+        if (audioHelper.isOutputBufferFull())
+        {
+            usleep(1);
+
+            continue;
+        }
+
+        // Reading next data:
+        int sizeAvailableBuffer = audioHelper.getOutputBufferAvailableSize();
+        
+        // Determining bytes to write:
+        int bytesToWrite = size - bytesWritten < sizeAvailableBuffer ? size - bytesWritten : sizeAvailableBuffer;
+
+        // Writing to output buffer:
+        audioHelper.writeBytes(&codedAudioData[bytesWritten], bytesToWrite);
+
+        // Updating amount of bytes written:
+        bytesWritten += sizeAvailableBuffer;
+    }
 
     // Waiting for data to be done writing:
     while (!audioHelper.isOutputBufferEmpty())
@@ -910,6 +932,7 @@ void handleKeyboardInput()
             {
                 const char *filename = words[1].c_str();
 
+
                 cout << "Start playing file " << filename << "\n";
 
                 openAndPlayWavFile(filename);
@@ -999,7 +1022,7 @@ void handleKeyboardInput()
                 cout << "Sending " << amount << " messages.\n";
 
                 // Encode the message:
-                audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
+                audioCodec.encode(&codedAudioData[0], config.robotId, ENCODING_TEST);
 
                 // Sending amount number of messages:
                 for (int i = 0; i < amount; i++)

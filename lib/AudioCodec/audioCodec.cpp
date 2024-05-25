@@ -53,6 +53,8 @@ void AudioCodec::generateConvolutionFields(int robotId)
     {
         originalPreambleFlipped[i] = originalPreamble[i * preambleUndersamplingDivisor];
     }
+    
+    std::vector<double> prem(originalPreambleFlipped, originalPreambleFlipped + preambleUndersampledSamples);
 
     // Creating bit encoding and decoding data:
     initializeBitEncodingData();
@@ -1465,8 +1467,9 @@ void AudioCodec::setVolume(double volume)
 
     // Regenerate encoded sender ID and bits based on new volume:
     encodeSenderId(encodedSenderId, frequencyPairOwn, false);
-    encodeBit(encodedBit0, 0, frequencyPairOwn, false);
-    encodeBit(encodedBit1, 1, frequencyPairOwn, false);
+    //TODO: Needs to be reenabled:
+    // encodeBit(encodedBit0, 0, frequencyPairOwn, false);
+    // encodeBit(encodedBit1, 1, frequencyPairOwn, false);
 
     // Also regenerate the ones to check against!
 }
