@@ -119,6 +119,68 @@ void AudioCodec::initializeBitEncodingData()
 //******** Encoding *******************************
 //*************************************************
 
+
+std::vector<std::vector<int>> AudioCodec::generateChirpOrder(int totalNumberOfRobots) {
+    if (totalNumberOfRobots == 4) {
+        return {
+            {3, 2, 1, 4},
+            {2, 4, 3, 1},
+            {1, 3, 4, 2},
+            {4, 1, 2, 3}
+        };
+    } else if (totalNumberOfRobots == 6) {
+        return {
+            {3, 4, 1, 6, 2, 5},
+            {2, 3, 6, 5, 1, 4},
+            {1, 2, 5, 4, 6, 3},
+            {6, 1, 4, 3, 5, 2},
+            {5, 6, 3, 2, 4, 1},
+            {4, 5, 2, 1, 3, 6}
+        };
+    } else if (totalNumberOfRobots == 8) {
+        return {
+            {1, 8, 7, 4, 3, 5, 2, 6},
+            {3, 6, 5, 2, 4, 7, 8, 1},
+            {8, 5, 6, 7, 1, 2, 4, 3},
+            {7, 1, 2, 5, 8, 6, 3, 4},
+            {6, 7, 4, 3, 2, 1, 5, 8},
+            {2, 4, 3, 6, 7, 8, 1, 5},
+            {4, 2, 1, 8, 5, 3, 6, 7},
+            {5, 3, 8, 1, 6, 4, 7, 2}
+        };
+    } else if (totalNumberOfRobots == 10) {
+        return {
+            {1, 10, 9, 8, 7, 6, 5, 4, 3, 2},
+            {2, 3, 4, 5, 6, 7, 8, 9, 10, 1},
+            {10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
+            {3, 4, 5, 6, 7, 8, 9, 10, 1, 2},
+            {9, 8, 7, 6, 5, 4, 3, 2, 1, 10},
+            {4, 5, 6, 7, 8, 9, 10, 1, 2, 3},
+            {8, 7, 6, 5, 4, 3, 2, 1, 10, 9},
+            {5, 6, 7, 8, 9, 10, 1, 2, 3, 4},
+            {7, 6, 5, 4, 3, 2, 1, 10, 9, 8},
+            {6, 7, 8, 9, 10, 1, 2, 3, 4, 5}
+        };
+    } else if (totalNumberOfRobots == 12) {
+        return {
+            {1, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2},
+            {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1},
+            {12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
+            {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2},
+            {11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12},
+            {4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3},
+            {10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11},
+            {5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4},
+            {9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10},
+            {6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5},
+            {8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10, 9},
+            {7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6}
+        };
+    } else {
+        throw std::invalid_argument("Unsupported number of robots");
+    }
+}
+
 /// @brief Encode a bit into a chirp signal (1 = up, 0 = down)
 /// @param output The output buffer.
 /// @param bit Bit to encode.
@@ -219,12 +281,15 @@ void AudioCodec::encodeBit(double *output, const int forRobotId, const uint8_t b
     // ***********************
     // APPROACH 3 - AudioLocNet
     // ***********************
+
+    // For 2 robots:
     // int chirpOrder[4][4] = {
     //     {3, 2, 1, 4},
     //     {2, 4, 3, 1},
     //     {1, 3, 4, 2},
     //     {4, 1, 2, 3}};
 
+    // For 3 robots:
     // int chirpOrder[6][6] = {
     //     {3, 4, 1, 6, 2, 5},
     //     {2, 3, 6, 5, 1, 4},
@@ -233,6 +298,7 @@ void AudioCodec::encodeBit(double *output, const int forRobotId, const uint8_t b
     //     {5, 6, 3, 2, 4, 1},
     //     {4, 5, 2, 1, 3, 6}};
 
+    // For 4 robots:
     // int chirpOrder[8][8] = {
     //     {1, 8, 7, 4, 3, 5, 2, 6},
     //     {3, 6, 5, 2, 4, 7, 8, 1},
@@ -243,6 +309,7 @@ void AudioCodec::encodeBit(double *output, const int forRobotId, const uint8_t b
     //     {4, 2, 1, 8, 5, 3, 6, 7},
     //     {5, 3, 8, 1, 6, 4, 7, 2}};
 
+    // For 5 robots:
     // int chirpOrder[10][10] = {
     //     {1, 10, 9, 8, 7, 6, 5, 4, 3, 2},
     //     {2, 3, 4, 5, 6, 7, 8, 9, 10, 1},
@@ -255,21 +322,24 @@ void AudioCodec::encodeBit(double *output, const int forRobotId, const uint8_t b
     //     {7, 6, 5, 4, 3, 2, 1, 10, 9, 8},
     //     {6, 7, 8, 9, 10, 1, 2, 3, 4, 5}};
 
-    int chirpOrder[12][12] = {
-        {1, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2},
-        {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1},
-        {12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
-        {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2},
-        {11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12},
-        {4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3},
-        {10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11},
-        {5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4},
-        {9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10},
-        {6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5},
-        {8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10, 9},
-        {7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6}};
+    // For 6 robots:
+    // int chirpOrder[12][12] = {
+    //     {1, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2},
+    //     {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1},
+    //     {12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
+    //     {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2},
+    //     {11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12},
+    //     {4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3},
+    //     {10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11},
+    //     {5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4},
+    //     {9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10},
+    //     {6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5},
+    //     {8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10, 9},
+    //     {7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6}};
 
-    int numberOfSubChirps = 12;
+    vector<vector<int>> chirpOrder = generateChirpOrder(totalNumberRobots);
+
+    int numberOfSubChirps = totalNumberRobots * 2;
     int subChirpSamples = bitSamples / numberOfSubChirps;
     double frequencyTotal = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
     double frequencyPerSubChirp = frequencyTotal / numberOfSubChirps;

@@ -204,7 +204,9 @@ private:
     double getEncodingDuration();
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits);
     void encodePreamble(double *output, bool flipped);
-    
+
+    std::vector<std::vector<int>> generateChirpOrder(int totalNumberOfRobots);
+
     void encodeBit(double *output, const int forRobotId, const uint8_t bit, const AudioCodecFrequencyPair frequencies[2], bool flipped);
     void encodeSymbol(double *output, const int symbol);
     void encodeBits(double *output, uint8_t *bits, int numberOfBits);
