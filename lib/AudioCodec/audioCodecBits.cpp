@@ -258,7 +258,7 @@ void AudioCodec::encodeBit(double *output, const int forRobotId, const uint8_t b
             frequenciesSubChrip.stopFrequency = fe;
         }
 
-        encodeChirp(&output[column * subChirpSamples], frequenciesSubChrip, subChirpSamples, 4);
+        encodeChirp(&output[column * subChirpSamples], frequenciesSubChrip, subChirpSamples, kaiserWindowBeta);
     }
 
     // Flip the signal, if its needed for convolution:
