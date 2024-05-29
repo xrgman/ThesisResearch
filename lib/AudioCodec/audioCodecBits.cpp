@@ -121,14 +121,14 @@ void AudioCodec::initializeBitEncodingData()
 
 
 std::vector<std::vector<int>> AudioCodec::generateChirpOrder(int totalNumberOfRobots) {
-    if (totalNumberOfRobots == 4) {
+    if (totalNumberOfRobots == 2) {
         return {
             {3, 2, 1, 4},
             {2, 4, 3, 1},
             {1, 3, 4, 2},
             {4, 1, 2, 3}
         };
-    } else if (totalNumberOfRobots == 6) {
+    } else if (totalNumberOfRobots == 3) {
         return {
             {3, 4, 1, 6, 2, 5},
             {2, 3, 6, 5, 1, 4},
@@ -137,7 +137,7 @@ std::vector<std::vector<int>> AudioCodec::generateChirpOrder(int totalNumberOfRo
             {5, 6, 3, 2, 4, 1},
             {4, 5, 2, 1, 3, 6}
         };
-    } else if (totalNumberOfRobots == 8) {
+    } else if (totalNumberOfRobots == 4) {
         return {
             {1, 8, 7, 4, 3, 5, 2, 6},
             {3, 6, 5, 2, 4, 7, 8, 1},
@@ -148,7 +148,7 @@ std::vector<std::vector<int>> AudioCodec::generateChirpOrder(int totalNumberOfRo
             {4, 2, 1, 8, 5, 3, 6, 7},
             {5, 3, 8, 1, 6, 4, 7, 2}
         };
-    } else if (totalNumberOfRobots == 10) {
+    } else if (totalNumberOfRobots == 5) {
         return {
             {1, 10, 9, 8, 7, 6, 5, 4, 3, 2},
             {2, 3, 4, 5, 6, 7, 8, 9, 10, 1},
@@ -161,7 +161,7 @@ std::vector<std::vector<int>> AudioCodec::generateChirpOrder(int totalNumberOfRo
             {7, 6, 5, 4, 3, 2, 1, 10, 9, 8},
             {6, 7, 8, 9, 10, 1, 2, 3, 4, 5}
         };
-    } else if (totalNumberOfRobots == 12) {
+    } else if (totalNumberOfRobots == 6) {
         return {
             {1, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2},
             {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1},
