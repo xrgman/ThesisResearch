@@ -134,7 +134,7 @@ void outputMessageToSpeaker(const int16_t *codedAudioData, const int size)
     while (bytesWritten < size)
     {
         // Waiting for batch to be written:
-        if (audioHelper.isOutputBufferFull())
+        if (audioHelper.getOutputBufferAvailableSize() < 1024)
         {
             usleep(1);
 
