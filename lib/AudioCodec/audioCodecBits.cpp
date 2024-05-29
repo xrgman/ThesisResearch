@@ -64,8 +64,8 @@ void AudioCodec::initializeBitEncodingData()
         encodeSenderId(senderIdsFlipped[i], frequencies, true);
 
         // Create flipped decoding symbols:
-        encodeBit(bit0Flipped[i], 0, frequenciesRobot, true);
-        encodeBit(bit1Flipped[i], 1, frequenciesRobot, true);
+        encodeBit(bit0Flipped[i], i, 0, frequenciesRobot, true);
+        encodeBit(bit1Flipped[i], i, 1, frequenciesRobot, true);
 
         // LORA:
         //  Creating down chirp that is used for decoding:
@@ -99,8 +99,8 @@ void AudioCodec::initializeBitEncodingData()
             encodedBit1 = new double[bitSamples];
 
             encodeSenderId(encodedSenderId, frequencies, false);
-            encodeBit(encodedBit0, 0, frequenciesRobot, false);
-            encodeBit(encodedBit1, 1, frequenciesRobot, false);
+            encodeBit(encodedBit0, i, 0, frequenciesRobot, false);
+            encodeBit(encodedBit1, i, 1, frequenciesRobot, false);
 
             std::vector<double> bit0(encodedBit0, encodedBit0 + bitSamples);
             std::vector<double> bit1(encodedBit1, encodedBit1 + bitSamples);
@@ -123,7 +123,7 @@ void AudioCodec::initializeBitEncodingData()
 /// @param output The output buffer.
 /// @param bit Bit to encode.
 /// @param flipped Whether to flip the data in the output buffer for convolution.
-void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair frequencies[2], bool flipped)
+void AudioCodec::encodeBit(double *output, const int forRobotId, const uint8_t bit, const AudioCodecFrequencyPair frequencies[2], bool flipped)
 {
     // Here I make them for up and down :)
     // AudioCodecFrequencyPair frequenciesBit0 = {
@@ -212,10 +212,54 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     // ***********************
     // APPROACH 3
     // ***********************
-    AudioCodecFrequencyPair frequenciesBit = bit == 0 ? frequencies[0] : frequencies[1];
+    // AudioCodecFrequencyPair frequenciesBit = bit == 0 ? frequencies[0] : frequencies[1];
 
-    encodeChirp(output, frequenciesBit, bitSamples, kaiserWindowBeta);
+    // encodeChirp(output, frequenciesBit, bitSamples, kaiserWindowBeta);
 
+    // ***********************
+    // APPROACH 3 - AudioLocNet
+    // ***********************
+    int chirpOrder[8][8] = {
+        {1, 8, 7, 4, 3, 5, 2, 6},
+        {3, 6, 5, 2, 4, 7, 8, 1},
+        {8, 5, 6, 7, 1, 2, 4, 3},
+        {7, 1, 2, 5, 8, 6, 3, 4},
+        {6, 7, 4, 3, 2, 1, 5, 8},
+        {2, 4, 3, 6, 7, 8, 1, 5},
+        {4, 2, 1, 8, 5, 3, 6, 7},
+        {5, 3, 8, 1, 6, 4, 7, 2}};
+
+    int numberOfSubChirps = 8;
+    int subChirpSamples = bitSamples / numberOfSubChirps;
+    double frequencyTotal = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
+    double frequencyPerSubChirp = frequencyTotal / numberOfSubChirps;
+
+    // Determining frequencies to use:
+    int row = forRobotId * 2 + bit;
+
+    for (int column = 0; column < numberOfSubChirps; column++)
+    {
+        int chirpOrderIdx = chirpOrder[row][column];
+
+        double fs = frequencyPairBit.startFrequency + ((chirpOrderIdx - 1) * frequencyPerSubChirp);
+        double fe = fs + frequencyPerSubChirp;
+
+        AudioCodecFrequencyPair frequenciesSubChrip;
+
+        // Determine whether to use an up or down chirp:
+        if (chirpOrderIdx % 2 == column % 2)
+        {
+            frequenciesSubChrip.startFrequency = fe;
+            frequenciesSubChrip.stopFrequency = fs;
+        }
+        else
+        {
+            frequenciesSubChrip.startFrequency = fs;
+            frequenciesSubChrip.stopFrequency = fe;
+        }
+
+        encodeChirp(&output[column * subChirpSamples], frequenciesSubChrip, subChirpSamples, 4);
+    }
 
     // Flip the signal, if its needed for convolution:
     if (flipped)
