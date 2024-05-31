@@ -173,6 +173,11 @@ public:
     void encodeLocalizeResponse2Message(int16_t *output, uint8_t senderId, chrono::nanoseconds processingTime);
     void encodePreambleForSending(int16_t *output);
 
+    void encodePreamble(double *output, bool flipped);
+    void encodeSenderIdForPlot(double *output);
+    void encodeBitForPlot(double *output, int bit);
+
+
     void decode(int16_t bit, uint8_t microphoneId, const chrono::time_point<chrono::high_resolution_clock>& receivedTime, bool onlyDecodePreamble = false);
 
     void generateConvolutionFields(int robotId);
@@ -203,7 +208,7 @@ private:
     int getNumberOfBits();
     double getEncodingDuration();
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits);
-    void encodePreamble(double *output, bool flipped);
+    
 
     std::vector<std::vector<int>> generateChirpOrder(int totalNumberOfRobots);
 

@@ -11,7 +11,7 @@
 
 AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
                        double frequencyStopBit, double bandwithPadding, double bandwidthPaddingSubchrip, int bitPadding, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
-                                                                                                                                                           preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor), kaiserWindowBeta(kaiserWindowBeta)
+                                                                                                                                                                                            preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor), kaiserWindowBeta(kaiserWindowBeta)
 {
     this->bandwidthPadding = bandwithPadding;
     this->bandwidthPaddingSubchrip = bandwidthPaddingSubchrip;
@@ -53,7 +53,7 @@ void AudioCodec::generateConvolutionFields(int robotId)
     {
         originalPreambleFlipped[i] = originalPreamble[i * preambleUndersamplingDivisor];
     }
-    
+
     std::vector<double> prem(originalPreambleFlipped, originalPreambleFlipped + preambleUndersampledSamples);
 
     // Creating bit encoding and decoding data:
@@ -176,7 +176,6 @@ void AudioCodec::encode(int16_t *output, uint8_t senderId, AudioCodedMessageType
 
 /// @brief Encode an I'm in this cell message.
 /// @param output The array to store the encoded data in.
-/// @param senderId The ID of the sender.
 /// @param cellId Cell id where the robot is currently in (comes from PF).
 void AudioCodec::encodeCellMessage(int16_t *output, uint8_t senderId, uint32_t cellId)
 {
@@ -1467,9 +1466,9 @@ void AudioCodec::setVolume(double volume)
 
     // Regenerate encoded sender ID and bits based on new volume:
     encodeSenderId(encodedSenderId, frequencyPairOwn, false);
-    //TODO: Needs to be reenabled:
-    // encodeBit(encodedBit0, 0, frequencyPairOwn, false);
-    // encodeBit(encodedBit1, 1, frequencyPairOwn, false);
+    // TODO: Needs to be reenabled:
+    //  encodeBit(encodedBit0, 0, frequencyPairOwn, false);
+    //  encodeBit(encodedBit1, 1, frequencyPairOwn, false);
 
     // Also regenerate the ones to check against!
 }
@@ -1480,4 +1479,20 @@ void AudioCodec::setRobotId(int robotId)
 
     // Regenerating convolution fields:
     generateConvolutionFields(robotId);
+}
+
+void AudioCodec::encodeSenderIdForPlot(double *output)
+{
+    for (int i = 0; i < bitSamples; i++)
+    {
+        output[i] = encodedSenderId[i];
+    }
+}
+
+void AudioCodec::encodeBitForPlot(double *output, int bit)
+{
+    for (int i = 0; i < bitSamples; i++)
+    {
+        output[i] = bit == 0 ? encodedBit0[i] : encodedBit1[i];
+    }
 }

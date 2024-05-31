@@ -46,7 +46,7 @@ ParticleFilter particleFilter(config.totalNumberRobots, config.robotId);
 MapRenderer mapRenderer;
 
 AudioCodec audioCodec(dataDecodedCallback, signalEnergyCallback, config.sampleRate, config.totalNumberRobots, config.robotId, config.preambleSamples, config.bitSamples, config.preambleUndersamplingDivisor,
-                      config.frequencyStartPreamble, config.frequencyStopPreamble, config.frequencyStartBit, config.frequencyStopBit, config.bandwidthPadding, config.bandwidthPaddingSubchirp, config.bitPadding, 
+                      config.frequencyStartPreamble, config.frequencyStopPreamble, config.frequencyStartBit, config.frequencyStopBit, config.bandwidthPadding, config.bandwidthPaddingSubchirp, config.bitPadding,
                       config.printBitsEncoding, config.filterOwnSource, config.kaiserWindowBeta);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
@@ -134,7 +134,7 @@ void outputMessageToSpeaker(const int16_t *codedAudioData, const int size)
     while (bytesWritten < size)
     {
         // Waiting for batch to be written:
-        if (audioHelper.getOutputBufferAvailableSize() < 1024)
+        if (audioHelper.getOutputBufferAvailableSize() < 8192)
         {
             usleep(1);
 
@@ -143,7 +143,7 @@ void outputMessageToSpeaker(const int16_t *codedAudioData, const int size)
 
         // Reading next data:
         int sizeAvailableBuffer = audioHelper.getOutputBufferAvailableSize();
-        
+
         // Determining bytes to write:
         int bytesToWrite = size - bytesWritten < sizeAvailableBuffer ? size - bytesWritten : sizeAvailableBuffer;
 
@@ -340,7 +340,7 @@ void loadParticleFilter(bool initializeMapRenderer)
 void encodeMessageForAudio(const char *filename, int robotId)
 {
     // Create array and fill it with zeros:
-    int size = audioCodec.getEncodingSize() + 400;
+    int size = audioCodec.getEncodingSize();
 
     int16_t codedAudioData[size];
 
@@ -361,6 +361,81 @@ void encodeMessageForAudio(const char *filename, int robotId)
     // Step 3: When done end this function :)
 
     // Walk over a window (LENGTH == PREAMBLE) and if preamble is found start gathering X bytes and then send it through the codec I guess
+}
+
+void encodePreambleToFile(const char *filename)
+{
+    // Create array and fill it with zeros:
+    int size = config.preambleSamples;
+
+    int16_t codedAudioData[size];
+    double outputBuffer[size];
+
+    fillArrayWithZeros(codedAudioData, size);
+
+    // Encode the message:
+    audioCodec.encodePreamble(outputBuffer, false);
+
+    // Translate to int16:
+    for (int i = 0; i < size; i++)
+    {
+        codedAudioData[i] = doubleToInt16(outputBuffer[i]);
+    }
+
+    // Write data to file:
+    writeWavFile(filename, codedAudioData, size, config.sampleRate, 16, 1);
+
+    cout << "Successfully encoded preamble into file: " << filename << endl;
+}
+
+void encodeIdentifierToFile(const char *filename)
+{
+    // Create array and fill it with zeros:
+    int size = config.bitSamples;
+
+    int16_t codedAudioData[size];
+    double outputBuffer[size];
+
+    fillArrayWithZeros(codedAudioData, size);
+
+    // Encode the message:
+    audioCodec.encodeSenderIdForPlot(outputBuffer);
+
+    // Translate to int16:
+    for (int i = 0; i < size; i++)
+    {
+        codedAudioData[i] = doubleToInt16(outputBuffer[i]);
+    }
+
+    // Write data to file:
+    writeWavFile(filename, codedAudioData, size, config.sampleRate, 16, 1);
+
+    cout << "Successfully encoded preamble into file: " << filename << endl;
+}
+
+void encodeBitToFile(const char *filename, int bit)
+{
+    // Create array and fill it with zeros:
+    int size = config.bitSamples;
+
+    int16_t codedAudioData[size];
+    double outputBuffer[size];
+
+    fillArrayWithZeros(codedAudioData, size);
+
+    // Encode the message:
+    audioCodec.encodeBitForPlot(outputBuffer, bit);
+
+    // Translate to int16:
+    for (int i = 0; i < size; i++)
+    {
+        codedAudioData[i] = doubleToInt16(outputBuffer[i]);
+    }
+
+    // Write data to file:
+    writeWavFile(filename, codedAudioData, size, config.sampleRate, 16, 1);
+
+    cout << "Successfully encoded preamble into file: " << filename << endl;
 }
 
 /// @brief Decode a WAV file, using the decoding algorithm.
@@ -932,7 +1007,6 @@ void handleKeyboardInput()
             {
                 const char *filename = words[1].c_str();
 
-
                 cout << "Start playing file " << filename << "\n";
 
                 openAndPlayWavFile(filename);
@@ -948,6 +1022,43 @@ void handleKeyboardInput()
                 cout << "Starting encoding to file " << filename << endl;
 
                 encodeMessageForAudio(filename, config.robotId);
+
+                continue;
+            }
+
+            // Encode preamble:
+            if (words[0] == "ep")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Starting encoding to file " << filename << endl;
+
+                encodePreambleToFile(filename);
+
+                continue;
+            }
+
+            // Encode identifier:
+            if (words[0] == "ei")
+            {
+                const char *filename = words[1].c_str();
+
+                cout << "Starting encoding to file " << filename << endl;
+
+                encodeIdentifierToFile(filename);
+
+                continue;
+            }
+
+            // Encode bit:
+            if (words[0] == "eb")
+            {
+                const char *filename = words[1].c_str();
+                int bit = stoi(words[2]);
+
+                cout << "Starting encoding to file " << filename << endl;
+
+                encodeBitToFile(filename, bit);
 
                 continue;
             }
@@ -1030,7 +1141,8 @@ void handleKeyboardInput()
                     outputMessageToSpeaker(codedAudioData, size);
 
                     // Waiting 10ms for next:
-                    this_thread::sleep_for(chrono::milliseconds(500));
+                    // this_thread::sleep_for(chrono::milliseconds(500));
+                    usleep(500000);
                 }
 
                 cout << "Done sending messages!\n";
