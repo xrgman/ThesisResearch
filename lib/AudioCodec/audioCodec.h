@@ -11,8 +11,6 @@
 #define NUMBER_OF_SUB_CHIRPS 8
 #define CHIRP_AMPLITUDE 1.0
 
-#define BIT_PADDING 0
-
 #define PREAMBLE_CONVOLUTION_CUTOFF 400 //Convolution peak after which message is considered from own source
 #define PREAMBLE_SIGNAL_ENERGY_CUTOFF 400 //When to assume message is from own source
 #define MINIMUM_DISTANCE_PREAMBLE_PEAKS 1000 //Two peaks should be at least be x samples apart to be considered from different sources.
@@ -127,7 +125,7 @@ class AudioCodec
 {
 public:
     AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
-           double frequencyStopBit, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta);
+           double frequencyStopBit, double bandwithPadding, double bandwidthPaddingSubchrip, int bitPadding, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta);
 
     ~AudioCodec()
     {
@@ -183,11 +181,15 @@ public:
     double getVolume();
     void setVolume(double volume);
 
+    void setRobotId(int robotId);
+
 private:
-    const int sampleRate, totalNumberRobots, robotId;
+    const int sampleRate, totalNumberRobots;
     const int preambleSamples, bitSamples, preambleUndersamplingDivisor, preambleUndersampledSamples;
     const int kaiserWindowBeta;
+    int robotId, bitPadding;
     bool printCodedBits, filterOwnSource;
+    double bandwidthPadding, bandwidthPaddingSubchrip;
     double volume;
     AudioCodecFrequencyPair frequencyPairPreamble, frequencyPairBit, frequencyPairOwn;
     void (*data_decoded_callback)(AudioCodecResult);
@@ -202,8 +204,10 @@ private:
     double getEncodingDuration();
     void encode(int16_t *output, uint8_t senderId, AudioCodedMessageType messageType, uint8_t *dataBits);
     void encodePreamble(double *output, bool flipped);
-    
-    void encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair& frequencies, bool flipped);
+
+    std::vector<std::vector<int>> generateChirpOrder(int totalNumberOfRobots);
+
+    void encodeBit(double *output, const int forRobotId, const uint8_t bit, const AudioCodecFrequencyPair frequencies[2], bool flipped);
     void encodeSymbol(double *output, const int symbol);
     void encodeBits(double *output, uint8_t *bits, int numberOfBits);
     void encodeSenderId(double *output, const AudioCodecFrequencyPair& frequencies, bool flipped);
@@ -261,6 +265,7 @@ private:
     bool doesDecodingResultExistForSenderId(int senderId);
 
     void completeDecoding(AudioCodecResult decodingResult);
+    double calculateBER(uint8_t *decodedBits, bool print);
     void performDistanceTracking(chrono::system_clock::time_point decodingEndTime);
 
     // General decoding functions:

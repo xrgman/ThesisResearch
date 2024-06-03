@@ -46,7 +46,8 @@ ParticleFilter particleFilter(config.totalNumberRobots, config.robotId);
 MapRenderer mapRenderer;
 
 AudioCodec audioCodec(dataDecodedCallback, signalEnergyCallback, config.sampleRate, config.totalNumberRobots, config.robotId, config.preambleSamples, config.bitSamples, config.preambleUndersamplingDivisor,
-                      config.frequencyStartPreamble, config.frequencyStopPreamble, config.frequencyStartBit, config.frequencyStopBit, config.printBitsEncoding, config.filterOwnSource, config.kaiserWindowBeta);
+                      config.frequencyStartPreamble, config.frequencyStopPreamble, config.frequencyStartBit, config.frequencyStopBit, config.bandwidthPadding, config.bandwidthPaddingSubchirp, config.bitPadding, 
+                      config.printBitsEncoding, config.filterOwnSource, config.kaiserWindowBeta);
 
 chrono::time_point decodingStart = chrono::high_resolution_clock::now();
 bool keepProcessing = true;
@@ -128,8 +129,30 @@ void dataAvailableCallback()
 /// @param size Size of the encoded data.
 void outputMessageToSpeaker(const int16_t *codedAudioData, const int size)
 {
-    // Writing data to the buffer:
-    audioHelper.writeBytes(codedAudioData, size);
+    int bytesWritten = 0;
+
+    while (bytesWritten < size)
+    {
+        // Waiting for batch to be written:
+        if (audioHelper.getOutputBufferAvailableSize() < 1024)
+        {
+            usleep(1);
+
+            continue;
+        }
+
+        // Reading next data:
+        int sizeAvailableBuffer = audioHelper.getOutputBufferAvailableSize();
+        
+        // Determining bytes to write:
+        int bytesToWrite = size - bytesWritten < sizeAvailableBuffer ? size - bytesWritten : sizeAvailableBuffer;
+
+        // Writing to output buffer:
+        audioHelper.writeBytes(&codedAudioData[bytesWritten], bytesToWrite);
+
+        // Updating amount of bytes written:
+        bytesWritten += sizeAvailableBuffer;
+    }
 
     // Waiting for data to be done writing:
     while (!audioHelper.isOutputBufferEmpty())
@@ -284,9 +307,9 @@ void recordToWavFile(const char *filename, const int seconds)
 
 void loadParticleFilter(bool initializeMapRenderer)
 {
-    //const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
-    // const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
-    // const uint8_t scale = 1;
+    // const char *filenameMap = "../lib/ParticleFilter/Map/myRoom.json";
+    //  const char *filenameMap = "../lib/ParticleFilter/Map/myRoom_smallCells.json";
+    //  const uint8_t scale = 1;
     const char *filenameMap = "../lib/ParticleFilter/Map/middle_floor.json";
     const uint8_t scale = 1;
 
@@ -909,6 +932,7 @@ void handleKeyboardInput()
             {
                 const char *filename = words[1].c_str();
 
+
                 cout << "Start playing file " << filename << "\n";
 
                 openAndPlayWavFile(filename);
@@ -998,7 +1022,7 @@ void handleKeyboardInput()
                 cout << "Sending " << amount << " messages.\n";
 
                 // Encode the message:
-                audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
+                audioCodec.encode(&codedAudioData[0], config.robotId, ENCODING_TEST);
 
                 // Sending amount number of messages:
                 for (int i = 0; i < amount; i++)
@@ -1006,7 +1030,7 @@ void handleKeyboardInput()
                     outputMessageToSpeaker(codedAudioData, size);
 
                     // Waiting 10ms for next:
-                    usleep(10000);
+                    this_thread::sleep_for(chrono::milliseconds(500));
                 }
 
                 cout << "Done sending messages!\n";
@@ -1499,6 +1523,35 @@ void calibrateSignalEnergy()
     }
 }
 
+/// @brief Looping over all robot ids and send 4 messages
+void testAllRobots()
+{
+    int nrOfMessagesToSend = 1;
+    int size = audioCodec.getEncodingSize();
+    int16_t codedAudioData[size];
+
+    for (int robotId = 0; robotId < config.totalNumberRobots; robotId++)
+    {
+        // Configuring audio codec for current robot id:
+        audioCodec.setRobotId(robotId);
+
+        // Encode the message:
+        audioCodec.encode(codedAudioData, config.robotId, ENCODING_TEST);
+
+        // Sending amount number of messages:
+        for (int i = 0; i < nrOfMessagesToSend; i++)
+        {
+            outputMessageToSpeaker(codedAudioData, size);
+
+            // Waiting 10ms for next:
+            this_thread::sleep_for(chrono::milliseconds(500));
+        }
+    }
+
+    // Resetting original robot id:
+    audioCodec.setRobotId(config.robotId);
+}
+
 int main()
 {
     // Catching sigint event:
@@ -1561,6 +1614,12 @@ int main()
     else
     {
         audioCodec.setVolume(1.0);
+    }
+
+    // Testing all robots if so requested by config:
+    if (config.testAllRobots)
+    {
+        testAllRobots();
     }
 
     // Running keyboard input function:

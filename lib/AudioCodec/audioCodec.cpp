@@ -10,9 +10,12 @@
 // #define KAISER_WINDOW_BETA 4
 
 AudioCodec::AudioCodec(void (*data_decoded_callback)(AudioCodecResult), void (*signal_energy_callback)(int, double), int sampleRate, int totalNumberRobots, int robotId, int preambleSamples, int bitSamples, int preambleUndersamplingDivisor, double frequencyStartPreamble, double frequencyStopPreamble, double frequencyStartBit,
-                       double frequencyStopBit, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
-                                                                                             preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor), kaiserWindowBeta(kaiserWindowBeta)
+                       double frequencyStopBit, double bandwithPadding, double bandwidthPaddingSubchrip, int bitPadding, bool printCodedBits, bool filterOwnSource, int kaiserWindowBeta) : sampleRate(sampleRate), totalNumberRobots(totalNumberRobots), robotId(robotId), preambleSamples(preambleSamples), bitSamples(bitSamples),
+                                                                                                                                                           preambleUndersamplingDivisor(preambleUndersamplingDivisor), preambleUndersampledSamples(preambleSamples / preambleUndersamplingDivisor), kaiserWindowBeta(kaiserWindowBeta)
 {
+    this->bandwidthPadding = bandwithPadding;
+    this->bandwidthPaddingSubchrip = bandwidthPaddingSubchrip;
+    this->bitPadding = bitPadding;
     this->printCodedBits = printCodedBits;
     this->filterOwnSource = filterOwnSource;
     this->data_decoded_callback = data_decoded_callback;
@@ -50,6 +53,8 @@ void AudioCodec::generateConvolutionFields(int robotId)
     {
         originalPreambleFlipped[i] = originalPreamble[i * preambleUndersamplingDivisor];
     }
+    
+    std::vector<double> prem(originalPreambleFlipped, originalPreambleFlipped + preambleUndersampledSamples);
 
     // Creating bit encoding and decoding data:
     initializeBitEncodingData();
@@ -113,7 +118,7 @@ int AudioCodec::getNumberOfBits()
 /// @return Size.
 int AudioCodec::getEncodingSize()
 {
-    return preambleSamples + bitSamples + (getNumberOfBits() * bitSamples) + (getNumberOfBits() * 2 * BIT_PADDING);
+    return preambleSamples + bitSamples + (getNumberOfBits() * bitSamples) + (getNumberOfBits() * 2 * bitPadding);
 }
 
 /// @brief Get the duration of an encoded message in seconds.
@@ -721,7 +726,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_po
                     }
 
                     decodingResults[decodingResultIdx].senderId = senderId;
-                    decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples + BIT_PADDING;
+                    decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples + bitPadding;
 
                     continue;
                 }
@@ -733,7 +738,7 @@ void AudioCodec::decode(int16_t bit, uint8_t microphoneId, const chrono::time_po
                 decodingResults[decodingResultIdx].decodedBitsCnt++;
 
                 // Increasing read position:
-                decodingResults[decodingResultIdx].decodingBitsPosition += bitSamples + (BIT_PADDING * 2);
+                decodingResults[decodingResultIdx].decodingBitsPosition += (bitSamples + (bitPadding * 2));
 
                 // Checking if all bits are received (-8 because of padding in back):
                 if (decodingResults[decodingResultIdx].decodedBitsCnt >= getNumberOfBits())
@@ -1018,6 +1023,9 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult)
 
     // cout << "Preamble found at: " << decodingResult.preambleDetectionPosition[0] << endl;
 
+    // Show bit error rate:
+    calculateBER(decodingResult.decodedBits, true);
+
     if (crcInMessage == crcCalculated)
     {
         // Decoding robot ID of sender:
@@ -1048,6 +1056,40 @@ void AudioCodec::completeDecoding(AudioCodecResult decodingResult)
     {
         // decodingStore[i].reset();
     }
+}
+
+double AudioCodec::calculateBER(uint8_t *decodedBits, bool print)
+{
+    int testMessageBits[] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        0, 0, 0, 0, 1, 0, 0, 1, 1, 0,
+        0, 0, 0, 1, 0, 1, 1, 0, 1, 1,
+        1, 0, 0, 1, 1, 0, 0, 0, 0, 1,
+        0, 1, 1, 0, 0, 0, 0, 1, 0, 1,
+        1, 0, 1, 1, 1, 0, 0, 0, 1, 0,
+        0, 0, 0, 1, 0, 0, 1, 0, 0, 0,
+        0, 1, 0, 0, 1, 0, 0, 0, 1, 1};
+
+    int size = getNumberOfBits();
+
+    int failedBits = 0;
+
+    for (int i = 0; i < size; i++)
+    {
+        if (decodedBits[i] != testMessageBits[i])
+        {
+            failedBits++;
+        }
+    }
+
+    double ber = (double)failedBits / size;
+
+    if (print)
+    {
+        spdlog::info("Number of failed bits: {}, BER: {}", failedBits, ber);
+    }
+
+    return ber;
 }
 
 void AudioCodec::performDistanceTracking(chrono::system_clock::time_point decodingEndTime)
@@ -1425,8 +1467,17 @@ void AudioCodec::setVolume(double volume)
 
     // Regenerate encoded sender ID and bits based on new volume:
     encodeSenderId(encodedSenderId, frequencyPairOwn, false);
-    encodeBit(encodedBit0, 0, frequencyPairOwn, false);
-    encodeBit(encodedBit1, 1, frequencyPairOwn, false);
+    //TODO: Needs to be reenabled:
+    // encodeBit(encodedBit0, 0, frequencyPairOwn, false);
+    // encodeBit(encodedBit1, 1, frequencyPairOwn, false);
 
     // Also regenerate the ones to check against!
+}
+
+void AudioCodec::setRobotId(int robotId)
+{
+    this->robotId = robotId;
+
+    // Regenerating convolution fields:
+    generateConvolutionFields(robotId);
 }

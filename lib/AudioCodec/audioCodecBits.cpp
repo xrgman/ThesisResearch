@@ -6,9 +6,15 @@
 
 void AudioCodec::initializeBitEncodingData()
 {
-    // Determining frequency range for specific robot ID:
-    double totalBandwidth = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
-    double bandwidthRobot = totalBandwidth / totalNumberRobots;
+    // Determining total bandwith:
+    double bandwidthTotal = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
+
+    // Determing bandiwth needed for padding
+    double bandwidthPerPadding = (totalNumberRobots - 1) * bandwidthPadding;
+
+    // Determining bandwith per robot:
+    double bandwidthRobot = (bandwidthTotal - bandwidthPerPadding) / totalNumberRobots;
+    double bandwidthBit = bandwidthRobot / 2;
     // double bandwidthRobot = totalBandwidth / (totalNumberRobots * 2);
 
     senderIdsFlipped = new double *[totalNumberRobots];
@@ -29,9 +35,27 @@ void AudioCodec::initializeBitEncodingData()
     // Create sender ID flipped:
     for (uint8_t i = 0; i < totalNumberRobots; i++)
     {
+        double bandwidthPaddingAddition = i * bandwidthPadding;
+
+        // Generating frequencies sender id:
         AudioCodecFrequencyPair frequencies = {
-            frequencyPairBit.startFrequency + (i * bandwidthRobot),
-            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthRobot};
+            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthPaddingAddition,
+            frequencyPairBit.startFrequency + (i * bandwidthRobot) + bandwidthPaddingAddition + bandwidthRobot};
+
+        // Generating frequencies bit 0:
+        AudioCodecFrequencyPair frequenciesBit0 = {
+            frequencyPairBit.startFrequency + (i * bandwidthBit) + bandwidthPaddingAddition,
+            frequencyPairBit.startFrequency + (i * bandwidthBit) + bandwidthPaddingAddition + bandwidthBit};
+
+        // Generating frequencies bit 1:
+        AudioCodecFrequencyPair frequenciesBit1 = {
+            frequencyPairBit.startFrequency + (totalNumberRobots * bandwidthBit) + (i * bandwidthBit) + bandwidthPaddingAddition,
+            frequencyPairBit.startFrequency + (totalNumberRobots * bandwidthBit) + (i * bandwidthBit) + bandwidthPaddingAddition + bandwidthBit};
+
+        AudioCodecFrequencyPair frequenciesRobot[2];
+
+        frequenciesRobot[0] = i % 2 == 0 ? frequenciesBit0 : frequenciesBit1;
+        frequenciesRobot[1] = i % 2 == 0 ? frequenciesBit1 : frequenciesBit0;
 
         senderIdsFlipped[i] = new double[bitSamples];
         bit0Flipped[i] = new double[bitSamples];
@@ -40,8 +64,8 @@ void AudioCodec::initializeBitEncodingData()
         encodeSenderId(senderIdsFlipped[i], frequencies, true);
 
         // Create flipped decoding symbols:
-        encodeBit(bit0Flipped[i], 0, frequencies, true);
-        encodeBit(bit1Flipped[i], 1, frequencies, true);
+        encodeBit(bit0Flipped[i], i, 0, frequenciesRobot, true);
+        encodeBit(bit1Flipped[i], i, 1, frequenciesRobot, true);
 
         // LORA:
         //  Creating down chirp that is used for decoding:
@@ -75,8 +99,13 @@ void AudioCodec::initializeBitEncodingData()
             encodedBit1 = new double[bitSamples];
 
             encodeSenderId(encodedSenderId, frequencies, false);
-            encodeBit(encodedBit0, 0, frequencies, false);
-            encodeBit(encodedBit1, 1, frequencies, false);
+            encodeBit(encodedBit0, i, 0, frequenciesRobot, false);
+            encodeBit(encodedBit1, i, 1, frequenciesRobot, false);
+
+            std::vector<double> bit0(encodedBit0, encodedBit0 + bitSamples);
+            std::vector<double> bit1(encodedBit1, encodedBit1 + bitSamples);
+
+            int bla = 10;
 
             // LORA approach:
 
@@ -90,11 +119,73 @@ void AudioCodec::initializeBitEncodingData()
 //******** Encoding *******************************
 //*************************************************
 
+
+std::vector<std::vector<int>> AudioCodec::generateChirpOrder(int totalNumberOfRobots) {
+    if (totalNumberOfRobots == 2) {
+        return {
+            {3, 2, 1, 4},
+            {2, 4, 3, 1},
+            {1, 3, 4, 2},
+            {4, 1, 2, 3}
+        };
+    } else if (totalNumberOfRobots == 3) {
+        return {
+            {3, 4, 1, 6, 2, 5},
+            {2, 3, 6, 5, 1, 4},
+            {1, 2, 5, 4, 6, 3},
+            {6, 1, 4, 3, 5, 2},
+            {5, 6, 3, 2, 4, 1},
+            {4, 5, 2, 1, 3, 6}
+        };
+    } else if (totalNumberOfRobots == 4) {
+        return {
+            {1, 8, 7, 4, 3, 5, 2, 6},
+            {3, 6, 5, 2, 4, 7, 8, 1},
+            {8, 5, 6, 7, 1, 2, 4, 3},
+            {7, 1, 2, 5, 8, 6, 3, 4},
+            {6, 7, 4, 3, 2, 1, 5, 8},
+            {2, 4, 3, 6, 7, 8, 1, 5},
+            {4, 2, 1, 8, 5, 3, 6, 7},
+            {5, 3, 8, 1, 6, 4, 7, 2}
+        };
+    } else if (totalNumberOfRobots == 5) {
+        return {
+            {1, 10, 9, 8, 7, 6, 5, 4, 3, 2},
+            {2, 3, 4, 5, 6, 7, 8, 9, 10, 1},
+            {10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
+            {3, 4, 5, 6, 7, 8, 9, 10, 1, 2},
+            {9, 8, 7, 6, 5, 4, 3, 2, 1, 10},
+            {4, 5, 6, 7, 8, 9, 10, 1, 2, 3},
+            {8, 7, 6, 5, 4, 3, 2, 1, 10, 9},
+            {5, 6, 7, 8, 9, 10, 1, 2, 3, 4},
+            {7, 6, 5, 4, 3, 2, 1, 10, 9, 8},
+            {6, 7, 8, 9, 10, 1, 2, 3, 4, 5}
+        };
+    } else if (totalNumberOfRobots == 6) {
+        return {
+            {1, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2},
+            {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1},
+            {12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
+            {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2},
+            {11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12},
+            {4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3},
+            {10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11},
+            {5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4},
+            {9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10},
+            {6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5},
+            {8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10, 9},
+            {7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6}
+        };
+    } else {
+        throw std::invalid_argument("Unsupported number of robots");
+    }
+}
+
 /// @brief Encode a bit into a chirp signal (1 = up, 0 = down)
 /// @param output The output buffer.
 /// @param bit Bit to encode.
 /// @param flipped Whether to flip the data in the output buffer for convolution.
-void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFrequencyPair &frequencies, bool flipped)
+void AudioCodec::encodeBit(double *output, const int forRobotId, const uint8_t bit, const AudioCodecFrequencyPair frequencies[2], bool flipped)
 {
     // Here I make them for up and down :)
     // AudioCodecFrequencyPair frequenciesBit0 = {
@@ -135,14 +226,14 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     //     frequencies.stopFrequency + (totalNumberRobots * bandwidthRobot)};
 
     // THIS IS THE WORKING ONE:
-    // if (bit == 1)
-    // {
-    //     encodeChirp(output, frequencies, bitSamples, kaiserWindowBeta);
-    // }
-    // else
-    // {
-    //     encodeChirp(output, frequenciesBit0, bitSamples, kaiserWindowBeta);
-    // }
+    //  if (bit == 1)
+    //  {
+    //      encodeChirp(output, frequencies, bitSamples, kaiserWindowBeta);
+    //  }
+    //  else
+    //  {
+    //      encodeChirp(output, frequenciesBit0, bitSamples, kaiserWindowBeta);
+    //  }
 
     // ***********************
     // APPROACH 2
@@ -154,34 +245,131 @@ void AudioCodec::encodeBit(double *output, const uint8_t bit, const AudioCodecFr
     //     bit == 0 ? 2 : 5,
     //     bit == 0 ? 4 : 3};
 
-    int subChirpOrder[1] = {bit == 0 ? 0 : 1};
-    int chirpSize = 1;
+    // int subChirpOrder[1] = {bit == 0 ? 0 : 1};
+    // int chirpSize = 1;
 
-    double bandwidthPerSubChirp = (frequencies.stopFrequency - frequencies.startFrequency) / 2;
-    int sizePerSubChirp = bitSamples / chirpSize;
+    // double bandwidthPerSubChirp = ((frequencies.stopFrequency - frequencies.startFrequency) - bandwidthPaddingSubchrip) / 2;
+    // int sizePerSubChirp = bitSamples / chirpSize;
+    // double padding = bit == 1 ? bandwidthPaddingSubchrip : 0;
 
-    // AudioCodecFrequencyPair toUse = bit == 0 ? frequenciesBit0 : frequencies;
+    // // AudioCodecFrequencyPair toUse = bit == 0 ? frequenciesBit0 : frequencies;
 
-    for (uint8_t i = 0; i < chirpSize; i++)
-    {
-        AudioCodecFrequencyPair frequencyPair = {
-            frequencies.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp),
-            (frequencies.startFrequency + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
+    // for (uint8_t i = 0; i < chirpSize; i++)
+    // {
+    //     AudioCodecFrequencyPair frequencyPair = {
+    //         frequencies.startFrequency + padding + (subChirpOrder[i] * bandwidthPerSubChirp),
+    //         (frequencies.startFrequency + padding + (subChirpOrder[i] * bandwidthPerSubChirp)) + bandwidthPerSubChirp};
 
-        // Flipping for 0 bit:
-        // if (bit == 0)
-        // {
-        //     frequencyPair = {
-        //         frequencyPair.stopFrequency,
-        //         frequencyPair.startFrequency};
-        // }
+    //     // Flipping for 0 bit:
+    //     // if (bit == 0)
+    //     // {
+    //     //     frequencyPair = {
+    //     //         frequencyPair.stopFrequency,
+    //     //         frequencyPair.startFrequency};
+    //     // }
 
-        encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, kaiserWindowBeta);
-    }
+    //     encodeChirp(&output[i * sizePerSubChirp], frequencyPair, sizePerSubChirp, kaiserWindowBeta);
+    // }
 
     // ***********************
     // APPROACH 3
     // ***********************
+    // AudioCodecFrequencyPair frequenciesBit = bit == 0 ? frequencies[0] : frequencies[1];
+
+    // encodeChirp(output, frequenciesBit, bitSamples, kaiserWindowBeta);
+
+    // ***********************
+    // APPROACH 3 - AudioLocNet
+    // ***********************
+
+    // For 2 robots:
+    // int chirpOrder[4][4] = {
+    //     {3, 2, 1, 4},
+    //     {2, 4, 3, 1},
+    //     {1, 3, 4, 2},
+    //     {4, 1, 2, 3}};
+
+    // For 3 robots:
+    // int chirpOrder[6][6] = {
+    //     {3, 4, 1, 6, 2, 5},
+    //     {2, 3, 6, 5, 1, 4},
+    //     {1, 2, 5, 4, 6, 3},
+    //     {6, 1, 4, 3, 5, 2},
+    //     {5, 6, 3, 2, 4, 1},
+    //     {4, 5, 2, 1, 3, 6}};
+
+    // For 4 robots:
+    // int chirpOrder[8][8] = {
+    //     {1, 8, 7, 4, 3, 5, 2, 6},
+    //     {3, 6, 5, 2, 4, 7, 8, 1},
+    //     {8, 5, 6, 7, 1, 2, 4, 3},
+    //     {7, 1, 2, 5, 8, 6, 3, 4},
+    //     {6, 7, 4, 3, 2, 1, 5, 8},
+    //     {2, 4, 3, 6, 7, 8, 1, 5},
+    //     {4, 2, 1, 8, 5, 3, 6, 7},
+    //     {5, 3, 8, 1, 6, 4, 7, 2}};
+
+    // For 5 robots:
+    // int chirpOrder[10][10] = {
+    //     {1, 10, 9, 8, 7, 6, 5, 4, 3, 2},
+    //     {2, 3, 4, 5, 6, 7, 8, 9, 10, 1},
+    //     {10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
+    //     {3, 4, 5, 6, 7, 8, 9, 10, 1, 2},
+    //     {9, 8, 7, 6, 5, 4, 3, 2, 1, 10},
+    //     {4, 5, 6, 7, 8, 9, 10, 1, 2, 3},
+    //     {8, 7, 6, 5, 4, 3, 2, 1, 10, 9},
+    //     {5, 6, 7, 8, 9, 10, 1, 2, 3, 4},
+    //     {7, 6, 5, 4, 3, 2, 1, 10, 9, 8},
+    //     {6, 7, 8, 9, 10, 1, 2, 3, 4, 5}};
+
+    // For 6 robots:
+    // int chirpOrder[12][12] = {
+    //     {1, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2},
+    //     {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1},
+    //     {12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
+    //     {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2},
+    //     {11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12},
+    //     {4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3},
+    //     {10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11},
+    //     {5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4},
+    //     {9, 8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10},
+    //     {6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5},
+    //     {8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10, 9},
+    //     {7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6}};
+
+    vector<vector<int>> chirpOrder = generateChirpOrder(totalNumberRobots);
+
+    int numberOfSubChirps = totalNumberRobots * 2;
+    int subChirpSamples = bitSamples / numberOfSubChirps;
+    double frequencyTotal = frequencyPairBit.stopFrequency - frequencyPairBit.startFrequency;
+    double frequencyPerSubChirp = frequencyTotal / numberOfSubChirps;
+
+    // Determining frequencies to use:
+    int row = forRobotId * 2 + bit;
+
+    for (int column = 0; column < numberOfSubChirps; column++)
+    {
+        int chirpOrderIdx = chirpOrder[row][column];
+
+        double fs = frequencyPairBit.startFrequency + ((chirpOrderIdx - 1) * frequencyPerSubChirp);
+        double fe = fs + frequencyPerSubChirp;
+
+        AudioCodecFrequencyPair frequenciesSubChrip;
+
+        // Determine whether to use an up or down chirp:
+        if (chirpOrderIdx % 2 == column % 2)
+        {
+            frequenciesSubChrip.startFrequency = fe;
+            frequenciesSubChrip.stopFrequency = fs;
+        }
+        else
+        {
+            frequenciesSubChrip.startFrequency = fs;
+            frequenciesSubChrip.stopFrequency = fe;
+        }
+
+        encodeChirp(&output[column * subChirpSamples], frequenciesSubChrip, subChirpSamples, kaiserWindowBeta);
+    }
 
     // Flip the signal, if its needed for convolution:
     if (flipped)
@@ -217,23 +405,23 @@ void AudioCodec::encodeBits(double *output, uint8_t *bits, int numberOfBits)
     for (int i = 0; i < numberOfBits; i++)
     {
         int bit = bits[i];
-        int start = (i * bitSamples) + (i * 2 * BIT_PADDING);
+        int start = (i * bitSamples) + (i * 2 * bitPadding);
 
         // Add padding front:
-        for (int j = 0; j < BIT_PADDING; j++)
+        for (int j = 0; j < bitPadding; j++)
         {
             output[start + j] = 0;
         }
 
         for (int j = 0; j < bitSamples; j++)
         {
-            output[start + BIT_PADDING + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
+            output[start + bitPadding + j] = bit == 0 ? encodedBit0[j] : encodedBit1[j];
         }
 
         // Add padding back:
-        for (int j = 0; j < BIT_PADDING; j++)
+        for (int j = 0; j < bitPadding; j++)
         {
-            output[start + BIT_PADDING + bitSamples + j] = 0;
+            output[start + bitPadding + bitSamples + j] = 0;
         }
 
         // encodeBit(&output[i * bitSamples], bit, frequencyPairsOwn, false);
@@ -264,8 +452,8 @@ int AudioCodec::decodeBit(const double *window, const int windowSize, const int 
     getConvolutionResults(window, bit0Flipped[senderId], bitSamples, convolutionData0, fftConfigStoreConvBit, fftConfigStoreHilBit);
     getConvolutionResults(window, bit1Flipped[senderId], bitSamples, convolutionData1, fftConfigStoreConvBit, fftConfigStoreHilBit);
 
-    // double avg0 = calculateAverage(convolutionData0, bitSamples);
-    // double avg1 = calculateAverage(convolutionData1, bitSamples);
+    double avg0 = calculateAverage(convolutionData0, bitSamples);
+    double avg1 = calculateAverage(convolutionData1, bitSamples);
 
     // 2. Find the maximum values of both convolutions:
     double max0 = *max_element(convolutionData0, convolutionData0 + bitSamples);
