@@ -17,17 +17,17 @@ matplotlib.use('Qt5Agg')  # Change backend as needed
 import matplotlib.pyplot as plt
 
 # Project settings:
-SAMPLE_RATE = 22050
+SAMPLE_RATE = 44100
 NUM_CHANNELS = 6
-NUM_ROBOTS = 4
+NUM_ROBOTS = 6
 PREAMBLE_BITS = 8192
 SYMBOL_BITS = 320  # 320
 
-START_FREQ_PREAMBLE = 2500
-STOP_FREQ_PREAMBLE = 6500
+START_FREQ_PREAMBLE = 1500
+STOP_FREQ_PREAMBLE = 5500
 
-START_FREQ_BITS = 6500
-STOP_FREQ_BITS = 10500
+START_FREQ_BITS = 5500
+STOP_FREQ_BITS = 18000
 
 PREAMBLE_CONVOLUTION_CUTOFF = 9999999999  # 400 # Set to realy high when processing a file that is generated and not recorded
 
@@ -296,7 +296,7 @@ preamble_undersampled = np.empty((1, UNDER_SAMPLING_SIZE))
 for i in range(UNDER_SAMPLING_SIZE):
     preamble_undersampled[0][i] = preamble[0][i * UNDER_SAMPLING_DIVISOR]
 
-symbol_bits_values = [128, 256, 320, 512, 1024]
+symbol_bits_values = [128, 256, 512, 768, 1024]
 snr_hop_size = 2
 max_snr_val = 16
 nr_of_snr_cycles = int(max_snr_val / snr_hop_size) + 1

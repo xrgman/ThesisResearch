@@ -59,47 +59,7 @@ def most_occuring_element(input_list):
     return most_common_element
 
 
-# Calculate bit-wise CRC value over a series of bits:
-def calculate_crc(bits):
-    check_sum = 0
 
-    for i in range(0, len(bits), 8):
-        byte = bits_to_uint8t(bits[i:i + 8])
-        check_sum ^= byte
-
-    return check_sum
-
-
-# Calculate the energy of a signal:
-def calculate_energy(frame_data):
-    energy = np.square(frame_data)
-
-    energy = np.sum(energy)
-    # energy /= len(frame_data)
-    #
-    # energy = np.sqrt(energy)
-
-    return energy
-
-
-# Adds noise to a signal:
-def add_noise(data, snr):
-    # Calculate signal power and convert to dB
-    data_watts = data ** 2
-    sig_avg_watts = np.mean(data_watts)
-    sig_avg_db = 10 * np.log10(sig_avg_watts)
-
-    # Calculate noise according to [2] then convert to watts
-    noise_avg_db = sig_avg_db - snr
-    noise_avg_watts = 10 ** (noise_avg_db / 10)
-
-    # Generate an sample of white noise
-    mean_noise = 0
-    noise_volts = np.random.normal(mean_noise, np.sqrt(noise_avg_watts), len(data_watts))
-    # Noise up the original signal
-    noisy_signal = data + noise_volts
-
-    return noisy_signal
 
 
 def fft_convolve(in1, in2):
@@ -315,6 +275,16 @@ def calculate_ber(original_bits, received_bits):
     return wrong_bits / len(original_bits)
 
 
+# Calculate bit-wise CRC value over a series of bits:
+def calculate_crc(bits):
+    check_sum = 0
+
+    for i in range(0, len(bits), 8):
+        byte = bits_to_uint8t(bits[i:i + 8])
+        check_sum ^= byte
+
+    return check_sum
+
 def finish_decoding(decoding_result):
     # Checking CRC:
     crc_in_message = bits_to_uint8t(decoding_result.decoded_bits[-8:])
@@ -346,3 +316,34 @@ def finish_decoding(decoding_result):
         #print("CRC mismatch from robot " + str(decoding_result.sender_id) + ", dropping message!\n")
 
         return False, decoding_result.doa, average_energy
+
+
+def add_noise(data, snr):
+    # Calculate signal power and convert to dB
+    data_watts = data ** 2
+    sig_avg_watts = np.mean(data_watts)
+    sig_avg_db = 10 * np.log10(sig_avg_watts)
+
+    # Calculate noise according to [2] then convert to watts
+    noise_avg_db = sig_avg_db - snr
+    noise_avg_watts = 10 ** (noise_avg_db / 10)
+
+    # Generate an sample of white noise
+    mean_noise = 0
+    noise_volts = np.random.normal(mean_noise, np.sqrt(noise_avg_watts), len(data_watts))
+    # Noise up the original signal
+    noisy_signal = data + noise_volts
+
+    return noisy_signal
+
+
+# Calculate the energy of a signal:
+def calculate_energy(frame_data):
+    energy = np.square(frame_data)
+
+    energy = np.sum(energy)
+    # energy /= len(frame_data)
+    #
+    # energy = np.sqrt(energy)
+
+    return energy
