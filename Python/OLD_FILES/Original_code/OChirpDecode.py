@@ -10,6 +10,24 @@ from scipy.io.wavfile import read
 import time
 
 
+def add_noise(data, snr):
+    # Calculate signal power and convert to dB
+    data_watts = data ** 2
+    sig_avg_watts = np.mean(data_watts)
+    sig_avg_db = 10 * np.log10(sig_avg_watts)
+
+    # Calculate noise according to [2] then convert to watts
+    noise_avg_db = sig_avg_db - snr
+    noise_avg_watts = 10 ** (noise_avg_db / 10)
+
+    # Generate an sample of white noise
+    mean_noise = 0
+    noise_volts = np.random.normal(mean_noise, np.sqrt(noise_avg_watts), len(data_watts))
+    # Noise up the original signal
+    noisy_signal = data + noise_volts
+
+    return noisy_signal
+
 class OChirpDecode:
     """
         OChirpDecode
@@ -257,14 +275,15 @@ class OChirpDecode:
         if self.__encoder.T_preamble == 0.0:
             preamble_min_peak = 10000
 
-        fig, axs = plt.subplots(2)
-        fig.suptitle("preamble data")
-        axs[0].plot(data)
-        for conv in conv_data:
-            axs[1].plot(conv)
-        axs[1].hlines(preamble_min_peak, 0, data.size, color='black')
+        if plot:
+            fig, axs = plt.subplots(2)
+            fig.suptitle("preamble data")
+            axs[0].plot(data)
+            for conv in conv_data:
+                axs[1].plot(conv)
+            axs[1].hlines(preamble_min_peak, 0, data.size, color='black')
 
-        plt.show()
+            plt.show()
 
         if preamble_index is True:
             return np.argwhere(conv_data[0] > preamble_min_peak)[0][0]
@@ -353,25 +372,25 @@ class OChirpDecode:
         received_data = frombits(bits)
 
         # Plot the results
+        if plot:
+            fig, axs = plt.subplots(3, sharex=True)
+            fig.suptitle("Decode data results")
 
-        fig, axs = plt.subplots(3, sharex=True)
-        fig.suptitle("Decode data results")
+            t = np.linspace(0, (len(data) / self.__encoder.fsample) * 1000, len(data))
 
-        t = np.linspace(0, (len(data) / self.__encoder.fsample) * 1000, len(data))
-
-        axs[0].set_title("Data", fontsize=14)
-        axs[0].set_ylabel("Amplitude", fontsize=14)
-        axs[0].plot(t, data)
-        axs[1].set_title("Convolution with symbol 0", fontsize=14)
-        axs[1].set_ylabel("Amplitude", fontsize=14)
-        axs[1].plot(t, conv_data[0])
-        axs[2].set_title("Convolution with symbol 1", fontsize=14)
-        axs[2].set_ylabel("Amplitude", fontsize=14)
-        axs[2].plot(t, conv_data[1])
-        axs[2].set_xlabel("Time [ms]", fontsize=14)
-        for peak in peaks:
-            i = peak[1] + 1
-            axs[i].plot(peak[0] / self.__encoder.fsample * 1000, conv_data[peak[1]][peak[0]], "xr")
+            axs[0].set_title("Data", fontsize=14)
+            axs[0].set_ylabel("Amplitude", fontsize=14)
+            axs[0].plot(t, data)
+            axs[1].set_title("Convolution with symbol 0", fontsize=14)
+            axs[1].set_ylabel("Amplitude", fontsize=14)
+            axs[1].plot(t, conv_data[0])
+            axs[2].set_title("Convolution with symbol 1", fontsize=14)
+            axs[2].set_ylabel("Amplitude", fontsize=14)
+            axs[2].plot(t, conv_data[1])
+            axs[2].set_xlabel("Time [ms]", fontsize=14)
+            for peak in peaks:
+                i = peak[1] + 1
+                axs[i].plot(peak[0] / self.__encoder.fsample * 1000, conv_data[peak[1]][peak[0]], "xr")
 
         return received_data, bits
 
@@ -392,7 +411,7 @@ class OChirpDecode:
 
         return ber
 
-    def decode_file(self, file: str, plot: bool = False) -> float:
+    def decode_file(self, file: str, use_snr: bool = False, snr: int = 0, plot: bool = False) -> float:
         """
             Decode a pre-recorded file.
             Simply read the file and pass it on to decode_data
@@ -401,6 +420,10 @@ class OChirpDecode:
 
         data = data.astype(np.double) / np.iinfo(np.int16).max
         #data = self.add_noise(np.array(data_normalized), -10)
+
+        if use_snr:
+            data = add_noise(data, snr)
+
 
         print(data.shape)
         if len(data.shape) > 1 and data.shape[1] > 1:
@@ -474,16 +497,22 @@ class OChirpDecode:
 if __name__ == '__main__':
     # data_to_send = "Hello, World!"
     #
-    encoder = OChirpEncode(T=None)
+    encoder = OChirpEncode(T=0.0188)
     # file, data = encoder.convert_data_to_sound(data_to_send)
     # oc = OChirpDecode(original_data=data_to_send, encoder=encoder, plot_symbols=True)
     # oc.decode_file("temp.wav", plot=True)
-
-    from configuration import get_configuration_encoder, Configuration
 
     # encoder = get_configuration_encoder(Configuration.baseline_fast)
     decoder = OChirpDecode(encoder=encoder, original_data="Hello, World!")
 
     # decoder.decode_file("/home/pi/github/aud/Recorded_files/Obstructed_Top/Line_of_Sight/baseline/Raw_recordings/rec_050cm_000_locH2-IC02.wav", plot=True)
     #decoder.decode_file("Encoding/recording2.wav", plot=False)
-    decoder.decode_file("Encoding/encoding.wav", plot=False)
+    faulty = 0
+
+    for i in range(100):
+        ber = decoder.decode_file("temp.wav", True, -14, False)
+
+        if ber > 0:
+            faulty += 1
+
+    print("Faulty messages: " + str(faulty) + "\nPercentage: " + str(faulty / 100))

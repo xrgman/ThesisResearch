@@ -83,7 +83,8 @@ def plot_data(data):
     plt.show()
 
 
-bit_sample_values = [252, 516, 768, 1020, 1272]
+#bit_sample_values = [252, 516, 768, 1020, 1272]
+bit_sample_values = [8292]
 snr_hop_size = 2
 max_snr_val = 16
 nr_of_snr_cycles = int(max_snr_val / snr_hop_size) + 1

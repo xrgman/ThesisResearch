@@ -245,10 +245,13 @@ class ParticleFilter:
                 incorrect_particles.append(particle.ID)
 
         # 4. Resample the incorrect particles:
-        self.resample_incorrect_particles(correct_particles, incorrect_particles, noise_threshold)
+        if not self.resample_incorrect_particles(correct_particles, incorrect_particles, noise_threshold):
+            return False
 
         # 5. Update probabilities per cell, based on current particles per cell:
         self.update_probabilities_per_cell()
+
+        return True
 
     def is_coordinate_allowed(self, x_coordinate, y_coordinate):
         for cell in self.map_data.cells:
@@ -325,7 +328,7 @@ class ParticleFilter:
         if len(incorrect_particles) == self.number_of_particles:
             print("All particles are out of bound!")
 
-            return
+            return False
 
         # Creating particle distribution based on particles weights:
         particle_weights = [0] * len(correct_particles)
@@ -372,6 +375,8 @@ class ParticleFilter:
 
         # Normalize the weight of the particles:
         self.normalize_particle_weights()
+
+        return True
 
     # ******************************
     # Table functions

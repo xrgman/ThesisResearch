@@ -7,10 +7,10 @@ PRINT_AVERAGE_RMSE_CONVERGENCE = True
 
 PRINT_CONVERGENCE_DETAILS = True
 
-PLOT_ERROR_PROB_NON_CONVERGENCE = True
-PLOT_ERROR_PROB_CONVERGENCE = True
+PLOT_ERROR_PROB_NON_CONVERGENCE = False
+PLOT_ERROR_PROB_CONVERGENCE = False
 
-PLOT_LOCATION_DATA = False
+PLOT_LOCATION_DATA = True
 
 
 def read_numbers_from_all_files(folder):
@@ -57,7 +57,6 @@ if PRINT_CONVERGENCE_DETAILS:
         avg_conv_iterations = np.mean(numbers)
 
         print("Convergence iterations, min: " + str(min_conv_iterations) + ", max: " + str(max_conv_iterations) + ", average: " + str(avg_conv_iterations))
-
 
 if PLOT_ERROR_PROB_NON_CONVERGENCE:
     folder_name = "Results/PF_results/Errors_NonConvergence"
@@ -107,8 +106,25 @@ if PLOT_ERROR_PROB_CONVERGENCE:
 
 if PLOT_LOCATION_DATA:
     folder_name = "Results/PF_results/Location_Data_Convergence"
-    figure = "triangle"
+    figure = "rectangle"
     data_in_files = []
+
+    if figure == "rectangle":
+        path = [(61, 655), (100, 655), (139, 655), (178, 655), (217, 655),
+                          (256, 655), (295, 655), (334, 655), (373, 655), (412, 655),
+                          (451, 655), (490, 655), (490, 616), (490, 577), (490, 538),
+                          (490, 499), (490, 460), (490, 421), (490, 382), (490, 343),
+                          (451, 343), (412, 343), (373, 343), (334, 343), (295, 343),
+                          (295, 382), (295, 421), (295, 460), (295, 499), (295, 538),
+                          (295, 577), (295, 616), (295, 655), (334, 655), (373, 655),
+                          (412, 655), (451, 655), (490, 655)]
+    else:
+        path = [(490, 810), (451, 810), (412, 810), (373, 810), (334, 810),
+                (295, 810), (256, 810), (217, 810), (178, 810), (206, 782),
+                (234, 754), (262, 726), (290, 698), (318, 670), (346, 698),
+                (374, 726), (402, 754), (430, 782), (458, 810)]
+
+        path = [(x + 25, y) for x, y in path]
 
     # Reading all data
     for f_name in os.listdir(folder_name):
@@ -128,12 +144,13 @@ if PLOT_LOCATION_DATA:
 
                         tuples_list.append(tuple_values)
 
-                    data_in_files.append(tuples_list)
+                    if len(tuples_list) == len(path) or len(tuples_list) == len(path)-1 or len(tuples_list) == len(path) + 1:
+                        data_in_files.append(tuples_list)
 
     # Merging data from files by taking average:
     merged_data_in_files = []
     number_of_rows = len(data_in_files)
-    number_of_columns = len(data_in_files[0])
+    number_of_columns = len(path)
 
     for i in range(number_of_columns):
         known_x = data_in_files[0][i][0]
@@ -142,17 +159,20 @@ if PLOT_LOCATION_DATA:
         possible_y = 0
 
         for j in range(number_of_rows):
-            possible_x += data_in_files[j][i][2]
-            possible_y += data_in_files[j][i][3]
+            if len(data_in_files[j]) > i:
+                possible_x += data_in_files[j][i][2]
+                possible_y += data_in_files[j][i][3]
 
         possible_x /= number_of_rows
         possible_y /= number_of_rows
 
         merged_data_in_files.append((known_x, known_y, possible_x, possible_y))
 
+    merged_data_in_files.pop()
+
     # Plotting the results:
-    known_x = [t[0] for t in merged_data_in_files]
-    known_y = [t[1] for t in merged_data_in_files]
+    known_x = [t[0] for t in path]
+    known_y = [t[1] for t in path]
     possible_x = [t[2] for t in merged_data_in_files]
     possible_y = [t[3] for t in merged_data_in_files]
 
@@ -169,5 +189,3 @@ if PLOT_LOCATION_DATA:
 
     plt.savefig("../Figures/Evaluation/ParticleFilter/Convergence_" + figure + ".png")
     plt.show()
-
-

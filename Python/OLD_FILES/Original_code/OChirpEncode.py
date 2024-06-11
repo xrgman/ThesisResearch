@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io.wavfile import write
 from scipy.signal import chirp
-from .BitManipulation import tobits
+from BitManipulation import tobits
 
 
 class OChirpEncode:
@@ -419,13 +419,13 @@ class OChirpEncode:
         return concat_samples
 
 
-# if __name__ == '__main__':
-#     data_to_send = "Hello, World!"
-#
-#     oc = OChirpEncode(T=None)
-#     file, data = oc.convert_data_to_sound(data_to_send)
-#     # sd.play(data, oc.fsample, blocking=True)
-#
-#     plt.figure()
-#     plt.plot(oc.get_single_chirp(4))
-#     plt.show()
+if __name__ == '__main__':
+    data_to_send = "Hello, World!"
+
+    oc = OChirpEncode(T=0.0188)
+    file, data = oc.convert_data_to_sound(data_to_send)
+    # sd.play(data, oc.fsample, blocking=True)
+
+    plt.figure()
+    plt.plot(oc.get_single_chirp(4))
+    plt.show()
