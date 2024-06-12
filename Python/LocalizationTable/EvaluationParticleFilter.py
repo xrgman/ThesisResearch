@@ -17,21 +17,21 @@ NUMBER_OF_RUNS = 50
 NUMBER_OF_PARTICLES = 10108
 MOVEMENT_DISTANCE = 39.27#19.365  # Half wheel rotation  # 39.27  # One wheel rotation
 NOISE_THRESHOLD = 5
-DRAW_CELLS = False
-DRAW_PARTICLES = False
+DRAW_CELLS = True
+DRAW_PARTICLES = True
 
-DRAW_EVALUATION_PATH_CONVERGENCE = True
-RUN_EVALUATION_CONVERGENCE = False
-RUN_EVALUATION_AFTER_CONVERGENCE = False
+DRAW_EVALUATION_PATH_CONVERGENCE = False
+RUN_EVALUATION_CONVERGENCE = True
+RUN_EVALUATION_AFTER_CONVERGENCE = True
 
-SAVE = False
+SAVE = True
 
 # RMSE can be used
 
 current_position = None
 
 base_folder = "Results/PF_results"
-figure = "rectangle"
+figure = "triangle"
 
 
 def calculate_euclidean_distance(p1_x, p1_y, p2_x, p2_y):
@@ -87,7 +87,7 @@ def keep_running():
             break
 
 
-def run_convergence_sequence(start_position, start_angle, movement_data, stop_cell):
+def run_convergence_sequence(start_position, start_angle, movement_data, stop_cells):
     global current_position
 
     current_position = start_position
@@ -101,13 +101,20 @@ def run_convergence_sequence(start_position, start_angle, movement_data, stop_ce
 
     errors = []
     position_data = []
+    success = True
 
     while keep_moving:
+        # Add noise to distance and angle:
+        movement_to_use = MOVEMENT_DISTANCE + np.random.normal(0, 7)
+        angle_to_use = current_angle + np.random.normal(0, 3)
+
         # Move car:
-        particle_filter.process_movement(MOVEMENT_DISTANCE, current_angle, NOISE_THRESHOLD)
+        if not particle_filter.process_movement(movement_to_use, angle_to_use, NOISE_THRESHOLD):
+            success = False
+            keep_moving = False
 
         # Update current position car:
-        movement_x, movement_y = calculate_movement_along_axis(MOVEMENT_DISTANCE, current_angle)
+        movement_x, movement_y = calculate_movement_along_axis(movement_to_use, angle_to_use)
 
         current_position = (current_position[0] + movement_x, current_position[1] + movement_y)
 
@@ -135,16 +142,17 @@ def run_convergence_sequence(start_position, start_angle, movement_data, stop_ce
 
         # Checking if angle needs to be changed:
         if len(movement_data) > 0:
-            cell_to_check = movement_data[0][0]
+            for cell_to_check in movement_data[0][0]:
+                if particle_filter.get_map_data().get_cells()[cell_to_check].contains_point(current_position[0],
+                                                                                            current_position[1]):
+                    current_angle = movement_data[0][1]
 
-            if particle_filter.get_map_data().get_cells()[cell_to_check].contains_point(current_position[0],
-                                                                                        current_position[1]):
-                current_angle = movement_data[0][1]
-
-                movement_data.pop(0)
-        elif particle_filter.get_map_data().get_cells()[stop_cell].contains_point(current_position[0],
+                    movement_data.pop(0)
+        else:
+            for stop_cell in stop_cells:
+                if particle_filter.get_map_data().get_cells()[stop_cell].contains_point(current_position[0],
                                                                                   current_position[1]):
-            keep_moving = False
+                    keep_moving = False
 
     # Calculating the actual RMSE:
     mse_x = np.sqrt(mse_x / number_of_steps)
@@ -152,7 +160,7 @@ def run_convergence_sequence(start_position, start_angle, movement_data, stop_ce
 
     rmse = np.sqrt(mse_x * mse_x + mse_y * mse_y)
 
-    return rmse, errors, position_data, current_position, number_iterations_until_convergence
+    return success, rmse, errors, position_data, current_position, number_iterations_until_convergence
 
 
 # 0. Initialize the particle filter and map renderer
@@ -167,33 +175,33 @@ map_renderer.update_map(particle_filter, None, None, None, None, None)
 
 # Movement pattern rectangle:
 # start_cell = 10
-# stop_cell = 194
+# stop_cells = [194, 195, 181, 182]
 # start_angle = 90
-# stop_Cell_convergence = 206
+# stop_Cell_convergence = [206]
 # start_angle_convergence = 90
-# movement_data_evaluation_non_convergence = [(19, 180.0), (52, 90.0), (54, 180.0), (262, 270.0), (250, 0)]
-# movement_data_evaluation_convergence = [(206, 0.0), (111, 270.0), (106, 180.0), (201, 90.0)]
+# movement_data_evaluation_non_convergence = [([18, 19], 180.0), ([51, 52], 90.0), ([40, 41, 53, 54], 180.0), ([248, 260, 261, 262, 263], 270.0), ([250, 251, 236, 237], 0)]
+# movement_data_evaluation_convergence = [([191, 192, 193, 206, 220], 0.0), ([111, 112], 270.0), ([105, 106, 116, 117], 180.0), ([200, 201, 202], 90.0)]
 
 # Movement pattern circle
-# start_cell = 0
-# stop_cell = 262
-# start_angle = 180
-# stop_Cell_convergence = 261  # 259
-# start_angle_convergence = 270
-# movement_data_evaluation_non_convergence = [(30, 90.0), (34, 180.0), (105, 90.0), (112, 180.0)]
-# movement_data_evaluation_convergence = [(254, 45), (201, 135)]
+start_cell = 0
+stop_cells = [261, 262, 263]
+start_angle = 180
+stop_Cell_convergence = [260, 261, 262]  # 259
+start_angle_convergence = 270
+movement_data_evaluation_non_convergence = [([30], 90.0), ([24, 34], 180.0), ([105, 106], 90.0), ([101, 111, 112, 123], 180.0)]
+movement_data_evaluation_convergence = [([254], 45), ([201, 202], 135)]
 
 # Convergence sequence 3:
 # start_cell = 237
-# stop_cell = 30
+# stop_cells = [30]
 # start_angle = 0
 # movement_data_evaluation_non_convergence = [(182, 90.0), (193, 0.0), (41, 270)]
 
 # Convergence sequence 4:
-start_cell = 60
-stop_cell = 263
-start_angle = 90
-movement_data_evaluation_non_convergence = [(64, 180.0), (171, 90.0), (180, 180.0)]
+# start_cell = 60
+# stop_cells = [263]
+# start_angle = 90
+# movement_data_evaluation_non_convergence = [(64, 180.0), (171, 90.0), (180, 180.0)]
 
 if DRAW_EVALUATION_PATH_CONVERGENCE:
     # Convergence sequence 1:
@@ -269,9 +277,9 @@ for i in range(NUMBER_OF_RUNS):
         start_pos = particle_filter.get_map_data().get_cells()[start_cell].get_center()
         movement_data_eval = copy.deepcopy(movement_data_evaluation_non_convergence)
 
-        rmse, errors, pos_data, curr_poss, num_it_conv = run_convergence_sequence(start_pos, start_angle, movement_data_eval, stop_cell)
+        success, rmse, errors, pos_data, curr_poss, num_it_conv = run_convergence_sequence(start_pos, start_angle, movement_data_eval, stop_cells)
 
-        if SAVE:
+        if success and SAVE:
             # 1.1 Saving RMSE (this one will be in a table and used for comparison?):
             append_line_to_file(filename_rmse_non_convergence, rmse)
 
@@ -286,9 +294,9 @@ for i in range(NUMBER_OF_RUNS):
     if RUN_EVALUATION_AFTER_CONVERGENCE:
         movement_data_eval = copy.deepcopy(movement_data_evaluation_convergence)
 
-        rmse, errors, pos_data, curr_poss, num_it_conv = run_convergence_sequence(curr_poss, start_angle_convergence, movement_data_eval, stop_Cell_convergence)
+        success, rmse, errors, pos_data, curr_poss, num_it_conv = run_convergence_sequence(curr_poss, start_angle_convergence, movement_data_eval, stop_Cell_convergence)
 
-        if SAVE:
+        if success and SAVE:
             # 1.1 Saving RMSE (this one will be in a table and used for comparison?):
             append_line_to_file(filename_rmse_convergence, rmse)
 
